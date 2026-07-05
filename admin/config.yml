@@ -1,0 +1,27 @@
+backend:
+  name: git-gateway
+  branch: main
+
+media_folder: "assets"
+public_folder: "assets"
+
+collections:
+  - name: "episodes"
+    label: "Episodes"
+    label_singular: "Episode"
+    files:
+      - name: "episodes"
+        label: "Episode List"
+        file: "content/episodes.json"
+        fields:
+          - label: "Episodes"
+            name: "episodes"
+            widget: "list"
+            summary: "Episode #{{fields.episode_number}} — {{fields.title}}"
+            fields:
+              - { label: "Episode Number", name: "episode_number", widget: "number", value_type: "int" }
+              - { label: "Title", name: "title", widget: "string" }
+              - { label: "Air Date", name: "date", widget: "datetime", format: "YYYY-MM-DD", date_format: "YYYY-MM-DD", time_format: false }
+              - { label: "YouTube Link", name: "youtube_link", widget: "string" }
+              - { label: "Thumbnail", name: "thumbnail", widget: "image" }
+              - { label: "Description", name: "description", widget: "text" }
