@@ -1,9 +1,15 @@
 const TOTAL_EPISODES = 461;
 
-async function loadEpisodes() {
-  const res = await fetch('content/episodes.json');
-  const episodes = await res.json();
-  return episodes.sort((a, b) => b.episode_number - a.episode_number);
+let episodesPromise = null;
+function loadEpisodes() {
+  if (!episodesPromise) {
+    episodesPromise = (async () => {
+      const res = await fetch('content/episodes.json');
+      const episodes = await res.json();
+      return episodes.sort((a, b) => b.episode_number - a.episode_number);
+    })();
+  }
+  return episodesPromise;
 }
 
 function episodeCard(ep) {
