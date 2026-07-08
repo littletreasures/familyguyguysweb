@@ -1,0 +1,9 @@
+{
+  "name": "family-guy-guys",
+  "version": "1.0.0",
+  "description": "Tests for Family Guy Guys website",
+  "scripts": {
+    "test": "node --test"
+  },
+  "type": "module"
+}
