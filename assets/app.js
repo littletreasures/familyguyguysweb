@@ -1,5 +1,7 @@
 const TOTAL_EPISODES = 461;
 
+const dateFormatter = new Intl.DateTimeFormat('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+
 async function loadEpisodes() {
   const res = await fetch('content/episodes.json');
   const episodes = await res.json();
@@ -8,7 +10,7 @@ async function loadEpisodes() {
 
 function episodeCard(ep) {
   const remaining = TOTAL_EPISODES - ep.episode_number;
-  const dateStr = new Date(ep.date).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+  const dateStr = dateFormatter.format(new Date(ep.date));
   return `
     <article class="episode-card">
       <a href="${ep.youtube_link}" target="_blank" rel="noopener" class="episode-thumb">
