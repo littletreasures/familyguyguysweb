@@ -26,19 +26,22 @@ function episodeCard(ep) {
   `;
 }
 
-async function renderHomeEpisodes() {
-  const grid = document.getElementById('episodes-grid');
+async function renderEpisodes(gridId, limit = null) {
+  const grid = document.getElementById(gridId);
   if (!grid) return;
-  const episodes = await loadEpisodes();
-  const recent = episodes.slice(0, 3);
-  grid.innerHTML = recent.map(episodeCard).join('');
+  let episodes = await loadEpisodes();
+  if (limit) {
+    episodes = episodes.slice(0, limit);
+  }
+  grid.innerHTML = episodes.map(episodeCard).join('');
+}
+
+async function renderHomeEpisodes() {
+  await renderEpisodes('episodes-grid', 3);
 }
 
 async function renderAllEpisodes() {
-  const grid = document.getElementById('all-episodes-grid');
-  if (!grid) return;
-  const episodes = await loadEpisodes();
-  grid.innerHTML = episodes.map(episodeCard).join('');
+  await renderEpisodes('all-episodes-grid');
 }
 
 document.addEventListener('DOMContentLoaded', () => {
