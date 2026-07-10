@@ -50,6 +50,8 @@ function handleLocation() {
     
     if (subpath === '/pipeline') {
       routeParams = { page: 'pipeline' };
+    } else if (subpath === '/fg-admin') {
+      routeParams = { page: 'fg-admin' };
     } else if (subpath.startsWith('/season/')) {
       const seasonNum = Number(subpath.split('/')[2]);
       routeParams = { page: 'season', season: seasonNum };
