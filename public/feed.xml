@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" 
+  xmlns:itunes="http://www.itunes.com/dtds/podcast-1.0.dtd" 
+  xmlns:content="http://purl.org/rss/1.0/modules/content/">
+  <channel>
+    <title>Family Guy Guys</title>
+    <link>https://familyguyguys.com</link>
+    <language>en-us</language>
+    <copyright>&#x2117; &amp; &#xA9; 2026 Family Guy Guys</copyright>
+    <itunes:author>Collin, Tyler, and Jason</itunes:author>
+    <itunes:type>episodic</itunes:type>
+    <itunes:summary>A chronological rewatch podcast of Family Guy. Collin, Tyler, and Jason review every single episode.</itunes:summary>
+    <description>A chronological rewatch podcast of Family Guy. Collin, Tyler, and Jason review every single episode.</description>
+    <itunes:owner>
+      <itunes:name>Family Guy Guys</itunes:name>
+      <itunes:email>feedback@familyguyguys.com</itunes:email>
+    </itunes:owner>
+    <itunes:image href="https://familyguyguys.com/og/podcast-art-512.png" />
+    <itunes:category text="TV &amp; Film">
+      <itunes:category text="After Shows" />
+    </itunes:category>
+    <itunes:explicit>yes</itunes:explicit>
+  </channel>
+</rss>

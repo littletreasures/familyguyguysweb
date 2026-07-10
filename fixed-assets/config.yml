@@ -1,0 +1,21 @@
+backend:
+  name: git-gateway
+  branch: main
+
+media_folder: "assets"
+public_folder: "assets"
+
+collections:
+  - name: "episodes"
+    label: "Episodes"
+    folder: "data/episodes"
+    create: true
+    delete: true
+    slug: "ep-{{fields.number}}"
+    identifier_field: "number"
+    fields:
+      - { label: "Episode Number", name: "number", widget: "string", hint: "e.g. 003" }
+      - { label: "Title", name: "title", widget: "string" }
+      - { label: "YouTube Link", name: "youtube", widget: "string" }
+      - { label: "Thumbnail", name: "thumbnail", widget: "image" }
+      - { label: "Description", name: "description", widget: "text" }

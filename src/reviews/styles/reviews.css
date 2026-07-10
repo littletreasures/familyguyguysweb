@@ -1,0 +1,192 @@
+@import "tailwindcss";
+
+#review-app {
+  color: var(--black);
+  font-family: 'Neue Montreal', 'Helvetica Neue', sans-serif;
+  line-height: 1.6;
+}
+
+#review-app h1, 
+#review-app h2, 
+#review-app h3, 
+#review-app h4 {
+  font-family: 'Special Elite', monospace;
+  color: var(--black);
+  text-transform: uppercase;
+}
+
+/* Custom button themes */
+#review-app .primary-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--orange);
+  color: white;
+  font-family: 'Special Elite', monospace;
+  font-size: 0.85rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 0.6rem 1.3rem;
+  border-radius: 999px;
+  border: 2px solid var(--orange-dark);
+  transition: all 0.15s ease;
+  cursor: pointer;
+}
+
+#review-app .primary-button:hover {
+  background: var(--orange-dark);
+  transform: translateY(-1px);
+}
+
+#review-app .secondary-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: white;
+  color: var(--black);
+  font-family: 'Special Elite', monospace;
+  font-size: 0.8rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  padding: 0.6rem 1.3rem;
+  border-radius: 999px;
+  border: 2px solid var(--black);
+  transition: all 0.15s ease;
+  cursor: pointer;
+}
+
+#review-app .secondary-button:hover {
+  background: var(--black);
+  color: var(--off-white);
+  transform: translateY(-1px);
+}
+
+#review-app .secondary-button.small {
+  padding: 0.4rem 0.9rem;
+  font-size: 0.7rem;
+}
+
+#review-app .text-link {
+  font-family: 'Special Elite', monospace;
+  font-size: 0.85rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--orange);
+  font-weight: 700;
+  transition: color 0.15s ease;
+}
+
+#review-app .text-link:hover {
+  color: var(--orange-dark);
+  text-decoration: underline;
+}
+
+/* Form inputs & controls re-theme */
+#review-app .field {
+  width: 100%;
+  border: 2px solid var(--black);
+  background: white;
+  color: var(--black);
+  border-radius: 12px;
+  padding: 0.75rem 1rem;
+  font-size: 0.875rem;
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+#review-app .field:focus {
+  border-color: var(--orange);
+}
+
+#review-app select.field {
+  cursor: pointer;
+  appearance: none;
+  background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3E%3Cpath stroke='%231a1a1a' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3E%3C/svg%3E");
+  background-position: right 0.75rem center;
+  background-repeat: no-repeat;
+  background-size: 1.25rem;
+  padding-right: 2.5rem;
+}
+
+#review-app select option {
+  background: white;
+  color: var(--black);
+}
+
+#review-app .mini-field {
+  border: 1px solid var(--black);
+  background: white;
+  color: var(--black);
+  border-radius: 999px;
+  padding: 0.4rem 0.8rem;
+  font-size: 0.75rem;
+  outline: none;
+}
+
+/* Star rating slider re-theme */
+#review-app input[type="range"].accent-cyan-300 {
+  accent-color: var(--orange) !important;
+}
+
+/* Animations */
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+#review-app .animate-rise {
+  animation: rise 500ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* Custom card styled like hosts section */
+#review-app .cohost-card-themed {
+  border: 2px solid var(--black);
+  border-radius: 16px;
+  overflow: hidden;
+  background: white;
+  box-shadow: 4px 4px 0 rgba(0,0,0,0.15);
+}
+
+#review-app .border-white\/10 {
+  border-color: rgba(26,26,26,0.15) !important;
+}
+
+#review-app .bg-white\/5 {
+  background-color: white !important;
+  border: 2px solid var(--black) !important;
+  box-shadow: 4px 4px 0 rgba(0,0,0,0.15);
+}
+
+/* Status colors tailored to light theme */
+#review-app .status-tag {
+  font-family: 'Special Elite', monospace;
+  font-size: 0.7rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  padding: 0.25rem 0.65rem;
+  border-radius: 6px;
+  border: 2px solid var(--black);
+}
+
+#review-app .status-backlog {
+  background: #e2e8f0;
+  color: #475569;
+}
+#review-app .status-watched {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+#review-app .status-recorded {
+  background: #fef3c7;
+  color: #b45309;
+}
+#review-app .status-published {
+  background: #d1fae5;
+  color: #047857;
+}
