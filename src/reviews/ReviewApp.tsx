@@ -275,6 +275,9 @@ function App() {
 
     async function fetchData() {
       try {
+        if (!supabase) {
+          throw new Error("Missing Supabase credentials. Database features are disabled.");
+        }
         const results = await Promise.allSettled([
           supabase.from("cohosts").select("id, name, role, bio, accent"),
           supabase.from("episodes").select(
@@ -358,12 +361,15 @@ function App() {
   if (retryCount === 0) return; // Only run on retry attempts
   
   setLoading(true);
-  setLoadError(null); // Clear previous error
   
   const controller = new AbortController();
   
-  async function fetchData() {
+  const retryFetch = async () => {
+    setLoadError(null);
     try {
+      if (!supabase) {
+        throw new Error("Missing Supabase credentials. Database features are disabled.");
+      }
       const results = await Promise.allSettled([
         supabase.from("cohosts").select("id, name, role, bio, accent"),
         supabase.from("episodes").select(

@@ -108,6 +108,11 @@ async function loadDynamicEpisodes() {
   if (!latestEpisodeCard && !episodesList) return;
 
   try {
+    if (!supabase) {
+      console.log('Supabase credentials missing, skipping dynamic load.');
+      return;
+    }
+
     const { data: episodes, error } = await supabase
       .from('episodes')
       .select('id, season, episode_number, title, air_date, summary, podcast_url, watch_status')
