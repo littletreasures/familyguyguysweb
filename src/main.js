@@ -101,6 +101,20 @@ if (newsletterForm) {
 // Dynamic Episode Loader from Supabase
 import { supabase } from './reviews/lib/supabase.ts';
 
+// Helper to escape HTML characters to prevent DOM-based XSS
+function escapeHTML(str) {
+  if (!str) return '';
+  return str.replace(/[&<>'"]/g, 
+    tag => ({
+      '&': '&amp;',
+      '<': '&lt;',
+      '>': '&gt;',
+      "'": '&#39;',
+      '"': '&quot;'
+    }[tag] || tag)
+  );
+}
+
 async function loadDynamicEpisodes() {
   const latestEpisodeCard = document.querySelector('.episode-card-featured');
   const episodesList = document.getElementById('episodesList');
@@ -135,13 +149,13 @@ async function loadDynamicEpisodes() {
           <picture>
             <source srcset="/assets/ep${latest.episode_number.toString().padStart(3, '0')}-thumb-180w.avif 180w, /assets/ep${latest.episode_number.toString().padStart(3, '0')}-thumb-360w.avif 360w" type="image/avif" sizes="160px">
             <source srcset="/assets/ep${latest.episode_number.toString().padStart(3, '0')}-thumb-180w.webp 180w, /assets/ep${latest.episode_number.toString().padStart(3, '0')}-thumb-360w.webp 360w" type="image/webp" sizes="160px">
-            <img src="${thumbUrl}" alt="${latest.title} thumbnail" width="160" height="90" loading="lazy" onerror="this.src='/hero-480w.webp'; this.onerror=null;">
+            <img src="${thumbUrl}" alt="${escapeHTML(latest.title)} thumbnail" width="160" height="90" loading="lazy" onerror="this.src='/hero-480w.webp'; this.onerror=null;">
           </picture>
         </div>
         <div class="episode-meta">
           <div class="episode-number">Episode #${latest.episode_number.toString().padStart(3, '0')}</div>
-          <div class="episode-title">${latest.title}</div>
-          <div class="episode-desc">${latest.summary || ''}</div>
+          <div class="episode-title">${escapeHTML(latest.title)}</div>
+          <div class="episode-desc">${escapeHTML(latest.summary || '')}</div>
         </div>
       `;
     }
@@ -155,12 +169,12 @@ async function loadDynamicEpisodes() {
             <picture>
               <source srcset="/assets/ep${ep.episode_number.toString().padStart(3, '0')}-thumb-180w.avif 180w, /assets/ep${ep.episode_number.toString().padStart(3, '0')}-thumb-360w.avif 360w" type="image/avif" sizes="180px">
               <source srcset="/assets/ep${ep.episode_number.toString().padStart(3, '0')}-thumb-180w.webp 180w, /assets/ep${ep.episode_number.toString().padStart(3, '0')}-thumb-360w.webp 360w" type="image/webp" sizes="180px">
-              <img src="${thumbUrl}" alt="${ep.title}" class="ep-thumb" width="180" height="101" loading="lazy" onerror="this.src='/hero-480w.webp'; this.onerror=null;">
+              <img src="${thumbUrl}" alt="${escapeHTML(ep.title)}" class="ep-thumb" width="180" height="101" loading="lazy" onerror="this.src='/hero-480w.webp'; this.onerror=null;">
             </picture>
             <div class="ep-info">
               <div class="ep-num">Episode #${ep.episode_number.toString().padStart(3, '0')}</div>
-              <div class="ep-title">${ep.title}</div>
-              <div class="ep-desc">${ep.summary || ''}</div>
+              <div class="ep-title">${escapeHTML(ep.title)}</div>
+              <div class="ep-desc">${escapeHTML(ep.summary || '')}</div>
             </div>
           </a>
         `;
