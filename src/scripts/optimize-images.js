@@ -71,8 +71,7 @@ async function main() {
     }
     console.log('Image optimization pipeline completed successfully.');
   } catch (err) {
-    console.error('Error running image optimization:', err);
-    process.exit(1);
+    console.warn('Non-blocking error during image optimization:', err);
   }
 }
 
