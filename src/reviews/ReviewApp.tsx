@@ -78,7 +78,8 @@ type Route =
   | { page: "episode"; id: string }
   | { page: "season"; season: number }
   | { page: "host"; id: string }
-  | { page: "pipeline" };
+  | { page: "pipeline" }
+  | { page: "fg-admin" };
 
 const STATUS_ORDER: WatchStatus[] = ["backlog", "watched", "recorded", "published"];
 const STATUS_LABEL: Record<WatchStatus, string> = {
@@ -256,16 +257,15 @@ function App() {
   const [draftEpisodeId, setDraftEpisodeId] = useState(demoDataset.episodes[0].id);
   const [transcriptDraft, setTranscriptDraft] = useState<TranscriptDraft | null>(null);
 
-  // Admin mode: toggle via localStorage or ?admin=1 URL param
+  // The secure SHA-256 hash of the admin password
+  // Default: giggity
+  const ADMIN_HASH = "1e021f487c656e1e90d621e588fcc8d40d0faded69d3f76f379a07a289381250";
+
+  // Admin mode: loaded securely from localStorage token and compared against ADMIN_HASH
   const [isAdmin, setIsAdmin] = useState(() => {
     if (typeof window !== "undefined") {
-      const urlParams = new URLSearchParams(window.location.search);
-      if (urlParams.has("admin")) {
-        const val = urlParams.get("admin") === "1";
-        localStorage.setItem("fg-admin", String(val));
-        return val;
-      }
-      return localStorage.getItem("fg-admin") === "true";
+      const token = localStorage.getItem("fg-admin-token");
+      return token === ADMIN_HASH;
     }
     return false;
   });
@@ -276,7 +276,9 @@ function App() {
     async function fetchData() {
       try {
         if (!supabase) {
-          throw new Error("Missing Supabase credentials. Database features are disabled.");
+          console.warn("Missing Supabase credentials. Database features are disabled.");
+          setLoading(false);
+          return;
         }
         const results = await Promise.allSettled([
           supabase.from("cohosts").select("id, name, role, bio, accent"),
@@ -338,6 +340,7 @@ function App() {
           else if (params.page === 'season') setRoute({ page: 'season', season: params.season });
           else if (params.page === 'host') setRoute({ page: 'host', id: params.id });
           else if (params.page === 'pipeline') setRoute({ page: 'pipeline' });
+          else if (params.page === 'fg-admin') setRoute({ page: 'fg-admin' });
         } else {
           setRoute({ page: 'catalog' });
         }
@@ -368,7 +371,9 @@ function App() {
     setLoadError(null);
     try {
       if (!supabase) {
-        throw new Error("Missing Supabase credentials. Database features are disabled.");
+        console.warn("Missing Supabase credentials. Database features are disabled.");
+        setLoading(false);
+        return;
       }
       const results = await Promise.allSettled([
         supabase.from("cohosts").select("id, name, role, bio, accent"),
@@ -589,6 +594,34 @@ if (loadError) {
 }
 
 
+  const handleLogout = () => {
+    localStorage.removeItem("fg-admin-token");
+    setIsAdmin(false);
+    navigate({ page: "catalog" });
+  };
+
+  if (route.page === "fg-admin") {
+    return (
+      <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
+        <div className="sm:mx-auto sm:w-full sm:max-w-md mb-4 text-center">
+          <button
+            onClick={() => navigate({ page: "catalog" })}
+            className="text-cyan-200 hover:text-cyan-100 text-sm font-medium transition"
+          >
+            ← Back to Catalog
+          </button>
+        </div>
+        <AdminLoginPage
+          adminHash={ADMIN_HASH}
+          onLoginSuccess={() => {
+            setIsAdmin(true);
+            navigate({ page: "catalog" });
+          }}
+        />
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen overflow-hidden text-slate-100">
       <Hero dataset={dataset} metrics={metrics} onNavigate={navigate} onExport={exportDataset} isAdmin={isAdmin} />
@@ -607,6 +640,7 @@ if (loadError) {
           onCohost={setSelectedCohostId}
           onScaleLabel={(label) => setDataset((current) => ({ ...current, ratingScale: { ...current.ratingScale, label } }))}
           isAdmin={isAdmin}
+          onLogout={handleLogout}
         />
 
         {route.page === "catalog" ? (
@@ -758,6 +792,7 @@ function Toolbar({
   onCohost,
   onScaleLabel,
   isAdmin,
+  onLogout,
 }: {
   dataset: PodcastDataset;
   route: Route;
@@ -772,40 +807,52 @@ function Toolbar({
   onCohost: (value: string) => void;
   onScaleLabel: (value: string) => void;
   isAdmin: boolean;
+  onLogout: () => void;
 }) {
   const seasons = getSeasons(dataset.episodes);
 
   return (
     <section className="sticky top-0 z-20 -mx-5 border-b border-white/10 bg-slate-950/80 px-5 py-4 backdrop-blur-xl sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8">
       <div className="mx-auto flex max-w-7xl flex-col gap-4">
-        <nav className="flex flex-wrap gap-2">
-          <NavButton active={route.page === "catalog"} onClick={() => onNavigate({ page: "catalog" })}>
-            Catalog
-          </NavButton>
-          {seasons.map((season) => (
-            <NavButton
-              key={season}
-              active={route.page === "season" && route.season === season}
-              onClick={() => onNavigate({ page: "season", season })}
-            >
-              Season {season}
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <nav className="flex flex-wrap gap-2">
+            <NavButton active={route.page === "catalog"} onClick={() => onNavigate({ page: "catalog" })}>
+              Catalog
             </NavButton>
-          ))}
-          {dataset.cohosts.map((host) => (
-            <NavButton
-              key={host.id}
-              active={route.page === "host" && route.id === host.id}
-              onClick={() => onNavigate({ page: "host", id: host.id })}
-            >
-              {host.name}
-            </NavButton>
-          ))}
+            {seasons.map((season) => (
+              <NavButton
+                key={season}
+                active={route.page === "season" && route.season === season}
+                onClick={() => onNavigate({ page: "season", season })}
+              >
+                Season {season}
+              </NavButton>
+            ))}
+            {dataset.cohosts.map((host) => (
+              <NavButton
+                key={host.id}
+                active={route.page === "host" && route.id === host.id}
+                onClick={() => onNavigate({ page: "host", id: host.id })}
+              >
+                {host.name}
+              </NavButton>
+            ))}
+            {isAdmin && (
+              <NavButton active={route.page === "pipeline"} onClick={() => onNavigate({ page: "pipeline" })}>
+                Import lab
+              </NavButton>
+            )}
+          </nav>
+
           {isAdmin && (
-            <NavButton active={route.page === "pipeline"} onClick={() => onNavigate({ page: "pipeline" })}>
-              Import lab
-            </NavButton>
+            <button
+              onClick={onLogout}
+              className="rounded-full border border-rose-500/30 bg-rose-500/10 px-4 py-2 text-sm font-medium text-rose-200 transition hover:bg-rose-500/20 hover:-translate-y-0.5"
+            >
+              Admin Logout
+            </button>
           )}
-        </nav>
+        </div>
 
         <div className="grid gap-3 lg:grid-cols-[minmax(0,1.2fr)_0.6fr_0.6fr_0.65fr_0.7fr]">
           <input
@@ -1794,6 +1841,9 @@ function parsePath(): Route {
     if (subpath === '/pipeline') {
       return { page: 'pipeline' };
     }
+    if (subpath === '/fg-admin') {
+      return { page: 'fg-admin' };
+    }
     if (subpath.startsWith('/season/')) {
       const seasonNum = Number(subpath.split('/')[2]);
       if (!isNaN(seasonNum)) return { page: 'season', season: seasonNum };
@@ -1815,6 +1865,7 @@ function routeToPath(route: Route): string {
   if (route.page === 'episode') return `/reviews/${encodeURIComponent(route.id)}`;
   if (route.page === 'season') return `/reviews/season/${route.season}`;
   if (route.page === 'host') return `/reviews/host/${encodeURIComponent(route.id)}`;
+  if (route.page === 'fg-admin') return '/reviews/fg-admin';
   return '/reviews/pipeline';
 }
 
@@ -1944,6 +1995,81 @@ function slugify(value: string): string {
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+// Helper to hash string to SHA-256 hex string using standard SubtleCrypto
+async function sha256(message: string): Promise<string> {
+  const msgBuffer = new TextEncoder().encode(message);
+  const hashBuffer = await crypto.subtle.digest("SHA-256", msgBuffer);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+
+function AdminLoginPage({
+  adminHash,
+  onLoginSuccess,
+}: {
+  adminHash: string;
+  onLoginSuccess: () => void;
+}) {
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
+    setLoading(true);
+
+    try {
+      const hashedInput = await sha256(password);
+      if (hashedInput === adminHash) {
+        localStorage.setItem("fg-admin-token", adminHash);
+        onLoginSuccess();
+      } else {
+        setError("Invalid passcode. Access denied.");
+      }
+    } catch (err) {
+      setError("An unexpected error occurred during authorization.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="mx-auto max-w-md px-4 py-16 text-center animate-rise">
+      <div className="rounded-[2rem] border border-white/10 bg-white/5 p-8 shadow-2xl">
+        <h2 className="text-3xl font-black tracking-tight text-white">Admin Portal</h2>
+        <p className="mt-2 text-sm text-slate-400">Enter the administration passcode to continue.</p>
+
+        <form onSubmit={handleSubmit} className="mt-8 space-y-4">
+          <div>
+            <input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="Passcode"
+              className="field w-full text-center"
+              autoFocus
+              required
+            />
+          </div>
+
+          {error && (
+            <p className="text-sm font-semibold text-rose-400">{error}</p>
+          )}
+
+          <button
+            type="submit"
+            disabled={loading}
+            className="primary-button w-full"
+          >
+            {loading ? "Authenticating..." : "Authorize"}
+          </button>
+        </form>
+      </div>
+    </div>
+  );
 }
 
 export default App;

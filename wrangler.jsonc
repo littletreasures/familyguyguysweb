@@ -1,15 +1,12 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "familyguyguysweb",
-  "compatibility_date": "2026-07-06",
+  "compatibility_date": "2026-07-10",
   "observability": {
     "enabled": true
   },
   "assets": {
-    "directory": "dist"
-  },
-  "build": {
-    "command": "npm run build"
+    "directory": "./dist"
   },
   "compatibility_flags": [
     "nodejs_compat"
