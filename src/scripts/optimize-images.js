@@ -1,6 +1,5 @@
 import fs from 'fs';
 import path from 'path';
-import sharp from 'sharp';
 
 const PUBLIC_DIR = path.resolve('public');
 const ASSETS_DIR = path.resolve('public/assets');
@@ -18,7 +17,7 @@ const IMAGES_TO_OPTIMIZE = [
   { file: 'I’m A Gagger.png', path: ASSETS_DIR, widths: [300], name: 'I’m A Gagger' },
 ];
 
-async function optimizeImage(img) {
+async function optimizeImage(img, sharp) {
   const inputPath = path.join(img.path, img.file);
   if (!fs.existsSync(inputPath)) {
     console.warn(`Input image not found: ${inputPath}`);
@@ -57,9 +56,18 @@ async function optimizeImage(img) {
 }
 
 async function main() {
+  let sharp;
+  try {
+    const sharpModule = await import('sharp');
+    sharp = sharpModule.default;
+  } catch (err) {
+    console.warn('Skipping image optimization: sharp module could not be loaded (native binary support might be missing in this environment). Error:', err.message);
+    return;
+  }
+
   try {
     for (const img of IMAGES_TO_OPTIMIZE) {
-      await optimizeImage(img);
+      await optimizeImage(img, sharp);
     }
     console.log('Image optimization pipeline completed successfully.');
   } catch (err) {
