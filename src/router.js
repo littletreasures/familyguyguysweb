@@ -33,7 +33,8 @@ export function navigateTo(path) {
 }
 
 function handleLocation() {
-  const path = window.location.pathname;
+  const rawPath = window.location.pathname;
+  const path = rawPath.endsWith('/') && rawPath.length > 1 ? rawPath.slice(0, -1) : rawPath;
   let activePage = 'home';
   let routeParams = null;
 
@@ -91,9 +92,14 @@ function handleLocation() {
     });
   };
 
-  if (document.startViewTransition) {
-    document.startViewTransition(updateDOM);
-  } else {
+  try {
+    if (document.startViewTransition) {
+      document.startViewTransition(updateDOM);
+    } else {
+      updateDOM();
+    }
+  } catch (e) {
+    console.error('View transition error:', e);
     updateDOM();
   }
 
