@@ -1,8 +1,10 @@
 node_modules
-dist
+dist/*
+!dist/.gitkeep
 .env.local
 .env.*.local
 .DS_Store
 originalfamilyguyguys-site.zip
 originalfamilyguyguys-site/
 family-guy-guys.html
+.agents/
