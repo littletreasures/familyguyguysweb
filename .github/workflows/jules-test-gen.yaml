@@ -1,0 +1,22 @@
+name: Jules Nightly Test Generator
+on:
+  schedule:
+    - cron: '0 2 * * *' # Nightly at 02:00 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  jules-test-gen:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Run Jules Test Generation
+        uses: google/jules-action@v2
+        with:
+          jules_api_key: ${{ secrets.JULES_API_KEY }}
+          prompt: |
+            Analyze the git delta changes from the last 24 hours. Identify any missing test coverage for modified files or newly added functions, and generate comprehensive unit tests using the project's testing framework. Document the generated tests and structural changes in JULES.md in the root of the repository to be included in the Pull Request.

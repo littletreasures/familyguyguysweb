@@ -1,0 +1,7 @@
+requests
+supabase
+python-dotenv
+streamlit
+google-generativeai
+openai
+anthropic

@@ -59,19 +59,7 @@ type PodcastDataset = {
 };
 
 
-type DraftReview = {
-  cohostId: string;
-  rating: number | null;
-  review: string;
-  pullQuote: string;
-};
 
-type TranscriptDraft = {
-  episodeId: string;
-  summary: string;
-  notes: string;
-  reviews: DraftReview[];
-};
 
 type Route =
   | { page: "catalog" }
@@ -231,12 +219,7 @@ const schemaTemplate = JSON.stringify(
   2,
 );
 
-const transcriptExample = `EPISODE: s01e01-death-has-a-shadow
-SUMMARY: The group talks about how the pilot establishes the Griffin family, what already works, and where the show still feels rough.
 
-Collin: I am at 4/5 Quahogs. The pilot is messy, but the pace and family dynamic already feel like the show has a clear comic engine.
-Tyler: 3.5 out of 5 for me. I liked the rough edges more than expected, especially when the episode lets Lois react to the chaos.
-Jason: I landed on 4.5. It is a little all over the place, but the confidence of the cutaways and Peter's stupidity really works.`;
 
 function App() {
   const [loading, setLoading] = useState(true);
@@ -253,9 +236,7 @@ function App() {
   const [jsonText, setJsonText] = useState(schemaTemplate);
   const [importMessage, setImportMessage] = useState("Demo v2 dataset loaded.");
   const [importError, setImportError] = useState("");
-  const [transcriptText, setTranscriptText] = useState(transcriptExample);
-  const [draftEpisodeId, setDraftEpisodeId] = useState(demoDataset.episodes[0].id);
-  const [transcriptDraft, setTranscriptDraft] = useState<TranscriptDraft | null>(null);
+
 
   // The secure SHA-256 hash of the admin password
   // Default: giggity
@@ -355,10 +336,7 @@ function App() {
     if (!dataset.cohosts.some((host) => host.id === selectedCohostId)) {
       setSelectedCohostId(dataset.cohosts[0]?.id ?? "");
     }
-    if (!dataset.episodes.some((episode) => episode.id === draftEpisodeId)) {
-      setDraftEpisodeId(dataset.episodes[0]?.id ?? "");
-    }
-  }, [dataset, draftEpisodeId, selectedCohostId]);
+  }, [dataset, selectedCohostId]);
 
   useEffect(() => {
   if (retryCount === 0) return; // Only run on retry attempts
@@ -482,7 +460,6 @@ function App() {
       setImportError("");
       setImportMessage(`Imported ${next.episodes.length} episodes and ${next.cohosts.length} hosts from ${sourceLabel}.`);
       setSelectedCohostId(next.cohosts[0]?.id ?? "");
-      setDraftEpisodeId(next.episodes[0]?.id ?? "");
       navigate({ page: "catalog" });
     } catch (error) {
       setImportError(error instanceof Error ? error.message : "Could not import this JSON.");
@@ -505,36 +482,7 @@ function App() {
     URL.revokeObjectURL(url);
   }
 
-  function makeTranscriptDraft() {
-    const draft = parseTranscript(transcriptText, draftEpisodeId, dataset.cohosts);
-    setTranscriptDraft(draft);
-  }
 
-  function applyTranscriptDraft() {
-    if (!transcriptDraft) return;
-    updateEpisode(transcriptDraft.episodeId, (episode) => ({
-      ...episode,
-      summary: transcriptDraft.summary || episode.summary,
-      transcriptNotes: transcriptDraft.notes || episode.transcriptNotes,
-      watchStatus: episode.watchStatus === "backlog" ? "recorded" : episode.watchStatus,
-      reviews: alignReviews(
-        episode.reviews.map((review) => {
-          const draft = transcriptDraft.reviews.find((item) => item.cohostId === review.cohostId);
-          if (!draft) return review;
-          return {
-            ...review,
-            rating: draft.rating ?? review.rating,
-            review: draft.review || review.review,
-            pullQuote: draft.pullQuote || review.pullQuote,
-            draftSource: "transcript",
-            updatedAt: new Date().toISOString(),
-          };
-        }),
-        dataset.cohosts,
-      ),
-    }));
-    setImportMessage("Transcript draft applied to the selected episode.");
-  }
 
 if (loading) {
   return (
@@ -704,9 +652,6 @@ if (loadError) {
             jsonText={jsonText}
             importMessage={importMessage}
             importError={importError}
-            transcriptText={transcriptText}
-            transcriptDraft={transcriptDraft}
-            draftEpisodeId={draftEpisodeId}
             onJsonText={setJsonText}
             onImportJson={() => importJson(jsonText, "pasted JSON")}
             onImportFile={(file) => void importFile(file)}
@@ -714,14 +659,9 @@ if (loadError) {
             onResetDemo={() => {
               setDataset(demoDataset);
               setSelectedCohostId(demoDataset.cohosts[0].id);
-              setDraftEpisodeId(demoDataset.episodes[0].id);
               setImportMessage("Demo v2 dataset restored.");
               setImportError("");
             }}
-            onTranscriptText={setTranscriptText}
-            onDraftEpisode={setDraftEpisodeId}
-            onBuildDraft={makeTranscriptDraft}
-            onApplyDraft={applyTranscriptDraft}
           />
         ) : null}
       </main>
@@ -1346,35 +1286,21 @@ function PipelinePage({
   jsonText,
   importMessage,
   importError,
-  transcriptText,
-  transcriptDraft,
-  draftEpisodeId,
   onJsonText,
   onImportJson,
   onImportFile,
   onRestoreTemplate,
   onResetDemo,
-  onTranscriptText,
-  onDraftEpisode,
-  onBuildDraft,
-  onApplyDraft,
 }: {
   dataset: PodcastDataset;
   jsonText: string;
   importMessage: string;
   importError: string;
-  transcriptText: string;
-  transcriptDraft: TranscriptDraft | null;
-  draftEpisodeId: string;
   onJsonText: (value: string) => void;
   onImportJson: () => void;
   onImportFile: (file: File) => void;
   onRestoreTemplate: () => void;
   onResetDemo: () => void;
-  onTranscriptText: (value: string) => void;
-  onDraftEpisode: (value: string) => void;
-  onBuildDraft: () => void;
-  onApplyDraft: () => void;
 }) {
   return (
     <div className="animate-rise mt-8 grid gap-8 xl:grid-cols-[minmax(0,1fr)_420px]">
@@ -1382,7 +1308,7 @@ function PipelinePage({
         <SectionIntro
           eyebrow="Import lab"
           title="A schema for the workflow you actually have."
-          copy="Use this as the handoff between IMDb-style metadata, transcript summaries, and final cohost edits."
+          copy="Review, validate, and load generated dataset JSON structures from your local Python admin pipeline."
         />
         <div className="mt-6 grid gap-5 lg:grid-cols-2">
           <div className="rounded-[1.6rem] border border-white/10 bg-white/5 p-5">
@@ -1420,46 +1346,32 @@ function PipelinePage({
           </div>
 
           <div className="rounded-[1.6rem] border border-white/10 bg-white/5 p-5">
-            <h3 className="text-xl font-semibold text-white">Transcript to draft reviews</h3>
+            <h3 className="text-xl font-semibold text-white">Python Admin Pipeline</h3>
             <p className="mt-2 text-sm leading-6 text-slate-400">
-              Paste a transcript with speaker labels. The helper pulls out a summary, ratings, and first-pass reviews for matching cohosts.
+              For a secure and structured review workflow, use the local pipeline scripts in the admin-tools/ directory. You can launch a Streamlit GUI or execute raw commands via CLI to push updates directly to Supabase.
             </p>
-            <select value={draftEpisodeId} onChange={(event) => onDraftEpisode(event.target.value)} className="field mt-4 w-full">
-              {dataset.episodes.sort(compareEpisodes).map((episode) => (
-                <option key={episode.id} value={episode.id}>
-                  {formatEpisodeCode(episode)} - {episode.title}
-                </option>
-              ))}
-            </select>
-            <textarea value={transcriptText} onChange={(event) => onTranscriptText(event.target.value)} className="field mt-4 min-h-[300px] w-full font-mono text-xs" />
-            <div className="mt-4 flex flex-wrap gap-3">
-              <button type="button" onClick={onBuildDraft} className="primary-button">
-                Build draft
-              </button>
-              <button type="button" onClick={onApplyDraft} disabled={!transcriptDraft} className="secondary-button disabled:cursor-not-allowed disabled:opacity-40">
-                Apply to episode
-              </button>
-            </div>
-            {transcriptDraft ? (
-              <div className="mt-5 space-y-4 rounded-3xl border border-white/10 bg-slate-950/50 p-4">
-                <div>
-                  <p className="text-xs uppercase tracking-[0.3em] text-slate-500">Summary draft</p>
-                  <p className="mt-2 text-sm leading-6 text-slate-300">{transcriptDraft.summary}</p>
-                </div>
-                <div className="divide-y divide-white/10 border-y border-white/10">
-                  {transcriptDraft.reviews.map((review) => {
-                    const host = dataset.cohosts.find((item) => item.id === review.cohostId);
-                    return (
-                      <div key={review.cohostId} className="py-3">
-                        <p className="font-medium text-white">{host?.name ?? review.cohostId}</p>
-                        <p className="text-sm text-slate-400">Rating: {review.rating ?? "not found"}</p>
-                        <p className="mt-2 text-sm leading-6 text-slate-300">{review.review}</p>
-                      </div>
-                    );
-                  })}
-                </div>
+            <div className="mt-5 space-y-4 rounded-3xl border border-white/10 bg-slate-950/50 p-4 text-xs font-mono text-slate-300">
+              <div>
+                <p className="text-cyan-200 font-semibold mb-1">1. Install Dependencies &amp; Secrets</p>
+                <pre className="bg-black/30 p-2 rounded border border-white/5 overflow-x-auto whitespace-pre-wrap">
+                  cd admin-tools{"\n"}
+                  pip install -r requirements.txt{"\n"}
+                  cp .env.example .env
+                </pre>
               </div>
-            ) : null}
+              <div>
+                <p className="text-cyan-200 font-semibold mb-1">2. Launch Streamlit Hub</p>
+                <pre className="bg-black/30 p-2 rounded border border-white/5 overflow-x-auto whitespace-pre-wrap">
+                  streamlit run app.py
+                </pre>
+              </div>
+              <div>
+                <p className="text-cyan-200 font-semibold mb-1">3. CLI Command Guide</p>
+                <pre className="bg-black/30 p-2 rounded border border-white/5 overflow-x-auto whitespace-pre-wrap">
+                  python omdb_fetch.py --season 1 --episode 4 --episode-id s01e04
+                </pre>
+              </div>
+            </div>
           </div>
         </div>
       </section>
@@ -1474,11 +1386,11 @@ function PipelinePage({
         </SidePanel>
         <SidePanel title="Suggested pipeline">
           <ol className="space-y-3 text-sm leading-6 text-slate-300">
-            <li>1. Build episode metadata from IMDb-style research into the v2 JSON schema.</li>
-            <li>2. Record and transcribe the podcast episode outside the site.</li>
-            <li>3. Paste transcript text into the helper to draft summaries and reviews.</li>
-            <li>4. Each cohost logs in conceptually by selecting their profile and rewrites their review.</li>
-            <li>5. Export JSON when the episode moves to published.</li>
+            <li>1. Backfill metadata from OMDb using the `omdb_fetch.py` tool.</li>
+            <li>2. Run the transcript parsing tool locally via Streamlit or the `generate_review.py` script.</li>
+            <li>3. Push reviews directly to database or paste the formatted JSON structure here.</li>
+            <li>4. Cohosts edit or rewrite reviews via the host diary/episode page.</li>
+            <li>5. Move status to Published to make the episode go live.</li>
           </ol>
         </SidePanel>
       </aside>
@@ -1834,29 +1746,7 @@ function normalizeFacts(raw: unknown): EpisodeFact[] {
   return [];
 }
 
-function parseTranscript(text: string, episodeId: string, cohosts: Cohost[]): TranscriptDraft {
-  const lines = text.split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
-  const summaryLine = lines.find((line) => /^summary\s*:/i.test(line));
-  const episodeLine = lines.find((line) => /^episode\s*:/i.test(line));
-  const inferredEpisodeId = episodeLine?.replace(/^episode\s*:/i, "").trim() || episodeId;
-  const nonSpeakerText = lines
-    .filter((line) => !/^summary\s*:/i.test(line) && !/^episode\s*:/i.test(line) && !cohosts.some((host) => line.toLowerCase().startsWith(`${host.name.toLowerCase()}:`)))
-    .join(" ");
-  const summary = summaryLine?.replace(/^summary\s*:/i, "").trim() || firstSentences(nonSpeakerText || text, 2);
-  const reviews = cohosts.map((host) => {
-    const chunks = lines
-      .filter((line) => line.toLowerCase().startsWith(`${host.name.toLowerCase()}:`))
-      .map((line) => line.slice(host.name.length + 1).trim());
-    const review = chunks.join("\n\n") || "No speaker-labeled transcript text found for this host.";
-    return {
-      cohostId: host.id,
-      rating: extractRating(review),
-      review: removeRatingLanguage(review),
-      pullQuote: firstSentences(removeRatingLanguage(review), 1),
-    };
-  });
-  return { episodeId: inferredEpisodeId, summary, notes: `Drafted from transcript on ${new Date().toLocaleDateString()}.`, reviews };
-}
+
 
 
 function parsePath(): Route {
@@ -2000,19 +1890,7 @@ function titleCase(value: string): string {
   return value.replace(/([a-z])([A-Z])/g, "$1 $2").replace(/[_-]+/g, " ").replace(/\b\w/g, (char) => char.toUpperCase());
 }
 
-function firstSentences(value: string, count: number): string {
-  const sentences = value.match(/[^.!?]+[.!?]+/g) ?? [value];
-  return sentences.slice(0, count).join(" ").trim();
-}
 
-function extractRating(value: string): number | null {
-  const match = value.match(/(\d(?:\.5)?)(?:\s*\/\s*5|\s*out of\s*5|\s*(?:stars?|quahogs?|giggitys?|points?))/i);
-  return match ? ratingValue(match[1]) : null;
-}
-
-function removeRatingLanguage(value: string): string {
-  return value.replace(/\b(?:i am at|i'm at|i landed on|for me|rating:?|score:?)?\s*\d(?:\.5)?\s*(?:\/\s*5|out of\s*5|stars?|quahogs?|giggitys?|points?)\b[,.]?/gi, "").trim();
-}
 
 function slugify(value: string): string {
   return value.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "") || "item";

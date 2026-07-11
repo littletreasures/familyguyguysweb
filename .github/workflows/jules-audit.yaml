@@ -1,0 +1,22 @@
+name: Jules CVE & Dependency Audit
+on:
+  schedule:
+    - cron: '0 0 * * 0' # Weekly on Sundays at 00:00 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  jules-audit:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Run Jules Dependency Audit
+        uses: google/jules-action@v2
+        with:
+          jules_api_key: ${{ secrets.JULES_API_KEY }}
+          prompt: |
+            Perform a security and CVE dependency audit. Identify outdated or vulnerable dependencies and upgrade them to their latest compatible versions. Summarize all modifications and write the structural changes report to JULES.md in the root of the repository to be included in the Pull Request.

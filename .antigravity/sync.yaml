@@ -1,0 +1,15 @@
+version: 1
+sync:
+  watch:
+    event: pull_request.merged
+    actor: "jules[bot]"
+  conflict_resolution:
+    pre_sync:
+      - git stash -u
+    merge_strategy: rebase
+    post_sync_resolve:
+      - git stash pop
+  hooks:
+    post_sync:
+      - npm install
+      - bash .antigravity/scripts/sync-context.sh

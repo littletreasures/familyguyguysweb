@@ -1,0 +1,22 @@
+name: Jules Bi-Weekly Code Refactor
+on:
+  schedule:
+    - cron: '0 0 1,15 * *' # Bi-weekly (1st and 15th of each month)
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  jules-refactor:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Run Jules Code Refactoring
+        uses: google/jules-action@v2
+        with:
+          jules_api_key: ${{ secrets.JULES_API_KEY }}
+          prompt: |
+            Scan the codebase for unused/dead code, complex logic structures, or styling inconsistencies. Refactor identified blocks for readability, simplicity, and performance without changing functional behavior. Document all refactored code blocks and structural changes in JULES.md in the root of the repository to be included in the Pull Request.
