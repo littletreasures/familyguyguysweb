@@ -7,7 +7,7 @@
     "dev": "vite",
     "prebuild": "node src/scripts/optimize-images.js && node src/scripts/generate-feed.js",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
     "deploy": "npm run build && wrangler deploy"
   },
   "dependencies": {
@@ -26,6 +26,7 @@
     "sharp": "^0.35.3",
     "tailwindcss": "4.1.17",
     "typescript": "5.9.3",
-    "vite": "7.3.2"
+    "vite": "7.3.2",
+    "wrangler": "^4.110.0"
   }
 }
