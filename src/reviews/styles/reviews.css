@@ -1,9 +1,10 @@
 @import "tailwindcss";
 
 #review-app {
-  color: var(--black);
+  color: #e2e8f0;
   font-family: 'Neue Montreal', 'Helvetica Neue', sans-serif;
   line-height: 1.6;
+  background: #020617;
 }
 
 #review-app h1, 
@@ -11,7 +12,7 @@
 #review-app h3, 
 #review-app h4 {
   font-family: 'Special Elite', monospace;
-  color: var(--black);
+  color: #f1f5f9;
   text-transform: uppercase;
 }
 
@@ -84,9 +85,9 @@
 /* Form inputs & controls re-theme */
 #review-app .field {
   width: 100%;
-  border: 2px solid var(--black);
-  background: white;
-  color: var(--black);
+  border: 2px solid rgba(255,255,255,0.15);
+  background: rgba(255,255,255,0.05);
+  color: #e2e8f0;
   border-radius: 12px;
   padding: 0.75rem 1rem;
   font-size: 0.875rem;
@@ -101,7 +102,7 @@
 #review-app select.field {
   cursor: pointer;
   appearance: none;
-  background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3E%3Cpath stroke='%231a1a1a' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3E%3Cpath stroke='%23e2e8f0' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3E%3C/svg%3E");
   background-position: right 0.75rem center;
   background-repeat: no-repeat;
   background-size: 1.25rem;
@@ -109,14 +110,14 @@
 }
 
 #review-app select option {
-  background: white;
-  color: var(--black);
+  background: #0f172a;
+  color: #e2e8f0;
 }
 
 #review-app .mini-field {
-  border: 1px solid var(--black);
-  background: white;
-  color: var(--black);
+  border: 1px solid rgba(255,255,255,0.2);
+  background: rgba(255,255,255,0.05);
+  color: #e2e8f0;
   border-radius: 999px;
   padding: 0.4rem 0.8rem;
   font-size: 0.75rem;
@@ -153,15 +154,7 @@
   box-shadow: 4px 4px 0 rgba(0,0,0,0.15);
 }
 
-#review-app .border-white\/10 {
-  border-color: rgba(26,26,26,0.15) !important;
-}
-
-#review-app .bg-white\/5 {
-  background-color: white !important;
-  border: 2px solid var(--black) !important;
-  box-shadow: 4px 4px 0 rgba(0,0,0,0.15);
-}
+/* border/background white overrides removed to allow native dark mode styling */
 
 /* Status colors tailored to light theme */
 #review-app .status-tag {

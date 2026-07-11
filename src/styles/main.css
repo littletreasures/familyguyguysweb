@@ -272,19 +272,21 @@ nav {
 /* Hosts Section */
 .hosts-section {
   position: relative;
-  padding: 0;
+  padding: 0 0 0 5rem;
+  overflow: hidden;
 }
 .hosts-label {
   position: absolute;
-  left: -2.5rem;
+  left: 0.5rem;
   top: 50%;
   transform: translateY(-50%) rotate(-90deg);
+  transform-origin: center center;
   font-family: 'Homemade Apple', cursive;
   font-size: clamp(2rem, 4vw, 3rem);
   white-space: nowrap;
   color: var(--black);
   z-index: 10;
-  transform-origin: center center;
+  pointer-events: none;
 }
 .hosts-grid {
   display: grid;

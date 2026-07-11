@@ -11,14 +11,14 @@
   <meta property="og:url" content="https://familyguyguys.com/">
   <meta property="og:title" content="Family Guy Guys — A Chronological Rewatch Podcast">
   <meta property="og:description" content="Join Collin, Tyler, and Jason as they watch and review every single episode of Family Guy. Dynamic rating log, show stats, and fan polls.">
-  <meta property="og:image" content="https://familyguyguys.com/hero.png">
+  <meta property="og:image" content="https://familyguyguys.com/hero-1200w.webp">
 
   <!-- Twitter -->
   <meta property="twitter:card" content="summary_large_image">
   <meta property="twitter:url" content="https://familyguyguys.com/">
   <meta property="twitter:title" content="Family Guy Guys — A Chronological Rewatch Podcast">
   <meta property="twitter:description" content="Join Collin, Tyler, and Jason as they watch and review every single episode of Family Guy. Dynamic rating log, show stats, and fan polls.">
-  <meta property="twitter:image" content="https://familyguyguys.com/hero.png">
+  <meta property="twitter:image" content="https://familyguyguys.com/hero-1200w.webp">
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -30,7 +30,7 @@
 <body>
 
   <!-- NAV -->
-  <nav>
+  <nav aria-label="Main navigation">
     <a href="/" class="nav-logo">
       <picture>
         <source srcset="/title-300w.avif 300w, /title-600w.avif 600w" type="image/avif" sizes="(max-width: 600px) 300px, 600px">
@@ -44,22 +44,27 @@
       <li><a href="/reviews" id="nav-reviews">Reviews</a></li>
       <li><a href="/contact" id="nav-contact">Contact</a></li>
     </ul>
+    <!-- TODO: Replace with actual Spotify podcast URL -->
     <a href="https://open.spotify.com" target="_blank" rel="noopener" class="nav-listen-btn">Listen Now</a>
-    <button class="hamburger" aria-label="Menu">
+    <button class="hamburger" aria-label="Menu" aria-expanded="false" aria-controls="mobileNav">
       <span></span><span></span><span></span>
     </button>
   </nav>
 
   <!-- MOBILE NAV DRAWER -->
-  <div class="mobile-nav" id="mobileNav">
+  <div class="mobile-nav" id="mobileNav" role="navigation" aria-label="Mobile navigation">
     <a href="/">Home</a>
     <a href="/episodes">Episodes</a>
     <a href="/reviews">Reviews</a>
     <a href="/contact">Contact</a>
+    <!-- TODO: Replace with actual Spotify podcast URL -->
     <a href="https://open.spotify.com" target="_blank" rel="noopener">Listen on Spotify</a>
+    <!-- TODO: Replace with actual Apple Podcasts URL -->
     <a href="https://podcasts.apple.com" target="_blank" rel="noopener">Apple Podcasts</a>
-    <a href="https://youtube.com" target="_blank" rel="noopener">YouTube</a>
+    <a href="https://www.youtube.com/@FamilyGuyGuysPod" target="_blank" rel="noopener">YouTube</a>
   </div>
+
+  <main>
 
   <!-- ===== HOME PAGE ===== -->
   <div class="page active" id="page-home">
@@ -68,12 +73,14 @@
       <!-- HERO -->
       <section class="halftone-bg hero">
         <div class="hero-platform-icons">
+          <!-- TODO: Replace with actual Spotify podcast URL -->
           <a href="https://open.spotify.com" target="_blank" rel="noopener" aria-label="Spotify">
             <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.477 2 2 6.477 2 12s4.477 10 10 10 10-4.477 10-10S17.523 2 12 2zm4.586 14.424a.623.623 0 01-.857.207c-2.348-1.435-5.304-1.76-8.785-.964a.623.623 0 11-.277-1.215c3.809-.87 7.077-.496 9.712 1.115a.623.623 0 01.207.857zm1.223-2.722a.78.78 0 01-1.072.257c-2.687-1.652-6.785-2.131-9.965-1.166a.78.78 0 11-.453-1.492c3.633-1.103 8.147-.569 11.234 1.329a.78.78 0 01.256 1.072zm.105-2.835C14.692 8.95 9.375 8.775 6.297 9.71a.937.937 0 11-.543-1.793c3.547-1.075 9.443-.867 13.167 1.34a.937.937 0 01-.007 1.61z"/></svg>
           </a>
-          <a href="https://youtube.com" target="_blank" rel="noopener" aria-label="YouTube">
+          <a href="https://www.youtube.com/@FamilyGuyGuysPod" target="_blank" rel="noopener" aria-label="YouTube">
             <svg viewBox="0 0 24 24" fill="currentColor"><path d="M23.498 6.186a3.016 3.016 0 00-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 00.502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 002.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 002.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg>
           </a>
+          <!-- TODO: Replace with actual Apple Podcasts URL -->
           <a href="https://podcasts.apple.com" target="_blank" rel="noopener" aria-label="Apple Podcasts">
             <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.486 2 2 6.486 2 12s4.486 10 10 10 10-4.486 10-10S17.514 2 12 2zm0 18c-4.411 0-8-3.589-8-8s3.589-8 8-8 8 3.589 8 8-3.589 8-8 8zm.5-13c-2.206 0-4 1.794-4 4 0 1.584.93 2.963 2.28 3.625L10 18h4l-.78-3.375A3.993 3.993 0 0016.5 11c0-2.206-1.794-4-4-4zm0 6a2 2 0 110-4 2 2 0 010 4z"/></svg>
           </a>
@@ -92,7 +99,7 @@
       <!-- LATEST EPISODE -->
       <section class="halftone-bg latest-episode">
         <div class="section-label">Latest Episode</div>
-        <div class="episode-card-featured">
+        <a href="https://youtu.be/a9Y_LX9c8Bk" target="_blank" rel="noopener" class="episode-card-featured" style="text-decoration:none; color:inherit;">
           <div class="episode-thumb-featured">
             <picture>
               <source srcset="/assets/ep002-thumb-180w.avif 180w, /assets/ep002-thumb-360w.avif 360w" type="image/avif" sizes="160px">
@@ -103,9 +110,9 @@
           <div class="episode-meta">
             <div class="episode-number">Episode #002</div>
             <div class="episode-title">"I Never Met the Dead Man" // "Do You Believe in Dog?"</div>
-            <div class="episode-desc">The plot of the government deal gone wrong thickens as yesterday's senate hearing reveals sordid new details.</div>
+            <div class="episode-desc">Peter teaches Meg to drive and immediately turns the town's satellite dish into scrap metal. That's the real episode. What we actually talk about: an AI that tried to summarize the season for us and just started inventing cults out of thin air, Jedi semen retention, Al Pacino (briefly), and so many stories about convertibles it'll make your head spin.</div>
           </div>
-        </div>
+        </a>
         <a href="/episodes" class="btn-orange">All episodes</a>
       </section>
 
@@ -119,8 +126,8 @@
       </section>
 
       <!-- HOSTS SECTION -->
-      <section class="hosts-section halftone-bg" style="padding: 0 0 0 5rem; overflow:hidden;">
-        <div class="hosts-label" style="position:absolute; left:-1rem; top:50%; transform:translateY(-50%) rotate(-90deg); writing-mode:vertical-rl; text-orientation:mixed; transform: rotate(180deg); font-family:'Homemade Apple',cursive; font-size:clamp(1.8rem,3.5vw,2.8rem); white-space:nowrap; color:var(--black); position:absolute; left:0.5rem; top:50%; transform:translateX(-50%) translateY(-50%) rotate(-90deg); pointer-events:none;">Our Hosts</div>
+      <section class="hosts-section halftone-bg">
+        <div class="hosts-label">Our Hosts</div>
         <div class="hosts-grid">
           <div class="host-card">
             <picture>
@@ -164,29 +171,29 @@
               <picture>
                 <source srcset="/assets/structurehead.avif" type="image/avif">
                 <source srcset="/assets/structurehead.webp" type="image/webp">
-                <img src="/assets/structurehead.png" alt="Faguugu Shirt" class="merch-card-img" style="background: none; object-fit: contain; width: 100%; aspect-ratio: 1;" loading="lazy">
+                <img src="/assets/structurehead.png" alt="Structure Head Shirt" class="merch-card-img" style="background: none; object-fit: contain; width: 100%; aspect-ratio: 1;" loading="lazy">
               </picture>
-              <div class="merch-name">Faguugu Shirt</div>
+              <div class="merch-name">Structure Head Shirt</div>
               <div class="merch-price">$15.99</div>
             </div>
             <div class="merch-card">
               <picture>
                 <source srcset="/assets/I’m A Gagger.avif" type="image/avif">
                 <source srcset="/assets/I’m A Gagger.webp" type="image/webp">
-                <img src="/assets/I’m A Gagger.png" alt="Faguugu Tote" class="merch-card-img" style="background: none; object-fit: contain; width: 100%; aspect-ratio: 1;" loading="lazy">
+                <img src="/assets/I’m A Gagger.png" alt="I'm A Gagger Shirt" class="merch-card-img" style="background: none; object-fit: contain; width: 100%; aspect-ratio: 1;" loading="lazy">
               </picture>
-              <div class="merch-name">Faguugu Tote</div>
+              <div class="merch-name">I'm A Gagger Shirt</div>
               <div class="merch-price">$12.99</div>
             </div>
             <div class="merch-card">
               <div class="merch-card-img">Coming Soon</div>
-              <div class="merch-name">Faguugu Mug</div>
+              <div class="merch-name">Coming Soon</div>
               <div class="merch-price">$12.00</div>
             </div>
           </div>
         </div>
         <div class="merch-cta">
-          <a href="#" class="btn-teal">All merch</a>
+          <a href="https://family-guy-guys.myspreadshop.com" target="_blank" rel="noopener" class="btn-teal">All merch</a>
         </div>
       </section>
 
@@ -201,7 +208,7 @@
       </div>
       <div class="episodes-list" id="episodesList">
 
-        <a href="https://youtu.be/a9Y_LX9c8Bk" target="_blank" rel="noopener" class="ep-row" style="display:grid; text-decoration:none; color:inherit;">
+        <a href="https://youtu.be/a9Y_LX9c8Bk" target="_blank" rel="noopener" class="ep-row">
           <picture>
             <source srcset="/assets/ep002-thumb-180w.avif 180w, /assets/ep002-thumb-360w.avif 360w" type="image/avif" sizes="180px">
             <source srcset="/assets/ep002-thumb-180w.webp 180w, /assets/ep002-thumb-360w.webp 360w" type="image/webp" sizes="180px">
@@ -214,7 +221,7 @@
           </div>
         </a>
 
-        <a href="https://youtu.be/-NQAqWC2BK0" target="_blank" rel="noopener" class="ep-row" style="display:grid; text-decoration:none; color:inherit;">
+        <a href="https://youtu.be/-NQAqWC2BK0" target="_blank" rel="noopener" class="ep-row">
           <picture>
             <source srcset="/assets/ep001-thumb-180w.avif 180w, /assets/ep001-thumb-360w.avif 360w" type="image/avif" sizes="180px">
             <source srcset="/assets/ep001-thumb-180w.webp 180w, /assets/ep001-thumb-360w.webp 360w" type="image/webp" sizes="180px">
@@ -232,7 +239,7 @@
   </div>
 
   <!-- ===== REVIEWS PAGE ===== -->
-  <div class="page" id="page-reviews" style="display: none;">
+  <div class="page" id="page-reviews">
     <div class="page-content halftone-bg" style="min-height:100vh;">
       <div id="review-app"></div>
     </div>
@@ -254,28 +261,33 @@
           <div>
             <div class="contact-section-title">Listen to us on</div>
             <div class="listen-btns">
+              <!-- TODO: Replace with actual Spotify podcast URL -->
               <a href="https://open.spotify.com" target="_blank" rel="noopener" class="listen-btn">Spotify</a>
+              <!-- TODO: Replace with actual Apple Podcasts URL -->
               <a href="https://podcasts.apple.com" target="_blank" rel="noopener" class="listen-btn">Apple Podcasts</a>
-              <a href="https://youtube.com/@familyguyguys" target="_blank" rel="noopener" class="listen-btn">YouTube</a>
+              <a href="https://www.youtube.com/@FamilyGuyGuysPod" target="_blank" rel="noopener" class="listen-btn">YouTube</a>
             </div>
           </div>
 
           <div>
             <div class="contact-section-title">Our Socials</div>
             <div class="social-icons" style="flex-direction:row; gap:0.8rem;">
+              <!-- TODO: Replace with actual Facebook page URL -->
               <a href="https://facebook.com" target="_blank" rel="noopener" class="social-icon-link" aria-label="Facebook">
                 <svg viewBox="0 0 24 24" fill="currentColor"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
               </a>
+              <!-- TODO: Replace with actual Twitter/X profile URL -->
               <a href="https://twitter.com" target="_blank" rel="noopener" class="social-icon-link" aria-label="Twitter / X">
                 <svg viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
               </a>
+              <!-- TODO: Replace with actual Instagram profile URL -->
               <a href="https://instagram.com" target="_blank" rel="noopener" class="social-icon-link" aria-label="Instagram">
                 <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z"/></svg>
               </a>
             </div>
           </div>
 
-          <div class="newsletter-block" style="margin-top: 1rem;">
+          <div class="newsletter-block" style="margin-top: 1rem; display:none;">
             <div class="contact-section-title">Subscribe to the Hogs</div>
             <form id="newsletter-form" style="display: flex; gap: 0.5rem; max-width: 320px; margin-bottom: 1.5rem;">
               <input type="email" id="newsletter-email" placeholder="your.email@gmail.com" required style="flex: 1; padding: 0.6rem 1rem; border: 2px solid var(--black); border-radius: 6px; font-family: 'Neue Montreal', sans-serif; font-size: 0.85rem; outline: none; background: white;">
@@ -300,8 +312,20 @@
     </div>
   </div>
 
+  </main>
+
+  <!-- FOOTER -->
+  <footer style="background: var(--black); color: rgba(255,255,255,0.6); text-align: center; padding: 2rem 1rem; font-family: 'Special Elite', monospace; font-size: 0.75rem; letter-spacing: 0.1em; text-transform: uppercase;">
+    <p>&copy; 2026 Family Guy Guys. All rights reserved.</p>
+    <p style="margin-top: 0.5rem;">
+      <a href="/contact" style="color: var(--orange); text-decoration: none;">Contact</a> &middot;
+      <a href="/reviews" style="color: var(--orange); text-decoration: none;">Reviews</a> &middot;
+      <a href="/episodes" style="color: var(--orange); text-decoration: none;">Episodes</a>
+    </p>
+  </footer>
+
   <!-- ===== PERSISTENT AUDIO PLAYER ===== -->
-  <div id="persistent-audio-player" class="audio-player-container" style="display: none;">
+  <div id="persistent-audio-player" class="audio-player-container" style="display: none;" role="region" aria-label="Audio player">
     <div class="audio-player-content">
       <div class="audio-player-info">
         <span class="audio-player-tag">Now Playing</span>

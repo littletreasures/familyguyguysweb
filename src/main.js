@@ -9,6 +9,9 @@ const hamburger = document.querySelector('.hamburger');
 window.toggleMobile = function toggleMobile() {
   if (mobileNav) {
     mobileNav.classList.toggle('open');
+    if (hamburger) {
+      hamburger.setAttribute('aria-expanded', mobileNav.classList.contains('open'));
+    }
   }
 };
 
@@ -22,8 +25,23 @@ document.addEventListener('click', function(e) {
   const isNavClick = e.target.closest('nav') || e.target.closest('#mobileNav');
   if (!isNavClick) {
     mobileNav.classList.remove('open');
+    if (hamburger) {
+      hamburger.setAttribute('aria-expanded', 'false');
+    }
   }
 });
+
+// Close mobile nav when a link inside it is clicked
+if (mobileNav) {
+  mobileNav.addEventListener('click', (e) => {
+    if (e.target.closest('a')) {
+      mobileNav.classList.remove('open');
+      if (hamburger) {
+        hamburger.setAttribute('aria-expanded', 'false');
+      }
+    }
+  });
+}
 
 // Lazy load the React review app when visiting /reviews
 let reviewAppLoaded = false;
@@ -66,6 +84,9 @@ if (document.getElementById('merchShopContainer')) {
   script.type = 'text/javascript';
   script.src = 'https://shop.spreadshirt.com/shopfiles/shopclient.nocache.js';
   script.async = true;
+  script.onerror = () => {
+    console.warn('Failed to load Spreadshirt shop widget.');
+  };
   document.body.appendChild(script);
 }
 
@@ -87,7 +108,7 @@ if (newsletterForm) {
       await new Promise(resolve => setTimeout(resolve, 800));
       
       newsletterStatus.style.color = 'var(--teal)';
-      newsletterStatus.textContent = 'Welcome to the club, hog! Check your inbox to confirm.';
+      newsletterStatus.textContent = 'Thanks for your interest! Newsletter signup is coming soon.';
       newsletterEmail.value = '';
       
       localStorage.setItem('faguugu-newsletter-subscribed', 'true');

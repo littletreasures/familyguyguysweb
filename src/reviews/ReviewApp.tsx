@@ -141,8 +141,8 @@ function episodeFromRow(row: any): Episode {
 
 function configFromRow(row: any) {
   return {
-    showName: row?.show_name ?? "Family Guy Rewatch Log",
-    subtitle: row?.subtitle ?? "A chronological podcast archive.",
+    showName: row?.show_name ?? "Family Guy Guys",
+    subtitle: row?.subtitle ?? "Join Collin, Tyler, and Jason as they watch and review every single episode of Family Guy in chronological order.",
     ratingScale: {
       label: row?.rating_label ?? "Quahogs",
       max: row?.rating_max ?? 5,
@@ -185,15 +185,15 @@ const demoDataset = createDemoDataset();
 const schemaTemplate = JSON.stringify(
   {
     schemaVersion: "fg-letterlog-v2",
-    showName: "Family Guy Rewatch Log",
-    subtitle: "A chronological podcast archive.",
+    showName: "Family Guy Guys",
+    subtitle: "Join Collin, Tyler, and Jason as they watch and review every single episode of Family Guy in chronological order.",
     ratingScale: { label: "Quahogs", max: 5 },
     cohosts: [
       {
-        id: "alex",
-        name: "Alex",
+        id: "collin",
+        name: "Collin Brown",
         role: "Host",
-        bio: "Sharp on structure and callbacks.",
+        bio: "Longtime improv comedian, lifelong Family Guy apologist.",
         accent: "#65e4d3",
       },
     ],
@@ -217,7 +217,7 @@ const schemaTemplate = JSON.stringify(
         facts: [{ label: "Production code", value: "1ACX01" }],
         reviews: [
           {
-            cohostId: "alex",
+            cohostId: "collin",
             rating: 4,
             review: "Edited review text.",
             pullQuote: "Strong pilot energy.",
@@ -234,9 +234,9 @@ const schemaTemplate = JSON.stringify(
 const transcriptExample = `EPISODE: s01e01-death-has-a-shadow
 SUMMARY: The group talks about how the pilot establishes the Griffin family, what already works, and where the show still feels rough.
 
-Alex: I am at 4/5 Quahogs. The pilot is messy, but the pace and family dynamic already feel like the show has a clear comic engine.
-Bri: 3.5 out of 5 for me. I liked the rough edges more than expected, especially when the episode lets Lois react to the chaos.
-Sam: I landed on 4.5. It is a little all over the place, but the confidence of the cutaways and Peter's stupidity really works.`;
+Collin: I am at 4/5 Quahogs. The pilot is messy, but the pace and family dynamic already feel like the show has a clear comic engine.
+Tyler: 3.5 out of 5 for me. I liked the rough edges more than expected, especially when the episode lets Lois react to the chaos.
+Jason: I landed on 4.5. It is a little all over the place, but the confidence of the cutaways and Peter's stupidity really works.`;
 
 function App() {
   const [loading, setLoading] = useState(true);
@@ -424,7 +424,7 @@ function App() {
     }
   }
 
-  fetchData();
+  retryFetch();
   
   return () => controller.abort();
 }, [retryCount]);
@@ -538,7 +538,7 @@ function App() {
 
 if (loading) {
   return (
-    <div className="flex h-screen items-center justify-center bg-slate-950 text-white">
+    <div className="flex h-screen flex-col bg-slate-950 text-white">
       {/* Full-width top banner */}
       <div className="w-full border-b border-white/10 p-4 text-center">
         <p className="text-sm font-semibold tracking-wider uppercase text-cyan-200/80">Loading from Supabase…</p>
@@ -564,7 +564,7 @@ if (loading) {
 
 if (loadError) {
   return (
-    <div className="flex h-screen items-center justify-center bg-slate-950 text-white p-5">
+    <div className="flex h-screen flex-col bg-slate-950 text-white p-5">
       {/* Full-width top banner */}
       <div className="w-full border-b border-white/10 p-4 text-center">
         <p className="text-sm font-semibold tracking-wider uppercase text-cyan-200/80">Couldn't reach Supabase: {loadError}</p>
@@ -611,13 +611,38 @@ if (loadError) {
             ← Back to Catalog
           </button>
         </div>
-        <AdminLoginPage
-          adminHash={ADMIN_HASH}
-          onLoginSuccess={() => {
-            setIsAdmin(true);
-            navigate({ page: "catalog" });
-          }}
-        />
+        {isAdmin ? (
+          <div className="mx-auto max-w-md px-4 py-16 text-center animate-rise">
+            <div className="rounded-[2rem] border border-white/10 bg-white/5 p-8 shadow-2xl">
+              <h2 className="text-3xl font-black tracking-tight text-white">Admin Active</h2>
+              <p className="mt-2 text-sm text-slate-400">You are currently logged in as an administrator.</p>
+              <div className="mt-8 flex flex-col gap-3">
+                <button
+                  type="button"
+                  onClick={() => navigate({ page: "catalog" })}
+                  className="primary-button w-full"
+                >
+                  Go to Catalog
+                </button>
+                <button
+                  type="button"
+                  onClick={handleLogout}
+                  className="rounded-full border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-sm font-medium text-rose-200 transition hover:bg-rose-500/20 w-full"
+                >
+                  Log Out
+                </button>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <AdminLoginPage
+            adminHash={ADMIN_HASH}
+            onLoginSuccess={() => {
+              setIsAdmin(true);
+              navigate({ page: "catalog" });
+            }}
+          />
+        )}
       </div>
     );
   }
@@ -1627,9 +1652,9 @@ function EmptyState({ title, copy }: { title: string; copy: string }) {
 
 function createDemoDataset(): PodcastDataset {
   const cohosts: Cohost[] = [
-    { id: "alex", name: "Alex", role: "Continuity hawk", bio: "Tracks structure, callbacks, and whether the episode works as a story.", accent: PALETTE[0] },
-    { id: "bri", name: "Bri", role: "Vibes curator", bio: "Good at noticing when a joke ages weirdly and when the show is accidentally sweet.", accent: PALETTE[1] },
-    { id: "sam", name: "Sam", role: "Cutaway apologist", bio: "Defends big swings, dumb tangents, and chaotic early-season confidence.", accent: PALETTE[2] },
+    { id: "collin", name: "Collin Brown", role: "Host", bio: "Longtime improv comedian, lifelong Family Guy apologist, and the guy who didn't see the pilot until middle school.", accent: PALETTE[0] },
+    { id: "tyler", name: "Tyler Simpson", role: "Host", bio: "Watched the original broadcast as an 8-year-old and loved it. This is either his origin story or his origin tragedy.", accent: PALETTE[1] },
+    { id: "jason", name: "Jason Hackett", role: "Host", bio: "Played the theme song entirely too loud on episode one. Sets the tone. Cranks the hogs. Asks the hard questions nobody asked.", accent: PALETTE[2] },
   ];
 
   const baseEpisodes: Omit<Episode, "reviews">[] = [
@@ -1639,14 +1664,14 @@ function createDemoDataset(): PodcastDataset {
     episodeBase("s01e04-mind-over-murder", 1, 4, "Mind Over Murder", "Apr 25, 1999", "watched", "Peter turns the basement into a bar while the episode tests how much story can be built around a single bad decision.", "Roy Allen Smith", ["Neil Goldman", "Garrett Donovan"], "1ACX04"),
     episodeBase("s01e05-peter-peter-caviar-eater", 1, 5, "Peter, Peter, Caviar Eater", "May 2, 1999", "backlog", "The Griffins brush up against wealth, which gives Peter a larger room to be the least elegant person alive.", "Jeff Myers", ["Chris Sheridan"], "1ACX05"),
     episodeBase("s01e06-the-son-also-draws", 1, 6, "The Son Also Draws", "May 9, 1999", "backlog", "A family road trip gives the show space to turn parenting anxiety into roaming nonsense.", "Neil Affleck", ["Ricky Blitt"], "1ACX06"),
-    episodeBase("s02e01-peter-peter-caviar-eater", 2, 1, "Peter, Peter, Caviar Eater", "Sep 23, 1999", "backlog", "A new season shelf sample for testing longer chronological runs and season pages.", "Dan Povenmire", ["Chris Sheridan"], "2ACX01"),
+    episodeBase("s02e01-peter-peter-caviar-eater", 2, 1, "Peter, Peter, Caviar Eater", "Sep 23, 1999", "backlog", "A new season shelf sample for testing chronological runs and season pages.", "Dan Povenmire", ["Chris Sheridan"], "2ACX01"),
     episodeBase("s02e02-holy-crap", 2, 2, "Holy Crap", "Sep 30, 1999", "backlog", "Peter's father visits and turns the house into a pressure cooker of generational tension and dumb rebellion.", "Neil Affleck", ["Danny Smith"], "2ACX02"),
   ];
 
   return {
     schemaVersion: "fg-letterlog-v2",
-    showName: "Family Guy Rewatch Log",
-    subtitle: "A production-ready prototype for a chronological podcast archive with episode pages, season shelves, host profiles, workflow status, and import helpers.",
+    showName: "Family Guy Guys",
+    subtitle: "Join Collin, Tyler, and Jason as they watch and review every single episode of Family Guy in chronological order.",
     ratingScale: { label: "Quahogs", max: 5 },
     cohosts,
     episodes: baseEpisodes.map((episode, index) => ({ ...episode, reviews: demoReviews(cohosts, index) })),
