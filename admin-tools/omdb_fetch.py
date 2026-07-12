@@ -27,13 +27,13 @@ def fetch_episode_metadata(season: int, episode: int) -> dict:
     return data
 
 
-def map_to_episodes_row(episode_id: str, season: int, episode: int, omdb_data: dict) -> dict:
+def map_to_episodes_row(episode_id: str, season: int, episode: int, omdb_data: dict, youtube_url: str = "") -> dict:
     def split_list(s):
         if not s or s == "N/A":
             return []
         return [x.strip() for x in s.split(",")]
 
-    return {
+    row = {
         "id": episode_id,
         "season": season,
         "episode_number": episode,
@@ -46,6 +46,9 @@ def map_to_episodes_row(episode_id: str, season: int, episode: int, omdb_data: d
         "writers": split_list(omdb_data.get("Writer", "")),
         "director": omdb_data.get("Director", ""),
     }
+    if youtube_url:
+        row["youtube_url"] = youtube_url
+    return row
 
 
 def upsert_episode(row: dict, dry_run: bool = False):
@@ -65,6 +68,8 @@ def main():
     parser.add_argument("--episode", type=int, required=True)
     parser.add_argument("--episode-id", type=str, required=True,
                          help="Internal episode id, e.g. s1e4")
+    parser.add_argument("--youtube-url", type=str, default="",
+                         help="YouTube video link for the episode")
     parser.add_argument("--dry-run", action="store_true")
     args = parser.parse_args()
 
@@ -72,7 +77,7 @@ def main():
         sys.exit("OMDB_API_KEY not set in .env")
 
     omdb_data = fetch_episode_metadata(args.season, args.episode)
-    row = map_to_episodes_row(args.episode_id, args.season, args.episode, omdb_data)
+    row = map_to_episodes_row(args.episode_id, args.season, args.episode, omdb_data, youtube_url=args.youtube_url)
     upsert_episode(row, dry_run=args.dry_run)
 
 

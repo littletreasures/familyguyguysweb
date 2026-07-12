@@ -1,8 +1,12 @@
 """Central config: loads .env, exposes constants used across the pipeline."""
 import os
+from pathlib import Path
 from dotenv import load_dotenv
 
+# Load configurations: current directory .env, admin-tools/.env, and parent root .env.local
 load_dotenv()
+load_dotenv(Path(__file__).parent / ".env")
+load_dotenv(Path(__file__).parent.parent / ".env.local")
 
 LLM_PROVIDER = os.getenv("LLM_PROVIDER", "gemini").lower()
 
@@ -15,12 +19,13 @@ OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-4o")
 ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY", "")
 ANTHROPIC_MODEL = os.getenv("ANTHROPIC_MODEL", "claude-3-5-sonnet-20241022")
 
-OMDB_API_KEY = os.getenv("OMDB_API_KEY", "")
+# Check both OMDB_API_KEY and OMDb_API_KEY (case-sensitivity fallback)
+OMDB_API_KEY = os.getenv("OMDB_API_KEY") or os.getenv("OMDb_API_KEY") or ""
 OMDB_BASE_URL = "http://www.omdbapi.com/"
 SHOW_TITLE = "Family Guy"
 
-SUPABASE_URL = os.getenv("SUPABASE_URL", "https://tupubifayvovrzqyemee.supabase.co")
-SUPABASE_SERVICE_KEY = os.getenv("SUPABASE_SERVICE_KEY", "")
+SUPABASE_URL = os.getenv("SUPABASE_URL") or os.getenv("VITE_SUPABASE_URL") or "https://tupubifayvovrzqyemee.supabase.co"
+SUPABASE_SERVICE_KEY = os.getenv("SUPABASE_SERVICE_KEY") or os.getenv("VITE_SUPABASE_SERVICE_ROLE_KEY") or os.getenv("VITE_SUPABASE_ANON_KEY") or ""
 
 # Cohost name -> UUID map (update here if hosts/UUIDs change)
 COHOST_UUIDS = {

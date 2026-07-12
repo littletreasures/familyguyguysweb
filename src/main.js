@@ -136,73 +136,136 @@ function escapeHTML(str) {
   );
 }
 
+function createEpisodeMarkup(ep, isFeatured = false) {
+  const hasYoutube = !!ep.youtube_url;
+  const hasReviews = !!(ep.reviews && ep.reviews.length > 0);
+  const isBoth = hasYoutube && hasReviews;
+
+  const tag = isBoth ? 'div' : 'a';
+  const classNames = isFeatured ? 'episode-card-featured' : 'ep-row';
+  
+  let linkAttrs = '';
+  if (!isBoth) {
+    if (hasYoutube) {
+      linkAttrs = `href="${escapeHTML(ep.youtube_url)}" target="_blank" rel="noopener"`;
+    } else {
+      linkAttrs = `href="/reviews/${encodeURIComponent(ep.id)}"`;
+    }
+  }
+
+  const epNumStr = ep.episode_number.toString().padStart(3, '0');
+  const thumbPrefix = `/assets/ep${epNumStr}-thumb`;
+  const thumbUrl = `${thumbPrefix}-360w.webp`;
+
+  const thumbContainerClass = isFeatured ? 'episode-thumb-featured' : '';
+  const thumbImgClass = isFeatured ? '' : 'ep-thumb';
+  const metaContainerClass = isFeatured ? 'episode-meta' : 'ep-info';
+  const numClass = isFeatured ? 'episode-number' : 'ep-num';
+  const titleClass = 'ep-title';
+  const descClass = 'ep-desc';
+
+  // Build CTA buttons if both exist
+  const ctasHtml = isBoth ? `
+    <div class="ep-actions">
+      <a href="${escapeHTML(ep.youtube_url)}" target="_blank" rel="noopener" class="ep-action-btn watch">Watch Video</a>
+      <a href="/reviews/${encodeURIComponent(ep.id)}" class="ep-action-btn review">Read Review</a>
+    </div>
+  ` : '';
+
+  const innerContent = `
+    <div class="${thumbContainerClass}">
+      <picture>
+        <source srcset="${thumbPrefix}-180w.avif 180w, ${thumbPrefix}-360w.avif 360w" type="image/avif" sizes="${isFeatured ? '160px' : '180px'}">
+        <source srcset="${thumbPrefix}-180w.webp 180w, ${thumbPrefix}-360w.webp 360w" type="image/webp" sizes="${isFeatured ? '160px' : '180px'}">
+        <img src="${thumbUrl}" alt="Episode ${epNumStr} thumbnail" class="${thumbImgClass}" width="${isFeatured ? '160' : '180'}" height="${isFeatured ? '90' : '101'}" loading="lazy" onerror="this.src='/hero-480w.webp'; this.onerror=null;">
+      </picture>
+    </div>
+    <div class="${metaContainerClass}">
+      <div class="${numClass}">Episode #${epNumStr}</div>
+      <div class="${titleClass}">${escapeHTML(ep.title)}</div>
+      <div class="${descClass}">${escapeHTML(ep.summary || '')}</div>
+      ${ctasHtml}
+    </div>
+  `;
+
+  return `<${tag} ${linkAttrs} class="${classNames}" ${isBoth ? 'style="cursor: default;"' : ''}>${innerContent}</${tag}>`;
+}
+
+function renderErrorState(container, message, isFeatured = false) {
+  if (!container) return;
+  const padding = isFeatured ? '1.5rem' : '3rem';
+  container.innerHTML = `
+    <div class="episode-error-state" style="padding: ${padding}; text-align: center; border: 2px dashed var(--maroon); border-radius: 8px; color: var(--maroon); font-family: 'Special Elite', monospace;">
+      <div style="font-size: 1.5rem; margin-bottom: 0.5rem;">⚠️</div>
+      <div style="font-weight: bold; text-transform: uppercase; font-size: 0.9rem;">Database Connection Failed</div>
+      <p style="margin-top: 0.5rem; font-size: 0.8rem; color: #666; font-family: sans-serif; line-height: 1.4;">${escapeHTML(message)}</p>
+    </div>
+  `;
+}
+
+function renderEmptyState(container, isFeatured = false) {
+  if (!container) return;
+  const padding = isFeatured ? '1.5rem' : '3rem';
+  container.innerHTML = `
+    <div class="episode-empty-state" style="padding: ${padding}; text-align: center; border: 2px dashed var(--orange); border-radius: 8px; color: var(--orange-dark); font-family: 'Special Elite', monospace;">
+      <div style="font-size: 1.5rem; margin-bottom: 0.5rem;">📭</div>
+      <div style="font-weight: bold; text-transform: uppercase; font-size: 0.9rem;">No Published Episodes</div>
+      <p style="margin-top: 0.5rem; font-size: 0.8rem; color: #666; font-family: sans-serif; line-height: 1.4;">Check back later for new episodes of Family Guy Guys!</p>
+    </div>
+  `;
+}
+
 async function loadDynamicEpisodes() {
-  const latestEpisodeCard = document.querySelector('.episode-card-featured');
+  const latestEpisodeContainer = document.getElementById('latest-episode-container');
   const episodesList = document.getElementById('episodesList');
 
-  if (!latestEpisodeCard && !episodesList) return;
+  if (!latestEpisodeContainer && !episodesList) return;
 
   try {
     if (!supabase) {
-      console.log('Supabase credentials missing, skipping dynamic load.');
+      const msg = 'Supabase credentials missing, skipping dynamic load.';
+      console.log(msg);
+      if (latestEpisodeContainer) renderErrorState(latestEpisodeContainer, msg, true);
+      if (episodesList) renderErrorState(episodesList, msg, false);
       return;
     }
 
     const { data: episodes, error } = await supabase
       .from('episodes')
-      .select('id, season, episode_number, title, air_date, summary, podcast_url, watch_status')
+      .select('id, season, episode_number, title, air_date, summary, podcast_url, watch_status, youtube_url, reviews(id)')
       .eq('watch_status', 'published')
       .order('season', { ascending: false })
       .order('episode_number', { ascending: false });
 
-    if (error || !episodes || episodes.length === 0) {
-      console.log('No published episodes found in Supabase or query error, using static fallback.');
+    if (error) {
+      console.error('Error fetching dynamic episodes:', error);
+      if (latestEpisodeContainer) renderErrorState(latestEpisodeContainer, error.message, true);
+      if (episodesList) renderErrorState(episodesList, error.message, false);
+      return;
+    }
+
+    if (!episodes || episodes.length === 0) {
+      console.log('No published episodes found in Supabase.');
+      if (latestEpisodeContainer) renderEmptyState(latestEpisodeContainer, true);
+      if (episodesList) renderEmptyState(episodesList, false);
       return;
     }
 
     // Populate Latest Episode Card (Home Page)
-    if (latestEpisodeCard) {
-      const latest = episodes[0];
-      const thumbUrl = `/assets/ep${latest.episode_number.toString().padStart(3, '0')}-thumb-360w.webp`;
-      
-      latestEpisodeCard.innerHTML = `
-        <div class="episode-thumb-featured">
-          <picture>
-            <source srcset="/assets/ep${latest.episode_number.toString().padStart(3, '0')}-thumb-180w.avif 180w, /assets/ep${latest.episode_number.toString().padStart(3, '0')}-thumb-360w.avif 360w" type="image/avif" sizes="160px">
-            <source srcset="/assets/ep${latest.episode_number.toString().padStart(3, '0')}-thumb-180w.webp 180w, /assets/ep${latest.episode_number.toString().padStart(3, '0')}-thumb-360w.webp 360w" type="image/webp" sizes="160px">
-            <img src="${thumbUrl}" alt="${escapeHTML(latest.title)} thumbnail" width="160" height="90" loading="lazy" onerror="this.src='/hero-480w.webp'; this.onerror=null;">
-          </picture>
-        </div>
-        <div class="episode-meta">
-          <div class="episode-number">Episode #${latest.episode_number.toString().padStart(3, '0')}</div>
-          <div class="episode-title">${escapeHTML(latest.title)}</div>
-          <div class="episode-desc">${escapeHTML(latest.summary || '')}</div>
-        </div>
-      `;
+    if (latestEpisodeContainer) {
+      // episodes are ordered descending, so episodes[0] is the latest
+      latestEpisodeContainer.innerHTML = createEpisodeMarkup(episodes[0], true);
     }
 
     // Populate Episodes Archive Feed (Episodes Page)
     if (episodesList) {
-      episodesList.innerHTML = episodes.map(ep => {
-        const thumbUrl = `/assets/ep${ep.episode_number.toString().padStart(3, '0')}-thumb-360w.webp`;
-        return `
-          <a href="/reviews/${encodeURIComponent(ep.id)}" class="ep-row" style="display:grid; text-decoration:none; color:inherit;">
-            <picture>
-              <source srcset="/assets/ep${ep.episode_number.toString().padStart(3, '0')}-thumb-180w.avif 180w, /assets/ep${ep.episode_number.toString().padStart(3, '0')}-thumb-360w.avif 360w" type="image/avif" sizes="180px">
-              <source srcset="/assets/ep${ep.episode_number.toString().padStart(3, '0')}-thumb-180w.webp 180w, /assets/ep${ep.episode_number.toString().padStart(3, '0')}-thumb-360w.webp 360w" type="image/webp" sizes="180px">
-              <img src="${thumbUrl}" alt="${escapeHTML(ep.title)}" class="ep-thumb" width="180" height="101" loading="lazy" onerror="this.src='/hero-480w.webp'; this.onerror=null;">
-            </picture>
-            <div class="ep-info">
-              <div class="ep-num">Episode #${ep.episode_number.toString().padStart(3, '0')}</div>
-              <div class="ep-title">${escapeHTML(ep.title)}</div>
-              <div class="ep-desc">${escapeHTML(ep.summary || '')}</div>
-            </div>
-          </a>
-        `;
-      }).join('');
+      episodesList.innerHTML = episodes.map(ep => createEpisodeMarkup(ep, false)).join('');
     }
   } catch (err) {
     console.error('Error rendering dynamic episodes:', err);
+    const msg = err.message || 'An unexpected error occurred.';
+    if (latestEpisodeContainer) renderErrorState(latestEpisodeContainer, msg, true);
+    if (episodesList) renderErrorState(episodesList, msg, false);
   }
 }
 

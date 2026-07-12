@@ -137,3 +137,26 @@ From the `admin-tools` directory:
     ```bash
     streamlit run app.py
     ```
+
+---
+
+## Publishing New Episodes Workflow
+
+To publish a new episode on the site and ensure it renders dynamically:
+
+1. **Upload to YouTube**: Publish the episode video on YouTube and copy the direct link (e.g., `https://youtu.be/...`).
+2. **Fetch Metadata & Save to Supabase**: Run the metadata ingestion command inside the `admin-tools` directory. Provide the `--youtube-url` parameter to write it directly to the database:
+   ```bash
+   python omdb_fetch.py --season 1 --episode 6 --episode-id s1e6 --youtube-url "https://youtu.be/your-video-id"
+   ```
+3. **Upload Thumbnail Assets**: Place the thumbnail images inside `public/assets/` following the naming convention:
+   - `public/assets/epNNN-thumb-180w.webp` / `.avif`
+   - `public/assets/epNNN-thumb-360w.webp` / `.avif`
+   *(where `NNN` is the 3-digit zero-padded episode number, e.g., `006`)*
+4. **Generate and Upload Reviews**: Run the review generator and upsert script inside `admin-tools`:
+   ```bash
+   python generate_review.py --transcript transcript.txt --episode-id s1e6 --provider gemini --out s1e6_review.json
+   python supabase_upsert.py --review-json s1e6_review.json
+   ```
+5. **Publish in Supabase**: Make sure the episode is set to `published` in the `watch_status` field. You can update it via your Supabase dashboard, Streamlit app, or a direct SQL command.
+
