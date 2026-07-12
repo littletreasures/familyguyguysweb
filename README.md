@@ -38,10 +38,7 @@ The frontend is built using React, TypeScript, and Vite, connecting to Supabase 
 
 Create a file named `.env.local` in the root directory and configure the following variables with your Supabase credentials:
 
-```env
-VITE_SUPABASE_URL=https://tupubifayvovrzqyemee.supabase.co
-VITE_SUPABASE_ANON_KEY=your_supabase_anon_key_here
-```
+
 
 ### Running Locally
 
@@ -112,9 +109,6 @@ ANTHROPIC_MODEL=claude-3-5-sonnet-20241022
 # OMDb API Key (for metadata fetching)
 OMDB_API_KEY=your_omdb_api_key
 
-# Supabase Credentials
-SUPABASE_URL=https://tupubifayvovrzqyemee.supabase.co
-SUPABASE_SERVICE_KEY=your_supabase_service_role_key
 ```
 
 ### Running the Admin Tools
@@ -143,15 +137,3 @@ From the `admin-tools` directory:
     ```bash
     streamlit run app.py
     ```
-
----
-
-## Cohost UUID Map
-
-This mapping is used to link review segments or host information to the corresponding host in the database.
-
-| Name   | UUID                                   |
-|--------|-----------------------------------------|
-| Jason  | 01201e1a-dafd-424a-b596-ff9ece65f1aa    |
-| Collin | 0a3dfd13-90b2-47db-b0af-2e0c0df21cff    |
-| Tyler  | e08c8c4b-ecf5-427e-8890-fe9cef0a2c9a    |
