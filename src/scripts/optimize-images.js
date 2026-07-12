@@ -11,11 +11,28 @@ const IMAGES_TO_OPTIMIZE = [
   { file: 'collinhost.png', path: PUBLIC_DIR, widths: [400], name: 'collinhost' },
   { file: 'tylerhost.png', path: PUBLIC_DIR, widths: [400], name: 'tylerhost' },
   { file: 'jasonhost.png', path: PUBLIC_DIR, widths: [400], name: 'jasonhost' },
-  { file: 'ep001-thumb.jpg', path: ASSETS_DIR, widths: [180, 360], name: 'ep001-thumb' },
-  { file: 'ep002-thumb.jpg', path: ASSETS_DIR, widths: [180, 360], name: 'ep002-thumb' },
   { file: 'structurehead.png', path: ASSETS_DIR, widths: [300], name: 'structurehead' },
   { file: 'I’m A Gagger.png', path: ASSETS_DIR, widths: [300], name: 'I’m A Gagger' },
 ];
+
+// Dynamically scan public/assets for episode thumbnails (e.g. ep003-thumb.jpg)
+if (fs.existsSync(ASSETS_DIR)) {
+  const files = fs.readdirSync(ASSETS_DIR);
+  for (const file of files) {
+    const match = file.match(/^(ep\d+-thumb)\.(jpg|jpeg|png)$/i);
+    if (match) {
+      const name = match[1];
+      if (!IMAGES_TO_OPTIMIZE.some(img => img.file === file)) {
+        IMAGES_TO_OPTIMIZE.push({
+          file: file,
+          path: ASSETS_DIR,
+          widths: [180, 360],
+          name: name
+        });
+      }
+    }
+  }
+}
 
 async function optimizeImage(img, sharp) {
   const inputPath = path.join(img.path, img.file);
