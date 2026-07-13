@@ -29,6 +29,8 @@ def build_review_rows(review_data: dict) -> list:
             "review": r.get("review", ""),
             "pull_quote": r.get("pull_quote", ""),
             "draft_source": "transcript",
+            "rating_terminology": r.get("rating_terminology", "Quahogs"),
+            "rating_scale_max": r.get("rating_scale_max", 5),
         })
     return rows
 

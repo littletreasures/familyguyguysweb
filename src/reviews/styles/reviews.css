@@ -1,19 +1,40 @@
 @import "tailwindcss";
 
 #review-app {
-  color: #e2e8f0;
-  font-family: 'Neue Montreal', 'Helvetica Neue', sans-serif;
-  line-height: 1.6;
-  background: #020617;
+  color: #000000;
+  font-family: 'Neue Montreal', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  background: #FFFBEB;
+  min-height: 100vh;
 }
 
 #review-app h1, 
 #review-app h2, 
 #review-app h3, 
 #review-app h4 {
-  font-family: 'Special Elite', monospace;
-  color: #f1f5f9;
+  font-family: 'Neue Montreal', 'Special Elite', sans-serif;
+  color: #000000;
   text-transform: uppercase;
+  font-weight: 900;
+}
+
+/* Halftone Texture Overlay */
+.reviews-halftone-bg {
+  position: relative;
+  background-color: #FFFBEB;
+}
+.reviews-halftone-bg::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(circle, #000000 1.5px, transparent 1.5px);
+  background-size: 16px 16px;
+  opacity: 0.10;
+  pointer-events: none;
+  z-index: 0;
+}
+.reviews-halftone-bg > * {
+  position: relative;
+  z-index: 1;
 }
 
 /* Custom button themes */
@@ -21,88 +42,114 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  background: var(--orange);
-  color: white;
-  font-family: 'Special Elite', monospace;
+  background: #FBBF24; /* Yellow-400 */
+  color: #000000;
+  font-family: 'Neue Montreal', sans-serif;
   font-size: 0.85rem;
+  font-weight: 900;
   letter-spacing: 0.08em;
   text-transform: uppercase;
   padding: 0.6rem 1.3rem;
-  border-radius: 999px;
-  border: 2px solid var(--orange-dark);
-  transition: all 0.15s ease;
+  border-radius: 0;
+  border: 4px solid #000000;
+  box-shadow: 4px 4px 0px 0px #000000;
+  transition: all 0.1s ease;
   cursor: pointer;
 }
 
 #review-app .primary-button:hover {
-  background: var(--orange-dark);
-  transform: translateY(-1px);
+  transform: translateY(-2px);
+  box-shadow: 6px 6px 0px 0px #000000;
+  background: #f5b014;
+}
+
+#review-app .primary-button:active {
+  transform: translate(2px, 2px);
+  box-shadow: none;
 }
 
 #review-app .secondary-button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  background: white;
-  color: var(--black);
-  font-family: 'Special Elite', monospace;
+  background: #ffffff;
+  color: #000000;
+  font-family: 'Neue Montreal', sans-serif;
   font-size: 0.8rem;
+  font-weight: 900;
   letter-spacing: 0.05em;
   text-transform: uppercase;
   padding: 0.6rem 1.3rem;
-  border-radius: 999px;
-  border: 2px solid var(--black);
-  transition: all 0.15s ease;
+  border-radius: 0;
+  border: 4px solid #000000;
+  box-shadow: 4px 4px 0px 0px #000000;
+  transition: all 0.1s ease;
   cursor: pointer;
 }
 
 #review-app .secondary-button:hover {
-  background: var(--black);
-  color: var(--off-white);
-  transform: translateY(-1px);
+  background: #f3f4f6;
+  transform: translateY(-2px);
+  box-shadow: 6px 6px 0px 0px #000000;
+}
+
+#review-app .secondary-button:active {
+  transform: translate(2px, 2px);
+  box-shadow: none;
 }
 
 #review-app .secondary-button.small {
   padding: 0.4rem 0.9rem;
   font-size: 0.7rem;
+  border-width: 3px;
+  box-shadow: 3px 3px 0px 0px #000000;
+}
+#review-app .secondary-button.small:hover {
+  box-shadow: 4px 4px 0px 0px #000000;
+}
+#review-app .secondary-button.small:active {
+  box-shadow: none;
 }
 
 #review-app .text-link {
-  font-family: 'Special Elite', monospace;
+  font-family: 'Neue Montreal', sans-serif;
   font-size: 0.85rem;
   letter-spacing: 0.05em;
   text-transform: uppercase;
-  color: var(--orange);
-  font-weight: 700;
+  color: #000000;
+  font-weight: 900;
+  text-decoration: underline;
   transition: color 0.15s ease;
 }
 
 #review-app .text-link:hover {
-  color: var(--orange-dark);
-  text-decoration: underline;
+  color: #59C3F1;
 }
 
 /* Form inputs & controls re-theme */
 #review-app .field {
   width: 100%;
-  border: 2px solid rgba(255,255,255,0.15);
-  background: rgba(255,255,255,0.05);
-  color: #e2e8f0;
-  border-radius: 12px;
+  border: 4px solid #000000;
+  background: #ffffff;
+  color: #000000;
+  border-radius: 0;
   padding: 0.75rem 1rem;
   font-size: 0.875rem;
+  font-weight: 700;
   outline: none;
-  transition: border-color 0.15s;
+  box-shadow: 3px 3px 0px 0px #000000;
+  transition: box-shadow 0.1s, background-color 0.1s;
 }
 
 #review-app .field:focus {
-  border-color: var(--orange);
+  box-shadow: 5px 5px 0px 0px #000000;
+  background: #fffdf5;
 }
 
 #review-app select.field {
   cursor: pointer;
   appearance: none;
-  background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3E%3Cpath stroke='%23e2e8f0' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3E%3Cpath stroke='%23000000' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m6 8 4 4 4-4'/%3E%3C/svg%3E");
   background-position: right 0.75rem center;
   background-repeat: no-repeat;
   background-size: 1.25rem;
@@ -110,23 +157,24 @@
 }
 
 #review-app select option {
-  background: #0f172a;
-  color: #e2e8f0;
+  background: #ffffff;
+  color: #000000;
 }
 
 #review-app .mini-field {
-  border: 1px solid rgba(255,255,255,0.2);
-  background: rgba(255,255,255,0.05);
-  color: #e2e8f0;
-  border-radius: 999px;
+  border: 2px solid #000000;
+  background: #ffffff;
+  color: #000000;
+  border-radius: 0;
   padding: 0.4rem 0.8rem;
   font-size: 0.75rem;
+  font-weight: 700;
   outline: none;
 }
 
-/* Star rating slider re-theme */
-#review-app input[type="range"].accent-cyan-300 {
-  accent-color: var(--orange) !important;
+/* Star rating range input re-theme */
+#review-app input[type="range"] {
+  accent-color: #f472b6 !important; /* Accent Pink */
 }
 
 /* Animations */
@@ -145,41 +193,41 @@
   animation: rise 500ms cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
-/* Custom card styled like hosts section */
+/* Neobrutalist custom card classes */
 #review-app .cohost-card-themed {
-  border: 2px solid var(--black);
-  border-radius: 16px;
+  border: 4px solid #000000;
+  border-radius: 0;
   overflow: hidden;
-  background: white;
-  box-shadow: 4px 4px 0 rgba(0,0,0,0.15);
+  background: #ffffff;
+  box-shadow: 6px 6px 0px 0px #000000;
 }
 
-/* border/background white overrides removed to allow native dark mode styling */
-
-/* Status colors tailored to light theme */
+/* Status colors tailored to Neobrutalist theme */
 #review-app .status-tag {
-  font-family: 'Special Elite', monospace;
-  font-size: 0.7rem;
+  font-family: 'Neue Montreal', sans-serif;
+  font-size: 0.75rem;
+  font-weight: 900;
   letter-spacing: 0.05em;
   text-transform: uppercase;
   padding: 0.25rem 0.65rem;
-  border-radius: 6px;
-  border: 2px solid var(--black);
+  border-radius: 0;
+  border: 3px solid #000000;
+  box-shadow: 2px 2px 0px 0px #000000;
 }
 
 #review-app .status-backlog {
   background: #e2e8f0;
-  color: #475569;
+  color: #000000;
 }
 #review-app .status-watched {
-  background: #dbeafe;
-  color: #1d4ed8;
+  background: #A7F3D0; /* teal */
+  color: #000000;
 }
 #review-app .status-recorded {
-  background: #fef3c7;
-  color: #b45309;
+  background: #C084FC; /* purple */
+  color: #000000;
 }
 #review-app .status-published {
-  background: #d1fae5;
-  color: #047857;
+  background: #FBBF24; /* yellow */
+  color: #000000;
 }

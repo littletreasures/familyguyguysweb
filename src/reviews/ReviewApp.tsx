@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "./lib/supabase";
 import { navigateTo } from "../router.js";
+import { Star, ThumbsUp, Sliders, AlertCircle } from "lucide-react";
 
 type WatchStatus = "backlog" | "watched" | "recorded" | "published";
 
@@ -19,6 +20,8 @@ type Review = {
   pullQuote?: string;
   draftSource?: "manual" | "transcript";
   updatedAt?: string;
+  ratingTerminology?: string;
+  ratingScaleMax?: number;
 };
 
 type EpisodeFact = {
@@ -102,6 +105,8 @@ function reviewFromRow(row: any): Review {
     pullQuote: row.pull_quote,
     draftSource: row.draft_source,
     updatedAt: row.updated_at,
+    ratingTerminology: row.rating_terminology,
+    ratingScaleMax: row.rating_scale_max,
   };
 }
 
@@ -267,7 +272,7 @@ function App() {
             "id, season, episode_number, title, air_date, runtime, imdb_rating, summary, cast, guest_stars, writers, director, facts, watch_status, podcast_url, transcript_notes",
           ),
           supabase.from("reviews").select(
-            "episode_id, cohost_id, rating, review, pull_quote, draft_source, updated_at",
+            "episode_id, cohost_id, rating, review, pull_quote, draft_source, updated_at, rating_terminology, rating_scale_max",
           ),
           supabase.from("config").select("rating_label, rating_max, show_name, subtitle"),
         ]);
@@ -359,7 +364,7 @@ function App() {
           "id, season, episode_number, title, air_date, runtime, imdb_rating, summary, cast, guest_stars, writers, director, facts, watch_status, podcast_url, transcript_notes",
         ),
         supabase.from("reviews").select(
-          "episode_id, cohost_id, rating, review, pull_quote, draft_source, updated_at",
+          "episode_id, cohost_id, rating, review, pull_quote, draft_source, updated_at, rating_terminology, rating_scale_max",
         ),
         supabase.from("config").select("rating_label, rating_max, show_name, subtitle"),
       ]);
@@ -596,7 +601,7 @@ if (loadError) {
   }
 
   return (
-    <div className="min-h-screen overflow-hidden text-slate-100">
+    <div className="min-h-screen text-black reviews-halftone-bg relative p-4 md:p-8 animate-rise" id="review-app">
       <Hero dataset={dataset} metrics={metrics} onNavigate={navigate} onExport={exportDataset} isAdmin={isAdmin} />
       <main className="mx-auto max-w-7xl px-5 pb-16 pt-8 sm:px-6 lg:px-8">
         <Toolbar
@@ -685,18 +690,18 @@ function Hero({
   const featured = dataset.episodes.find((episode) => episode.watchStatus === "published") ?? dataset.episodes[0];
 
   return (
-    <header className="relative min-h-[560px] border-b border-white/10">
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_15%_18%,rgba(103,232,249,0.22),transparent_28%),radial-gradient(circle_at_82%_12%,rgba(250,204,21,0.15),transparent_26%),linear-gradient(135deg,#020617_0%,#0f172a_48%,#111827_100%)]" />
-      <div className="absolute inset-0 opacity-[0.12] [background-image:linear-gradient(rgba(255,255,255,.2)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.2)_1px,transparent_1px)] [background-size:72px_72px]" />
-      <div className="relative mx-auto grid max-w-7xl gap-10 px-5 py-10 sm:px-6 lg:grid-cols-[minmax(0,1fr)_360px] lg:px-8 lg:py-16">
-        <div className="animate-rise max-w-4xl self-center">
-          <p className="text-xs font-semibold uppercase tracking-[0.45em] text-cyan-200/80">
+    <header className="relative min-h-[460px] border-[6px] border-black bg-white p-8 shadow-[8px_8px_0px_0px_#000] mb-10 text-black">
+      <div className="relative mx-auto grid gap-10 max-w-7xl lg:grid-cols-[minmax(0,1fr)_320px]">
+        <div className="max-w-4xl self-center">
+          <p className="text-xs font-black uppercase tracking-[0.45em] text-pink-600">
             Letterboxd for the rewatch
           </p>
-          <h1 className="mt-5 max-w-4xl text-5xl font-black tracking-[-0.06em] text-white sm:text-7xl lg:text-8xl">
+          <h1 className="mt-5 max-w-4xl text-4xl font-black uppercase tracking-tight sm:text-6xl lg:text-7xl">
             {dataset.showName}
           </h1>
-          <p className="mt-6 max-w-2xl text-base leading-7 text-slate-300 sm:text-lg">{dataset.subtitle}</p>
+          <p className="mt-6 max-w-2xl text-base font-bold text-gray-700 leading-relaxed border-l-4 border-yellow-400 pl-3">
+            {dataset.subtitle}
+          </p>
           <div className="mt-8 flex flex-wrap gap-3">
             <button className="primary-button" type="button" onClick={() => onNavigate({ page: "catalog" })}>
               Browse episodes
@@ -724,7 +729,7 @@ function Hero({
           <button
             type="button"
             onClick={() => onNavigate({ page: "episode", id: featured.id })}
-            className="animate-float mx-auto w-full max-w-sm self-end text-left transition hover:-translate-y-1"
+            className="mx-auto w-full max-w-xs self-end text-left transition hover:-translate-y-1"
           >
             <EpisodePoster episode={featured} ratingScale={dataset.ratingScale.label} size="hero" />
           </button>
@@ -736,9 +741,9 @@ function Hero({
 
 function Metric({ value, label }: { value: string; label: string }) {
   return (
-    <div className="border-l border-white/15 pl-4">
-      <p className="text-2xl font-semibold text-white">{value}</p>
-      <p className="mt-1 text-xs uppercase tracking-[0.3em] text-slate-500">{label}</p>
+    <div className="border-l-4 border-black pl-4 text-black">
+      <p className="text-2xl font-black">{value}</p>
+      <p className="mt-1 text-xs font-bold uppercase tracking-[0.2em] text-gray-500">{label}</p>
     </div>
   );
 }
@@ -777,9 +782,9 @@ function Toolbar({
   const seasons = getSeasons(dataset.episodes);
 
   return (
-    <section className="sticky top-0 z-20 -mx-5 border-b border-white/10 bg-slate-950/80 px-5 py-4 backdrop-blur-xl sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8">
-      <div className="mx-auto flex max-w-7xl flex-col gap-4">
-        <div className="flex flex-wrap items-center justify-between gap-4">
+    <section className="bg-white border-4 border-black p-5 shadow-[6px_6px_0px_0px_#000] mb-8 text-black">
+      <div className="flex flex-col gap-4">
+        <div className="flex flex-wrap items-center justify-between gap-4 border-b-2 border-dashed border-gray-300 pb-4">
           <nav className="flex flex-wrap gap-2">
             <NavButton active={route.page === "catalog"} onClick={() => onNavigate({ page: "catalog" })}>
               Catalog
@@ -799,7 +804,7 @@ function Toolbar({
                 active={route.page === "host" && route.id === host.id}
                 onClick={() => onNavigate({ page: "host", id: host.id })}
               >
-                {host.name}
+                {host.name.split(" ")[0]}'s Diary
               </NavButton>
             ))}
             {isAdmin && (
@@ -809,74 +814,79 @@ function Toolbar({
             )}
           </nav>
 
-          {isAdmin && (
-            <button
-              onClick={onLogout}
-              className="rounded-full border border-rose-500/30 bg-rose-500/10 px-4 py-2 text-sm font-medium text-rose-200 transition hover:bg-rose-500/20 hover:-translate-y-0.5"
-            >
-              Admin Logout
-            </button>
-          )}
+          <div className="flex items-center gap-3">
+            {isAdmin ? (
+              <button onClick={onLogout} className="secondary-button small">
+                Admin Logout
+              </button>
+            ) : (
+              <button onClick={() => onNavigate({ page: "fg-admin" })} className="secondary-button small">
+                Admin Portal
+              </button>
+            )}
+          </div>
         </div>
 
-        <div className="grid gap-3 lg:grid-cols-[minmax(0,1.2fr)_0.6fr_0.6fr_0.65fr_0.7fr]">
-          <input
-            value={search}
-            onChange={(event) => onSearch(event.target.value)}
-            placeholder="Search title, cast, notes, reviews..."
-            className="field"
-          />
-          <select value={seasonFilter} onChange={(event) => onSeasonFilter(event.target.value)} className="field">
-            <option value="all">All seasons</option>
-            {seasons.map((season) => (
-              <option key={season} value={season}>
-                Season {season}
-              </option>
-            ))}
-          </select>
-          <select
-            value={statusFilter}
-            onChange={(event) => onStatusFilter(event.target.value as WatchStatus | "all")}
-            className="field"
-          >
-            <option value="all">All statuses</option>
-            {STATUS_ORDER.map((status) => (
-              <option key={status} value={status}>
-                {STATUS_LABEL[status]}
-              </option>
-            ))}
-          </select>
-          {isAdmin ? (
-            <select value={selectedCohostId} onChange={(event) => onCohost(event.target.value)} className="field">
-              {dataset.cohosts.map((host) => (
-                <option key={host.id} value={host.id}>
-                  Editing as {host.name}
-                </option>
-              ))}
-            </select>
-          ) : (
-            <select
-              value={selectedCohostId}
-              onChange={(event) => onCohost(event.target.value)}
-              className="field"
-              disabled
-            >
-              {dataset.cohosts.map((host) => (
-                <option key={host.id} value={host.id}>
-                  {host.name}
-                </option>
-              ))}
-            </select>
-          )}
-          {isAdmin && (
-            <input
-              value={dataset.ratingScale.label}
-              onChange={(event) => onScaleLabel(event.target.value)}
-              placeholder="Stars, Quahogs, Giggitys"
-              className="field"
-            />
-          )}
-        </div>
+        {route.page === "catalog" || route.page === "season" ? (
+          <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-4 items-end">
+            <div>
+              <label className="block text-xs font-black uppercase mb-1">Search Feed</label>
+              <input
+                type="text"
+                value={search}
+                onChange={(e) => onSearch(e.target.value)}
+                placeholder="Search titles, cast..."
+                className="field text-sm !py-2"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-black uppercase mb-1">Filter Season</label>
+              <select
+                value={seasonFilter}
+                onChange={(e) => onSeasonFilter(e.target.value)}
+                className="field text-sm !py-2 animate-none"
+              >
+                <option value="all">All Seasons</option>
+                {seasons.map((s) => (
+                  <option key={s} value={s}>
+                    Season {s}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs font-black uppercase mb-1">Filter Workflow</label>
+              <select
+                value={statusFilter}
+                onChange={(e) => onStatusFilter(e.target.value as WatchStatus | "all")}
+                className="field text-sm !py-2 animate-none"
+              >
+                <option value="all">All Statuses</option>
+                {STATUS_ORDER.map((status) => (
+                  <option key={status} value={status}>
+                    {STATUS_LABEL[status]}
+                  </option>
+                ))}
+              </select>
+            </div>
+            {isAdmin && (
+              <div>
+                <label className="block text-xs font-black uppercase mb-1">Write Cohost</label>
+                <select
+                  value={selectedCohostId}
+                  onChange={(e) => onCohost(e.target.value)}
+                  className="field text-sm !py-2 animate-none"
+                >
+                  {dataset.cohosts.map((host) => (
+                    <option key={host.id} value={host.id}>
+                      {host.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+          </div>
+        ) : null}
       </div>
     </section>
   );
@@ -887,14 +897,17 @@ function NavButton({ active, onClick, children }: { active: boolean; onClick: ()
     <button
       type="button"
       onClick={onClick}
-      className={`rounded-full border px-4 py-2 text-sm font-medium transition hover:-translate-y-0.5 ${
-        active ? "border-cyan-300/50 bg-cyan-300/15 text-cyan-100" : "border-white/10 bg-white/5 text-slate-300 hover:border-white/25"
+      className={`border-4 border-black px-4 py-2 text-sm font-black transition hover:translate-y-[-1px] ${
+        active 
+          ? "bg-[#FBBF24] text-black shadow-[2px_2px_0px_0px_#000]" 
+          : "bg-white text-black shadow-[2px_2px_0px_0px_#000] hover:bg-gray-100"
       }`}
     >
       {children}
     </button>
   );
 }
+
 
 function CatalogPage({
   dataset,
@@ -989,27 +1002,27 @@ function EpisodeTile({
   onStatus: ((status: WatchStatus) => void) | undefined;
 }) {
   return (
-    <article className="group animate-rise rounded-[1.6rem] border border-white/10 bg-white/[0.035] p-3 transition duration-300 hover:-translate-y-1 hover:border-white/20 hover:bg-white/[0.055]">
+    <article className="group animate-rise border-4 border-black bg-white p-3 shadow-[6px_6px_0px_0px_#000] transition duration-300 hover:translate-y-[-2px] hover:shadow-[8px_8px_0px_0px_#000] text-black">
       <button type="button" onClick={onOpen} className="block w-full text-left">
         <EpisodePoster episode={episode} ratingScale={ratingLabel} />
       </button>
       <div className="px-1 pt-4">
         <div className="flex items-start justify-between gap-3">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.32em] text-slate-500">
+            <p className="text-xs font-black uppercase tracking-[0.32em] text-gray-500">
               {formatEpisodeCode(episode)}
             </p>
-            <h3 className="mt-1 text-lg font-semibold leading-tight text-white">{episode.title}</h3>
+            <h3 className="mt-1 text-lg font-black leading-tight text-black uppercase">{episode.title}</h3>
           </div>
           <StatusBadge status={episode.watchStatus} />
         </div>
-        <p className="mt-3 line-clamp-3 text-sm leading-6 text-slate-400">{episode.summary}</p>
+        <p className="mt-3 line-clamp-3 text-sm font-bold text-gray-600 leading-6">{episode.summary}</p>
         <div className="mt-4 flex items-center justify-between gap-3">
           {onStatus ? (
             <select
               value={episode.watchStatus}
               onChange={(event) => onStatus!(event.target.value as WatchStatus)}
-              className="mini-field"
+              className="mini-field cursor-pointer animate-none"
               aria-label={`Update watch status for ${episode.title}`}
             >
               {STATUS_ORDER.map((status) => (
@@ -1021,7 +1034,7 @@ function EpisodeTile({
           ) : (
             <StatusBadge status={episode.watchStatus} />
           )}
-          <button type="button" onClick={onOpen} className="text-sm font-medium text-cyan-200 transition hover:text-cyan-100">
+          <button type="button" onClick={onOpen} className="text-sm font-black text-pink-600 hover:underline uppercase">
             Open page
           </button>
         </div>
@@ -1029,6 +1042,18 @@ function EpisodeTile({
     </article>
   );
 }
+
+type VisitorReview = {
+  id: string;
+  episode_id: string;
+  author: string;
+  rating: number;
+  scale: 'stars' | 'points';
+  terminology: string;
+  content: string;
+  likes: number;
+  created_at: string;
+};
 
 function EpisodePage({
   dataset,
@@ -1054,138 +1079,164 @@ function EpisodePage({
   const average = averageRating(episode.reviews);
 
   return (
-    <div className="animate-rise mt-8 grid gap-8 lg:grid-cols-[360px_minmax(0,1fr)]">
-      <aside className="space-y-5">
-        <EpisodePoster episode={episode} ratingScale={dataset.ratingScale.label} size="detail" />
-        <SidePanel title="Watch status">
-          {onStatus ? (
-            <select
-              value={episode.watchStatus}
-              onChange={(event) => onStatus(episode.id, event.target.value as WatchStatus)}
-              className="field w-full"
-            >
-              {STATUS_ORDER.map((status) => (
-                <option key={status} value={status}>
-                  {STATUS_LABEL[status]}
-                </option>
-              ))}
-            </select>
-          ) : (
-            <div className="field w-full bg-slate-950/50">
-              <span className="text-slate-400">{STATUS_LABEL[episode.watchStatus]}</span>
-            </div>
-          )}
-          <p className="mt-3 text-sm leading-6 text-slate-400">
-            Use this as your production workflow: backlog, watched, recorded, then published.
-          </p>
-        </SidePanel>
-      </aside>
+    <div className="animate-rise mt-8 text-black">
+      {/* Neo-brutalist Canva Mockup Header */}
+      <header className="mb-10 text-center md:text-left border-b-4 border-black pb-6">
+        <h1 className="text-5xl md:text-8xl font-black uppercase tracking-tighter select-none font-sans" style={{ letterSpacing: '-0.04em' }}>
+          REVIEWS
+        </h1>
+        <p className="mt-4 text-xl md:text-2xl font-bold bg-white inline-block border-4 border-black px-4 py-2 shadow-[4px_4px_0px_0px_#000000] uppercase font-sans">
+          {formatEpisodeCode(episode)}: {episode.title}
+        </p>
+      </header>
 
-      <section>
-        <div className="flex flex-wrap items-start justify-between gap-4 border-b border-white/10 pb-6">
+      <div className="grid gap-8 lg:grid-cols-[360px_minmax(0,1fr)]">
+        <aside className="space-y-6">
+          <EpisodePoster episode={episode} ratingScale={dataset.ratingScale.label} size="detail" />
+          <SidePanel title="Watch status">
+            {onStatus ? (
+              <select
+                value={episode.watchStatus}
+                onChange={(event) => onStatus(episode.id, event.target.value as WatchStatus)}
+                className="field w-full animate-none cursor-pointer"
+              >
+                {STATUS_ORDER.map((status) => (
+                  <option key={status} value={status}>
+                    {STATUS_LABEL[status]}
+                  </option>
+                ))}
+              </select>
+            ) : (
+              <div className="field w-full bg-gray-50 border-4 border-black p-3">
+                <span className="text-black font-bold">{STATUS_LABEL[episode.watchStatus]}</span>
+              </div>
+            )}
+            <p className="mt-3 text-xs font-bold leading-6 text-gray-500">
+              Use this as your production workflow: backlog, watched, recorded, then published.
+            </p>
+          </SidePanel>
+        </aside>
+
+        <section className="space-y-8">
+          {/* Main info card */}
+          <div className="bg-white border-4 border-black p-6 shadow-[6px_6px_0px_0px_#000]">
+            <div className="flex flex-wrap items-start justify-between gap-4 border-b-2 border-dashed border-gray-300 pb-6">
+              <div>
+                <button type="button" onClick={() => onNavigate({ page: "catalog" })} className="text-link">
+                  Back to catalog
+                </button>
+                <p className="mt-4 text-sm font-black text-gray-500 uppercase">
+                  <button type="button" onClick={() => onNavigate({ page: "season", season: episode.season })} className="hover:text-pink-600 underline">
+                    Season {episode.season}
+                  </button>{" "}
+                  / Episode {episode.episodeNumber}
+                </p>
+                <h2 className="mt-2 text-3xl font-black uppercase text-black">{episode.title}</h2>
+              </div>
+              <div className="bg-yellow-200 border-4 border-black px-5 py-4 text-right shadow-[3px_3px_0px_0px_#000]">
+                <p className="text-xs font-black uppercase tracking-[0.2em] text-gray-600">Average</p>
+                <p className="mt-1 text-3xl font-black text-black">
+                  {average === null ? "--" : average.toFixed(1)} / {dataset.ratingScale.max}
+                </p>
+                <p className="text-xs font-bold text-gray-500">{dataset.ratingScale.label}</p>
+              </div>
+            </div>
+
+            <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              <Info label="Air date" value={episode.airDate} />
+              <Info label="Runtime" value={episode.runtime} />
+              <Info label="IMDb" value={episode.imdbRating} />
+              <Info label="Status" value={STATUS_LABEL[episode.watchStatus]} />
+            </div>
+
+            <div className="mt-6 border-t-2 border-dashed border-gray-200 pt-6">
+              <p className="mb-2 text-xs font-black uppercase tracking-[0.35em] text-gray-500">Synopsis</p>
+              <p className="max-w-3xl text-sm font-bold leading-relaxed text-gray-700">{episode.summary}</p>
+            </div>
+          </div>
+
+          <div className="grid gap-4 md:grid-cols-2">
+            <DetailList title="Cast" items={episode.cast} />
+            <DetailList title="Guest stars" items={episode.guestStars} />
+            <DetailList title="Writers" items={episode.writers} />
+            <DetailList title="Director" items={episode.director ? [episode.director] : []} />
+          </div>
+
+          {episode.facts.length ? (
+            <SectionBlock title="Metadata">
+              <dl className="grid gap-4 sm:grid-cols-2">
+                {episode.facts.map((fact) => (
+                  <div key={`${fact.label}-${fact.value}`} className="flex justify-between gap-4 border-b border-gray-200 pb-3 font-bold text-sm">
+                    <dt className="text-gray-500 font-black">{fact.label}</dt>
+                    <dd className="text-right text-black">{fact.value}</dd>
+                  </div>
+                ))}
+              </dl>
+            </SectionBlock>
+          ) : null}
+
+          {/* Host ratings */}
           <div>
-            <button type="button" onClick={() => onNavigate({ page: "catalog" })} className="text-link">
-              Back to catalog
-            </button>
-            <p className="mt-4 text-sm text-slate-400">
-              <button type="button" onClick={() => onNavigate({ page: "season", season: episode.season })} className="hover:text-cyan-200">
-                Season {episode.season}
-              </button>{" "}
-              / Episode {episode.episodeNumber}
-            </p>
-            <h2 className="mt-2 text-4xl font-black tracking-tight text-white sm:text-5xl">{episode.title}</h2>
-          </div>
-          <div className="rounded-3xl border border-white/10 bg-white/5 px-5 py-4 text-right">
-            <p className="text-xs uppercase tracking-[0.3em] text-slate-500">Average</p>
-            <p className="mt-1 text-2xl font-semibold text-white">
-              {average === null ? "--" : average.toFixed(1)} / {dataset.ratingScale.max}
-            </p>
-            <p className="text-xs text-slate-400">{dataset.ratingScale.label}</p>
-          </div>
-        </div>
-
-        <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          <Info label="Air date" value={episode.airDate} />
-          <Info label="Runtime" value={episode.runtime} />
-          <Info label="IMDb" value={episode.imdbRating} />
-          <Info label="Status" value={STATUS_LABEL[episode.watchStatus]} />
-        </div>
-
-        <SectionBlock title="Synopsis">
-          <p className="max-w-3xl text-base leading-8 text-slate-300">{episode.summary}</p>
-        </SectionBlock>
-
-        <div className="grid gap-6 border-y border-white/10 py-7 md:grid-cols-2">
-          <DetailList title="Cast" items={episode.cast} />
-          <DetailList title="Guest stars" items={episode.guestStars} />
-          <DetailList title="Writers" items={episode.writers} />
-          <DetailList title="Director" items={episode.director ? [episode.director] : []} />
-        </div>
-
-        {episode.facts.length ? (
-          <SectionBlock title="Metadata">
-            <dl className="grid gap-3 sm:grid-cols-2">
-              {episode.facts.map((fact) => (
-                <div key={`${fact.label}-${fact.value}`} className="flex justify-between gap-4 border-b border-white/10 pb-3">
-                  <dt className="text-sm text-slate-500">{fact.label}</dt>
-                  <dd className="text-right text-sm text-slate-200">{fact.value}</dd>
-                </div>
-              ))}
-            </dl>
-          </SectionBlock>
-        ) : null}
-
-        <SectionBlock title="Cohost reviews">
-          <div className="divide-y divide-white/10 border-y border-white/10">
-            {episode.reviews.map((review) => {
-              const host = dataset.cohosts.find((item) => item.id === review.cohostId);
-              return (
-                <ReviewRow key={review.cohostId} host={host} review={review} ratingLabel={dataset.ratingScale.label} onHost={onNavigate} />
-              );
-            })}
-          </div>
-        </SectionBlock>
-
-        {isAdmin && selectedCohost ? (
-          <SectionBlock title={`Rewrite as ${selectedCohost.name}`}>
-            <div className="rounded-[1.6rem] border border-white/10 bg-white/5 p-5">
-              <label className="block text-sm text-slate-300">
-                Rating: {hostReview?.rating == null ? "not rated" : `${hostReview.rating.toFixed(1)} / ${dataset.ratingScale.max}`}
-                <input
-                  type="range"
-                  min="0"
-                  max={dataset.ratingScale.max}
-                  step="0.5"
-                  value={hostReview?.rating ?? 0}
-                  onChange={(event) => onReview(episode.id, { rating: Number(event.target.value), draftSource: "manual" })}
-                  className="mt-3 w-full accent-cyan-300"
-                />
-              </label>
-              <label className="mt-4 block text-sm text-slate-300">
-                Pull quote
-                <input
-                  value={hostReview?.pullQuote ?? ""}
-                  onChange={(event) => onReview(episode.id, { pullQuote: event.target.value, draftSource: "manual" })}
-                  className="field mt-2 w-full"
-                  placeholder="One-sentence quote for profile pages"
-                />
-              </label>
-              <label className="mt-4 block text-sm text-slate-300">
-                Review
-                <textarea
-                  value={hostReview?.review ?? ""}
-                  onChange={(event) => onReview(episode.id, { review: event.target.value, draftSource: "manual" })}
-                  className="field mt-2 min-h-44 w-full"
-                  placeholder="Rewrite your review here..."
-                />
-              </label>
+            <div className="inline-block bg-[#F99F1B] border-4 border-black px-4 py-2 mb-6 shadow-[4px_4px_0px_0px_#000000] text-black">
+              <h3 className="text-xl font-black uppercase tracking-wide">HOST RATINGS FOR THIS EPISODE</h3>
             </div>
-          </SectionBlock>
-        ) : null}
-      </section>
+            <div className="space-y-6">
+              {episode.reviews.map((review) => {
+                const host = dataset.cohosts.find((item) => item.id === review.cohostId);
+                if (!host) return null;
+                return (
+                  <HostReviewRow key={review.cohostId} host={host} review={review} ratingLabel={dataset.ratingScale.label} />
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Visitor Reviews Feed & Composer */}
+          <VisitorReviewsSection episodeId={episode.id} />
+
+          {/* Admin editing form */}
+          {isAdmin && selectedCohost ? (
+            <SectionBlock title={`Rewrite as ${selectedCohost.name}`}>
+              <div className="space-y-4">
+                <label className="block text-sm font-black text-black">
+                  Rating: {hostReview?.rating == null ? "not rated" : `${hostReview.rating.toFixed(1)} / ${dataset.ratingScale.max}`}
+                  <input
+                    type="range"
+                    min="0"
+                    max={dataset.ratingScale.max}
+                    step="0.5"
+                    value={hostReview?.rating ?? 0}
+                    onChange={(event) => onReview!(episode.id, { rating: Number(event.target.value), draftSource: "manual" })}
+                    className="mt-3 w-full cursor-pointer h-2 bg-gray-200 border border-black rounded-none appearance-none"
+                  />
+                </label>
+                <label className="block text-sm font-black text-black">
+                  Pull quote
+                  <input
+                    value={hostReview?.pullQuote ?? ""}
+                    onChange={(event) => onReview!(episode.id, { pullQuote: event.target.value, draftSource: "manual" })}
+                    className="field mt-2 w-full text-sm"
+                    placeholder="One-sentence quote for profile pages"
+                  />
+                </label>
+                <label className="block text-sm font-black text-black">
+                  Review
+                  <textarea
+                    value={hostReview?.review ?? ""}
+                    onChange={(event) => onReview!(episode.id, { review: event.target.value, draftSource: "manual" })}
+                    className="field mt-2 min-h-44 w-full text-sm"
+                    placeholder="Rewrite your review here..."
+                  />
+                </label>
+              </div>
+            </SectionBlock>
+          ) : null}
+        </section>
     </div>
+  </div>
   );
 }
+
 
 function SeasonPage({
   dataset,
@@ -1414,19 +1465,19 @@ function EpisodePoster({
 
   return (
     <div
-      className={`poster-shine relative overflow-hidden rounded-[1.4rem] border border-white/15 p-5 shadow-2xl shadow-black/40 ${sizeClass}`}
+      className={`poster-shine relative overflow-hidden border-4 border-black p-5 shadow-[6px_6px_0px_0px_#000000] bg-white ${sizeClass}`}
       style={{
-        background: `radial-gradient(circle at 20% 18%, ${colors[0]}55, transparent 32%), radial-gradient(circle at 80% 70%, ${colors[1]}55, transparent 35%), linear-gradient(145deg, #0f172a, #020617 62%, ${colors[2]}33)`,
+        background: `radial-gradient(circle at 20% 18%, ${colors[0]}33, transparent 32%), radial-gradient(circle at 80% 70%, ${colors[1]}33, transparent 35%), linear-gradient(145deg, #ffffff, #fffbeb 62%, ${colors[2]}22)`,
       }}
     >
-      <div className="absolute inset-x-5 top-5 flex items-center justify-between text-xs font-semibold uppercase tracking-[0.28em] text-white/60">
+      <div className="absolute inset-x-5 top-5 flex items-center justify-between text-xs font-extrabold uppercase tracking-[0.28em] text-black/60">
         <span>{formatEpisodeCode(episode)}</span>
-        <span>{STATUS_LABEL[episode.watchStatus]}</span>
+        <span className="bg-black text-white px-1.5 py-0.5 border border-black font-black">{STATUS_LABEL[episode.watchStatus]}</span>
       </div>
-      <div className="absolute inset-x-5 bottom-5">
-        <div className="mb-5 h-16 w-24 rounded-[45%] border border-white/25 bg-white/10 shadow-[inset_0_0_30px_rgba(255,255,255,.08)]" />
-        <h3 className={`${titleClass} max-w-[92%] font-black leading-[0.95] tracking-[-0.05em] text-white`}>{episode.title}</h3>
-        <div className="mt-4 flex items-center justify-between gap-4 border-t border-white/15 pt-4 text-sm text-white/70">
+      <div className="absolute inset-x-5 bottom-5 text-black">
+        <div className="mb-5 h-16 w-24 border border-black/45 bg-black/5" />
+        <h3 className={`${titleClass} max-w-[92%] font-black leading-[0.95] tracking-[-0.05em] text-black uppercase`}>{episode.title}</h3>
+        <div className="mt-4 flex items-center justify-between gap-4 border-t-2 border-black/15 pt-4 text-sm text-black/75 font-bold">
           <span>{episode.airDate}</span>
           <span>{average === null ? "--" : average.toFixed(1)} {ratingScale}</span>
         </div>
@@ -1436,32 +1487,32 @@ function EpisodePoster({
 }
 
 function StatusBadge({ status }: { status: WatchStatus }) {
-  return <span className={`rounded-full border px-3 py-1 text-xs font-medium ${STATUS_TONE[status]}`}>{STATUS_LABEL[status]}</span>;
+  return <span className={`status-tag status-${status}`}>{STATUS_LABEL[status]}</span>;
 }
 
 function Info({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3">
-      <p className="text-[11px] uppercase tracking-[0.3em] text-slate-500">{label}</p>
-      <p className="mt-1 font-medium text-slate-100">{value}</p>
+    <div className="bg-white border-4 border-black p-4 shadow-[4px_4px_0px_0px_#000] text-black">
+      <p className="text-[11px] font-black uppercase tracking-[0.3em] text-gray-500">{label}</p>
+      <p className="mt-1 font-extrabold text-black">{value}</p>
     </div>
   );
 }
 
 function SectionIntro({ eyebrow, title, copy }: { eyebrow: string; title: string; copy: string }) {
   return (
-    <div>
-      <p className="text-xs font-semibold uppercase tracking-[0.42em] text-cyan-200/80">{eyebrow}</p>
-      <h2 className="mt-3 text-3xl font-black tracking-tight text-white sm:text-4xl">{title}</h2>
-      <p className="mt-3 max-w-2xl text-sm leading-7 text-slate-400">{copy}</p>
+    <div className="text-black">
+      <p className="text-xs font-black uppercase tracking-[0.42em] text-pink-600">{eyebrow}</p>
+      <h2 className="mt-3 text-3xl font-black tracking-tight text-black sm:text-4xl uppercase">{title}</h2>
+      <p className="mt-3 max-w-2xl text-sm font-bold text-gray-600 leading-relaxed">{copy}</p>
     </div>
   );
 }
 
 function SectionBlock({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <section className="mt-8">
-      <p className="mb-3 text-xs font-semibold uppercase tracking-[0.35em] text-slate-500">{title}</p>
+    <section className="mt-8 bg-white border-4 border-black p-5 shadow-[6px_6px_0px_0px_#000] text-black">
+      <p className="mb-3 text-xs font-black uppercase tracking-[0.35em] text-gray-500">{title}</p>
       {children}
     </section>
   );
@@ -1469,8 +1520,8 @@ function SectionBlock({ title, children }: { title: string; children: React.Reac
 
 function SidePanel({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <section className="rounded-[1.6rem] border border-white/10 bg-white/[0.035] p-5">
-      <h3 className="text-lg font-semibold text-white">{title}</h3>
+    <section className="bg-white border-4 border-black p-5 shadow-[6px_6px_0px_0px_#000] text-black">
+      <h3 className="text-lg font-black text-black uppercase tracking-wider">{title}</h3>
       <div className="mt-4">{children}</div>
     </section>
   );
@@ -1478,10 +1529,10 @@ function SidePanel({ title, children }: { title: string; children: React.ReactNo
 
 function DetailList({ title, items }: { title: string; items: string[] }) {
   return (
-    <div>
-      <p className="text-xs uppercase tracking-[0.35em] text-slate-500">{title}</p>
-      <ul className="mt-2 space-y-1 text-sm leading-6 text-slate-300">
-        {items.length ? items.map((item) => <li key={item}>{item}</li>) : <li className="text-slate-500">Unknown</li>}
+    <div className="bg-white border-4 border-black p-4 shadow-[4px_4px_0px_0px_#000] text-black">
+      <p className="text-xs font-black uppercase tracking-[0.35em] text-gray-500">{title}</p>
+      <ul className="mt-2 space-y-1 text-sm font-bold text-gray-700 leading-6">
+        {items.length ? items.map((item) => <li key={item}>{item}</li>) : <li className="text-gray-400">Unknown</li>}
       </ul>
     </div>
   );
@@ -1499,27 +1550,33 @@ function ReviewRow({
   onHost: (route: Route) => void;
 }) {
   return (
-    <div className="grid gap-4 py-5 sm:grid-cols-[220px_minmax(0,1fr)_90px]">
+    <div className="grid gap-4 py-5 sm:grid-cols-[220px_minmax(0,1fr)_90px] text-black">
       <button type="button" onClick={() => host && onHost({ page: "host", id: host.id })} className="flex items-center gap-3 text-left">
         {host ? <Avatar host={host} /> : null}
         <div>
-          <p className="font-medium text-white">{host?.name ?? review.cohostId}</p>
-          <p className="text-sm text-slate-500">{review.draftSource === "transcript" ? "Transcript draft" : "Manual edit"}</p>
+          <p className="font-black text-black">{host?.name ?? review.cohostId}</p>
+          <p className="text-xs font-bold text-gray-500">{review.draftSource === "transcript" ? "Transcript draft" : "Manual edit"}</p>
         </div>
       </button>
       <div>
-        {review.pullQuote ? <p className="mb-2 text-sm font-medium text-cyan-100">"{review.pullQuote}"</p> : null}
-        <p className="whitespace-pre-wrap text-sm leading-7 text-slate-300">{review.review || "No review yet."}</p>
+        {review.pullQuote ? <p className="mb-2 text-sm font-black text-pink-600">"{review.pullQuote}"</p> : null}
+        <p className="whitespace-pre-wrap text-sm font-bold text-gray-700 leading-relaxed">{review.review || "No review yet."}</p>
       </div>
       <div className="text-right">
-        <p className="text-xl font-semibold text-white">{review.rating == null ? "--" : review.rating.toFixed(1)}</p>
-        <p className="text-xs text-slate-500">{ratingLabel}</p>
+        <p className="text-2xl font-black text-black">{review.rating == null ? "--" : review.rating.toFixed(1)}</p>
+        <p className="text-xs font-bold text-gray-500 uppercase">{ratingLabel}</p>
       </div>
     </div>
   );
 }
 
 function Avatar({ host, large = false }: { host: Cohost; large?: boolean }) {
+  const defaultMapping: Record<string, string> = {
+    collin: "/collinhost.png",
+    tyler: "/tylerhost.png",
+    jason: "/jasonhost.png",
+  };
+  const photoUrl = defaultMapping[host.id.toLowerCase()];
   const initials = host.name
     .split(/\s+/)
     .map((part) => part[0])
@@ -1528,10 +1585,22 @@ function Avatar({ host, large = false }: { host: Cohost; large?: boolean }) {
     .toUpperCase();
   return (
     <div
-      className={`grid shrink-0 place-items-center rounded-full font-black text-slate-950 ${large ? "h-24 w-24 text-3xl" : "h-11 w-11 text-sm"}`}
+      className={`grid shrink-0 place-items-center border-2 border-black font-black text-slate-950 overflow-hidden relative ${large ? "h-24 w-24 text-3xl" : "h-11 w-11 text-sm"}`}
       style={{ backgroundColor: host.accent }}
     >
-      {initials}
+      {photoUrl ? (
+        <img 
+          src={photoUrl} 
+          alt={host.name} 
+          className="w-full h-full object-cover filter contrast-125"
+          onError={(e) => {
+            e.currentTarget.style.display = 'none';
+          }}
+        />
+      ) : null}
+      <span className="absolute inset-0 flex items-center justify-center bg-transparent" style={{ zIndex: -1 }}>
+        {initials}
+      </span>
     </div>
   );
 }

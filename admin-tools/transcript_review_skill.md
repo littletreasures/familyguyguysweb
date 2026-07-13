@@ -22,7 +22,9 @@ host.
    gigades," "four bicuspids out of five," a percentage, or their own
    made-up unit). Convert mathematically to the nearest 0.25 increment on a
    0–5 scale. Show your conversion math is correct — a percentage X% out of
-   100 becomes (X/100)*5. Round sensibly.
+   100 becomes (X/100)*5. Round sensibly. Also extract the host's actual
+   rating terminology unit (e.g. "Paul Reisers", "Giggitys", "Baby Teeth")
+   and the host's raw maximum scale value (usually 5 or 100).
 4. **Attribute every rating/quote to the correct speaker.** Use the speaker
    labels present in the transcript exactly as given.
 5. **If a host's rating or review content is genuinely absent or unclear**
@@ -51,6 +53,8 @@ host.
       "host_name": "Jason | Collin | Tyler",
       "rating": 4.0,
       "rating_source_note": "Brief note on how the score was derived/converted, e.g. 'stated directly as four out of five' or 'converted from 74/100 gigades'",
+      "rating_terminology": "The specific custom terminology used by the host (e.g. 'Paul Reisers', 'Giggitys', 'Baby Teeth')",
+      "rating_scale_max": 5,
       "review": "Finished, publishable review text in the host's voice, 2-5 sentences, grounded strictly in what they said.",
       "pull_quote": "Verbatim funniest/most quotable line from this host in this segment."
     }
