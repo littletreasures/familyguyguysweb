@@ -266,14 +266,22 @@ function App() {
           setLoading(false);
           return;
         }
+        const fetchReviews = async () => {
+          const res = await supabase.from("reviews").select(
+            "episode_id, cohost_id, rating, review, pull_quote, draft_source, updated_at, rating_terminology, rating_scale_max",
+          );
+          if (!res.error) return res;
+          console.warn("New columns not found in reviews table, falling back to legacy schema:", res.error.message);
+          return await supabase.from("reviews").select(
+            "episode_id, cohost_id, rating, review, pull_quote, draft_source, updated_at",
+          );
+        };
         const results = await Promise.allSettled([
           supabase.from("cohosts").select("id, name, role, bio, accent"),
           supabase.from("episodes").select(
             "id, season, episode_number, title, air_date, runtime, imdb_rating, summary, cast, guest_stars, writers, director, facts, watch_status, podcast_url, transcript_notes",
           ),
-          supabase.from("reviews").select(
-            "episode_id, cohost_id, rating, review, pull_quote, draft_source, updated_at, rating_terminology, rating_scale_max",
-          ),
+          fetchReviews(),
           supabase.from("config").select("rating_label, rating_max, show_name, subtitle"),
         ]);
 
@@ -358,14 +366,22 @@ function App() {
         setLoading(false);
         return;
       }
+      const fetchReviews = async () => {
+        const res = await supabase.from("reviews").select(
+          "episode_id, cohost_id, rating, review, pull_quote, draft_source, updated_at, rating_terminology, rating_scale_max",
+        );
+        if (!res.error) return res;
+        console.warn("New columns not found in reviews table, falling back to legacy schema:", res.error.message);
+        return await supabase.from("reviews").select(
+          "episode_id, cohost_id, rating, review, pull_quote, draft_source, updated_at",
+        );
+      };
       const results = await Promise.allSettled([
         supabase.from("cohosts").select("id, name, role, bio, accent"),
         supabase.from("episodes").select(
           "id, season, episode_number, title, air_date, runtime, imdb_rating, summary, cast, guest_stars, writers, director, facts, watch_status, podcast_url, transcript_notes",
         ),
-        supabase.from("reviews").select(
-          "episode_id, cohost_id, rating, review, pull_quote, draft_source, updated_at, rating_terminology, rating_scale_max",
-        ),
+        fetchReviews(),
         supabase.from("config").select("rating_label, rating_max, show_name, subtitle"),
       ]);
       
