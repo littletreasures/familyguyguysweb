@@ -87,11 +87,21 @@ const STATUS_TONE: Record<WatchStatus, string> = {
 };
 const PALETTE = ["#65e4d3", "#f7c948", "#a78bfa", "#fb7185", "#38bdf8", "#f97316"];
 
+const COHOST_NAME_MAP: Record<string, { name: string; role: string; photo: string }> = {
+  "01201e1a-dafd-424a-b596-ff9ece65f1aa": { name: "Jason Hackett", role: "Host", photo: "/jasonhost.png" },
+  "e08c8c4b-ecf5-427e-8890-fe9cef0a2c9a": { name: "Tyler Simpson", role: "Host", photo: "/tylerhost.png" },
+  "0a3dfd13-90b2-47db-b0af-2e0c0df21cff": { name: "Collin Brown", role: "Host", photo: "/collinhost.png" },
+  "jason": { name: "Jason Hackett", role: "Host", photo: "/jasonhost.png" },
+  "tyler": { name: "Tyler Simpson", role: "Host", photo: "/tylerhost.png" },
+  "collin": { name: "Collin Brown", role: "Host", photo: "/collinhost.png" },
+};
+
 function cohostFromRow(row: any): Cohost {
+  const mapped = COHOST_NAME_MAP[row.id?.toLowerCase()] || COHOST_NAME_MAP[row.name?.toLowerCase()];
   return {
     id: row.id,
-    name: row.name,
-    role: row.role,
+    name: mapped?.name ?? row.name,
+    role: mapped?.role ?? row.role,
     bio: row.bio,
     accent: row.accent,
   };
@@ -706,19 +716,16 @@ function Hero({
   const featured = dataset.episodes.find((episode) => episode.watchStatus === "published") ?? dataset.episodes[0];
 
   return (
-    <header className="relative min-h-[460px] border-[6px] border-black bg-white p-8 shadow-[8px_8px_0px_0px_#000] mb-10 text-black">
-      <div className="relative mx-auto grid gap-10 max-w-7xl lg:grid-cols-[minmax(0,1fr)_320px]">
+    <header className="relative border-[6px] border-black bg-white p-6 md:p-8 shadow-[8px_8px_0px_0px_#000] mb-10 text-black">
+      <div className="relative mx-auto grid gap-8 max-w-7xl lg:grid-cols-[minmax(0,1fr)_320px]">
         <div className="max-w-4xl self-center">
-          <p className="text-xs font-black uppercase tracking-[0.45em] text-pink-600">
-            Letterboxd for the rewatch
-          </p>
-          <h1 className="mt-5 max-w-4xl text-4xl font-black uppercase tracking-tight sm:text-6xl lg:text-7xl">
+          <h1 className="text-4xl font-black uppercase tracking-tight sm:text-6xl lg:text-7xl leading-[1.05]">
             {dataset.showName}
           </h1>
-          <p className="mt-6 max-w-2xl text-base font-bold text-gray-700 leading-relaxed border-l-4 border-yellow-400 pl-3">
+          <p className="mt-4 max-w-2xl text-sm font-bold text-gray-700 leading-relaxed border-l-4 border-yellow-400 pl-3">
             {dataset.subtitle}
           </p>
-          <div className="mt-8 flex flex-wrap gap-3">
+          <div className="mt-6 flex flex-wrap gap-3">
             <button className="primary-button" type="button" onClick={() => onNavigate({ page: "catalog" })}>
               Browse episodes
             </button>
@@ -733,7 +740,7 @@ function Hero({
               </button>
             )}
           </div>
-          <div className="mt-10 grid max-w-2xl grid-cols-2 gap-4 sm:grid-cols-4">
+          <div className="mt-8 grid max-w-2xl grid-cols-2 gap-4 sm:grid-cols-4">
             <Metric value={String(metrics.episodeCount)} label="Episodes" />
             <Metric value={String(metrics.publishedCount)} label="Published" />
             <Metric value={metrics.average === null ? "--" : metrics.average.toFixed(1)} label="Avg rating" />
@@ -757,9 +764,9 @@ function Hero({
 
 function Metric({ value, label }: { value: string; label: string }) {
   return (
-    <div className="border-l-4 border-black pl-4 text-black">
-      <p className="text-2xl font-black">{value}</p>
-      <p className="mt-1 text-xs font-bold uppercase tracking-[0.2em] text-gray-500">{label}</p>
+    <div className="border-l-4 border-black pl-3 text-black">
+      <p className="text-xl font-black leading-none">{value}</p>
+      <p className="mt-1 text-[10px] font-bold uppercase tracking-[0.2em] text-gray-500 leading-none">{label}</p>
     </div>
   );
 }
@@ -831,13 +838,9 @@ function Toolbar({
           </nav>
 
           <div className="flex items-center gap-3">
-            {isAdmin ? (
+            {isAdmin && (
               <button onClick={onLogout} className="secondary-button small">
                 Admin Logout
-              </button>
-            ) : (
-              <button onClick={() => onNavigate({ page: "fg-admin" })} className="secondary-button small">
-                Admin Portal
               </button>
             )}
           </div>
@@ -985,20 +988,25 @@ function CatalogPage({
 
         <SidePanel title="Host profiles">
           <div className="space-y-3">
-            {dataset.cohosts.map((host) => (
-              <button
-                key={host.id}
-                type="button"
-                onClick={() => onNavigate({ page: "host", id: host.id })}
-                className="flex w-full items-center gap-3 rounded-2xl border border-white/10 bg-white/5 p-3 text-left transition hover:border-white/20 hover:bg-white/8"
-              >
-                <Avatar host={host} />
-                <div>
-                  <p className="font-medium text-white">{host.name}</p>
-                  <p className="text-sm text-slate-400">{host.role}</p>
-                </div>
-              </button>
-            ))}
+            {dataset.cohosts.map((host) => {
+              const mapped = COHOST_NAME_MAP[host.id.toLowerCase()] || COHOST_NAME_MAP[host.name?.toLowerCase()];
+              const name = mapped?.name ?? host.name;
+              const role = mapped?.role ?? host.role;
+              return (
+                <button
+                  key={host.id}
+                  type="button"
+                  onClick={() => onNavigate({ page: "host", id: host.id })}
+                  className="flex w-full items-center gap-3 border-4 border-black bg-white p-3 text-left transition shadow-[4px_4px_0px_0px_#000] hover:translate-y-[-1px] hover:shadow-[5px_5px_0px_0px_#000] text-black"
+                >
+                  <Avatar host={host} />
+                  <div>
+                    <p className="font-black text-black leading-none">{name}</p>
+                    <p className="text-xs font-bold text-gray-500 mt-1.5 leading-none">{role}</p>
+                  </div>
+                </button>
+              );
+            })}
           </div>
         </SidePanel>
       </aside>
@@ -1097,11 +1105,11 @@ function EpisodePage({
   return (
     <div className="animate-rise mt-8 text-black">
       {/* Neo-brutalist Canva Mockup Header */}
-      <header className="mb-10 text-center md:text-left border-b-4 border-black pb-6">
-        <h1 className="text-5xl md:text-8xl font-black uppercase tracking-tighter select-none font-sans" style={{ letterSpacing: '-0.04em' }}>
+      <header className="mb-6 text-center md:text-left border-b-4 border-black pb-4">
+        <h1 className="text-4xl md:text-6xl font-black uppercase tracking-tight select-none font-sans leading-none">
           REVIEWS
         </h1>
-        <p className="mt-4 text-xl md:text-2xl font-bold bg-white inline-block border-4 border-black px-4 py-2 shadow-[4px_4px_0px_0px_#000000] uppercase font-sans">
+        <p className="mt-2 text-md md:text-lg font-bold bg-white inline-block border-2 border-black px-3 py-1 shadow-[3px_3px_0px_0px_#000000] uppercase font-sans">
           {formatEpisodeCode(episode)}: {episode.title}
         </p>
       </header>
@@ -1253,6 +1261,450 @@ function EpisodePage({
   );
 }
 
+function HostReviewRow({
+  host,
+  review,
+  ratingLabel,
+}: {
+  host: Cohost;
+  review: Review;
+  ratingLabel: string;
+}) {
+  const mapped = COHOST_NAME_MAP[host.id.toLowerCase()] || COHOST_NAME_MAP[host.name?.toLowerCase()];
+  const name = mapped?.name ?? host.name;
+  const photoUrl = mapped?.photo;
+  const accentClass = host.id.toLowerCase() === 'tyler' 
+    ? "bg-[#43141F] text-white" 
+    : host.id.toLowerCase() === 'collin' 
+      ? "bg-[#59C3F1] text-black" 
+      : "bg-[#F99F1B] text-black";
+
+  const scaleMax = review.ratingScaleMax || 5;
+  const terminology = review.ratingTerminology || ratingLabel;
+  const ratingVal = review.rating !== null ? (review.rating / 5) * scaleMax : null;
+
+  return (
+    <div className="flex flex-col sm:flex-row gap-4 items-start bg-white border-4 border-black p-4 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] hover:translate-y-[-1px] transition-transform duration-100">
+      <div className="flex-shrink-0 self-start">
+        <div className="w-20 h-20 border-4 border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] relative overflow-hidden flex items-center justify-center bg-gray-200">
+          {photoUrl ? (
+            <img 
+              src={photoUrl} 
+              alt={name} 
+              className="w-full h-full object-cover filter contrast-125 relative z-10"
+              onError={(e) => {
+                e.currentTarget.style.display = 'none';
+              }}
+            />
+          ) : null}
+          <div className="absolute inset-0 flex items-center justify-center font-black text-xl" style={{ backgroundColor: host.accent, zIndex: -1 }}>
+            {name.split(" ").map(n => n[0]).join("").slice(0,2).toUpperCase()}
+          </div>
+          <div className="absolute bottom-0 inset-x-0 bg-black text-white text-[8px] font-black uppercase text-center py-0.5 tracking-wider leading-none">
+            {name.split(" ")[0].toUpperCase()}
+          </div>
+        </div>
+      </div>
+
+      <div className="flex-grow w-full text-black">
+        <div className={`border-4 border-black p-2 mb-2.5 flex flex-wrap items-center justify-between shadow-[2px_2px_0px_0px_#000000] ${accentClass}`}>
+          <span className="font-black text-xs uppercase tracking-wider">{name.split(" ")[0]}'S METRIC</span>
+          <div className="flex items-center gap-1">
+            {ratingVal === null ? (
+              <span className="bg-black text-white font-black text-[10px] px-1.5 py-0.5 border border-white leading-none">
+                Not Rated
+              </span>
+            ) : scaleMax === 100 ? (
+              <div className="flex items-center gap-1.5">
+                <div className="w-16 bg-white border border-black h-2.5 relative overflow-hidden">
+                  <div className="bg-pink-500 h-full border-r border-black" style={{ width: `${ratingVal}%` }} />
+                </div>
+                <span className="bg-black text-white font-black text-[10px] px-1.5 py-0.5 border border-white leading-none">
+                  {ratingVal.toFixed(0)}/100 {terminology}
+                </span>
+              </div>
+            ) : (
+              <div className="flex items-center gap-1">
+                {[1, 2, 3, 4, 5].map((s) => (
+                  <Star 
+                    key={s} 
+                    size={14} 
+                    fill={s <= Math.round(ratingVal) ? (host.id.toLowerCase() === 'tyler' ? '#F99F1B' : '#43141F') : 'transparent'} 
+                    className={`stroke-[2.5] ${host.id.toLowerCase() === 'tyler' ? 'text-white' : 'text-black'}`} 
+                  />
+                ))}
+                <span className="bg-black text-white font-black text-[10px] px-1.5 py-0.5 ml-1 border border-white leading-none">
+                  {ratingVal.toFixed(1)}/5 {terminology}
+                </span>
+              </div>
+            )}
+          </div>
+        </div>
+        {review.pullQuote && (
+          <p className="mb-1 text-xs font-black text-pink-600 leading-normal">"{review.pullQuote}"</p>
+        )}
+        <p className="font-bold text-xs md:text-sm leading-relaxed text-gray-800 whitespace-pre-wrap">
+          {review.review || "No review yet."}
+        </p>
+      </div>
+    </div>
+  );
+}
+
+function VisitorReviewsSection({ episodeId }: { episodeId: string }) {
+  const [reviews, setReviews] = useState<VisitorReview[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [formAuthor, setFormAuthor] = useState('');
+  const [formContent, setFormContent] = useState('');
+  const [formRating, setFormRating] = useState(4);
+  const [formScale, setFormScale] = useState<'stars' | 'points'>('stars');
+  const [formTerminology, setFormTerminology] = useState('Giggitys');
+
+  const loadReviews = async () => {
+    setLoading(true);
+    try {
+      if (supabase) {
+        const { data, error } = await supabase
+          .from('visitor_reviews')
+          .select('*')
+          .eq('episode_id', episodeId)
+          .order('created_at', { ascending: false });
+        if (error) throw error;
+        if (data) {
+          setReviews(data);
+          return;
+        }
+      }
+      throw new Error("No supabase client");
+    } catch (err) {
+      const stored = localStorage.getItem(`visitor_reviews_${episodeId}`);
+      setReviews(stored ? JSON.parse(stored) : []);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadReviews();
+  }, [episodeId]);
+
+  const handleScaleToggle = (newScale: 'stars' | 'points') => {
+    setFormScale(newScale);
+    if (newScale === 'stars') {
+      setFormRating(Math.round((formRating / 100) * 5) || 1);
+    } else {
+      setFormRating(Math.round((formRating / 5) * 100) || 80);
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!formAuthor.trim() || !formContent.trim()) return;
+
+    const payload = {
+      episode_id: episodeId,
+      author: formAuthor.trim(),
+      rating: Number(formRating),
+      scale: formScale,
+      terminology: formTerminology.trim() || (formScale === 'stars' ? 'Stars' : 'Points'),
+      content: formContent.trim(),
+      likes: 0
+    };
+
+    try {
+      if (supabase) {
+        const { data, error } = await supabase
+          .from('visitor_reviews')
+          .insert([payload])
+          .select();
+        if (error) throw error;
+        if (data && data[0]) {
+          setReviews(prev => [data[0], ...prev]);
+        } else {
+          await loadReviews();
+        }
+      } else {
+        throw new Error();
+      }
+    } catch (err) {
+      console.warn("Falling back to local storage");
+      const localItem: VisitorReview = {
+        id: 'local-' + Date.now(),
+        created_at: new Date().toISOString(),
+        ...payload
+      };
+      const updated = [localItem, ...reviews];
+      setReviews(updated);
+      localStorage.setItem(`visitor_reviews_${episodeId}`, JSON.stringify(updated));
+    }
+
+    setFormAuthor('');
+    setFormContent('');
+  };
+
+  const handleToggleLike = async (id: string) => {
+    const target = reviews.find(r => r.id === id);
+    if (!target) return;
+
+    const likedKey = `liked_${id}`;
+    const isLiked = localStorage.getItem(likedKey) === 'true';
+    const nextLikes = isLiked ? target.likes - 1 : target.likes + 1;
+
+    setReviews(prev => prev.map(r => r.id === id ? { ...r, likes: nextLikes } : r));
+    if (isLiked) {
+      localStorage.removeItem(likedKey);
+    } else {
+      localStorage.setItem(likedKey, 'true');
+    }
+
+    try {
+      if (supabase && !id.startsWith('local-')) {
+        await supabase
+          .from('visitor_reviews')
+          .update({ likes: nextLikes })
+          .eq('id', id);
+      } else {
+        const stored = localStorage.getItem(`visitor_reviews_${episodeId}`);
+        if (stored) {
+          const parsed: VisitorReview[] = JSON.parse(stored);
+          localStorage.setItem(`visitor_reviews_${episodeId}`, JSON.stringify(
+            parsed.map(r => r.id === id ? { ...r, likes: nextLikes } : r)
+          ));
+        }
+      }
+    } catch (err) {
+      console.warn("Failed to sync like count:", err);
+    }
+  };
+
+  return (
+    <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start mt-8 text-black">
+      <div className="lg:col-span-7 space-y-4">
+        <div className="inline-block bg-[#A7F3D0] border-4 border-black px-3 py-1.5 shadow-[4px_4px_0px_0px_#000000]">
+          <h3 className="text-md font-black uppercase tracking-wide">USER COMMUNITY FEED</h3>
+        </div>
+
+        {loading ? (
+          <div className="p-4 text-center font-bold">Loading comments...</div>
+        ) : reviews.length === 0 ? (
+          <div className="bg-white border-4 border-black p-6 text-center shadow-[4px_4px_0px_0px_#000000]">
+            <p className="font-black text-sm">No reviews posted yet! Use the composer on the right to post yours.</p>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {reviews.map((review) => {
+              const dateStr = new Date(review.created_at).toLocaleDateString(undefined, { 
+                year: 'numeric', 
+                month: 'short', 
+                day: 'numeric' 
+              });
+              const likedKey = `liked_${review.id}`;
+              const isLiked = localStorage.getItem(likedKey) === 'true';
+
+              return (
+                <div 
+                  key={review.id} 
+                  className="flex gap-3 items-start bg-white border-4 border-black p-4 shadow-[4px_4px_0px_0px_#000000] relative hover:translate-y-[-1px] transition-transform duration-100"
+                >
+                  <div className="flex-shrink-0">
+                    <div className="w-10 h-10 border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] bg-pink-300 flex items-center justify-center font-black text-sm uppercase">
+                      {review.author[0] || "?"}
+                    </div>
+                  </div>
+
+                  <div className="flex-grow min-w-0">
+                    <div className="flex items-center justify-between gap-2 mb-1.5">
+                      <span className="font-black text-sm underline decoration-pink-500 decoration-2 truncate">
+                        {review.author}
+                      </span>
+                      <span className="text-[10px] font-bold text-gray-500 flex-shrink-0">
+                        {dateStr}
+                      </span>
+                    </div>
+
+                    <div className="inline-block bg-yellow-100 border-2 border-black px-1.5 py-0.5 text-[10px] font-black mb-2">
+                      {review.scale === 'stars' ? (
+                        <div className="flex items-center gap-1">
+                          <span>Rating:</span>
+                          <div className="flex items-center">
+                            {[1, 2, 3, 4, 5].map((s) => (
+                              <Star 
+                                key={s} 
+                                size={10} 
+                                fill={s <= review.rating ? "#F59E0B" : "transparent"} 
+                                className="text-black" 
+                              />
+                            ))}
+                          </div>
+                          <span className="ml-1 text-pink-600">
+                            ({review.rating}/5 {review.terminology})
+                          </span>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-1.5">
+                          <span>Score:</span>
+                          <div className="w-14 bg-white border border-black h-2.5 relative overflow-hidden">
+                            <div 
+                              className="bg-pink-500 h-full border-r border-black" 
+                              style={{ width: `${review.rating}%` }}
+                            />
+                          </div>
+                          <span className="text-pink-600 font-black">
+                            {review.rating}/100 {review.terminology}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+
+                    <p className="text-xs font-bold text-gray-700 leading-relaxed mb-3 whitespace-pre-wrap break-words">
+                      {review.content}
+                    </p>
+
+                    <div className="flex items-center gap-3 border-t border-dashed border-gray-200 pt-2">
+                      <button 
+                        onClick={() => handleToggleLike(review.id)}
+                        className={`flex items-center gap-1 text-[10px] font-bold px-1.5 py-0.5 border border-black shadow-[1.5px_1.5px_0px_0px_#000000] active:translate-x-0.5 active:translate-y-0.5 active:shadow-none transition-colors ${
+                          isLiked ? 'bg-pink-300 text-black' : 'bg-white hover:bg-gray-100'
+                        }`}
+                      >
+                        <ThumbsUp size={10} /> 
+                        <span>{review.likes} Helpful</span>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      <div className="lg:col-span-5">
+        <div className="bg-[#F472B6] border-4 border-black p-4 shadow-[4px_4px_0px_0px_#000000]">
+          <div className="flex items-center justify-between mb-3 pb-2 border-b-2 border-black">
+            <h4 className="text-md font-black uppercase tracking-tight flex items-center gap-1.5">
+              <Sliders size={16} /> WRITE A REVIEW
+            </h4>
+          </div>
+
+          <form onSubmit={handleSubmit} className="space-y-3">
+            <div>
+              <label className="block text-[10px] font-black uppercase mb-1">Your Alias</label>
+              <input
+                type="text"
+                required
+                value={formAuthor}
+                onChange={(e) => setFormAuthor(e.target.value)}
+                placeholder="e.g. MegIsGreat99"
+                className="w-full bg-white border-2 border-black p-1.5 font-black focus:outline-none focus:bg-yellow-50 text-xs"
+              />
+            </div>
+
+            <div>
+              <label className="block text-[10px] font-black uppercase mb-1">Choose Score System</label>
+              <div className="grid grid-cols-2 gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => handleScaleToggle('stars')}
+                  className={`py-1.5 px-2 border-2 border-black font-black text-[10px] uppercase tracking-wider transition-colors ${
+                    formScale === 'stars' ? 'bg-yellow-300 text-black shadow-[1.5px_1.5px_0px_0px_#000000]' : 'bg-white hover:bg-gray-100'
+                  }`}
+                >
+                  5-Star Scale
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleScaleToggle('points')}
+                  className={`py-1.5 px-2 border-2 border-black font-black text-[10px] uppercase tracking-wider transition-colors ${
+                    formScale === 'points' ? 'bg-yellow-300 text-black shadow-[1.5px_1.5px_0px_0px_#000000]' : 'bg-white hover:bg-gray-100'
+                  }`}
+                >
+                  100-Point Scale
+                </button>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-[10px] font-black uppercase mb-1">Scale Terminology</label>
+              <input
+                type="text"
+                required
+                value={formTerminology}
+                onChange={(e) => setFormTerminology(e.target.value)}
+                placeholder="e.g. Giggitys, Peter Points..."
+                className="w-full bg-white border-2 border-black p-1.5 font-black focus:outline-none focus:bg-yellow-50 text-xs"
+              />
+            </div>
+
+            <div>
+              <div className="flex items-center justify-between mb-1">
+                <label className="block text-[10px] font-black uppercase">Your Score</label>
+                <span className="font-black text-xs bg-black text-white px-1.5 py-0.5 border border-black">
+                  {formRating} {formTerminology || 'Points'}
+                </span>
+              </div>
+
+              {formScale === 'stars' ? (
+                <div className="flex items-center gap-1.5 bg-white border-2 border-black p-1.5 justify-center">
+                  {[1, 2, 3, 4, 5].map((num) => (
+                    <button
+                      key={num}
+                      type="button"
+                      onClick={() => setFormRating(num)}
+                      className="hover:scale-110 transition-transform"
+                    >
+                      <Star 
+                        size={22} 
+                        fill={num <= formRating ? "#F59E0B" : "transparent"} 
+                        className="stroke-[2] text-black"
+                      />
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <div className="bg-white border-2 border-black p-2 flex flex-col gap-1.5">
+                  <input
+                    type="range"
+                    min="1"
+                    max="100"
+                    value={formRating}
+                    onChange={(e) => setFormRating(Number(e.target.value))}
+                    className="w-full cursor-pointer accent-pink-600 h-1.5 bg-gray-200 border border-black rounded-none appearance-none"
+                  />
+                  <div className="flex justify-between text-[8px] font-black">
+                    <span>1 (Trash)</span>
+                    <span>50 (Meh)</span>
+                    <span>100 (Masterpiece)</span>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div>
+              <label className="block text-[10px] font-black uppercase mb-1">Comments</label>
+              <textarea
+                required
+                rows={2}
+                value={formContent}
+                onChange={(e) => setFormContent(e.target.value)}
+                placeholder="Give us your worst, Peter style..."
+                className="w-full bg-white border-2 border-black p-1.5 font-black focus:outline-none focus:bg-yellow-50 text-xs"
+              />
+            </div>
+
+            <button
+              type="submit"
+              className="w-full bg-black text-white hover:bg-yellow-300 hover:text-black border-2 border-black p-2 text-xs font-black uppercase tracking-wider transition-colors shadow-[2px_2px_0px_0px_#FFFFFF] active:translate-x-0.5 active:translate-y-0.5 active:shadow-none"
+            >
+              POST REVIEW LIVE
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 
 function SeasonPage({
   dataset,
@@ -1306,14 +1758,18 @@ function HostPage({ dataset, hostId, onNavigate }: { dataset: PodcastDataset; ho
   const ratings = hostReviews.map((item) => item.review.rating).filter((rating): rating is number => rating !== null);
   const average = ratings.length ? ratings.reduce((sum, rating) => sum + rating, 0) / ratings.length : null;
 
+  const mapped = COHOST_NAME_MAP[host.id.toLowerCase()] || COHOST_NAME_MAP[host.name?.toLowerCase()];
+  const name = mapped?.name ?? host.name;
+  const role = mapped?.role ?? host.role;
+
   return (
     <div className="animate-rise mt-8 grid gap-8 lg:grid-cols-[320px_minmax(0,1fr)]">
       <aside>
-        <div className="rounded-[2rem] border border-white/10 bg-white/5 p-6">
+        <div className="border-4 border-black bg-white p-6 shadow-[6px_6px_0px_0px_#000] text-black">
           <Avatar host={host} large />
-          <h2 className="mt-5 text-3xl font-black tracking-tight text-white">{host.name}</h2>
-          <p className="mt-1 text-cyan-200">{host.role}</p>
-          <p className="mt-4 text-sm leading-7 text-slate-300">{host.bio}</p>
+          <h2 className="mt-5 text-3xl font-black uppercase text-black leading-tight">{name}</h2>
+          <p className="mt-1 font-bold text-pink-600 uppercase text-sm leading-none">{role}</p>
+          <p className="mt-4 text-xs font-bold leading-relaxed text-gray-700">{host.bio}</p>
           <div className="mt-6 grid grid-cols-2 gap-3">
             <Info label="Reviews" value={String(hostReviews.length)} />
             <Info label="Average" value={average === null ? "--" : average.toFixed(1)} />
@@ -1321,24 +1777,24 @@ function HostPage({ dataset, hostId, onNavigate }: { dataset: PodcastDataset; ho
         </div>
       </aside>
       <section>
-        <SectionIntro eyebrow="Host profile" title={`${host.name}'s diary`} copy="A profile view for every rating and pull quote this cohost has logged." />
-        <div className="mt-6 divide-y divide-white/10 border-y border-white/10">
+        <SectionIntro eyebrow="Host profile" title={`${name}'s diary`} copy="A profile view for every rating and pull quote this cohost has logged." />
+        <div className="mt-6 divide-y-2 divide-dashed divide-gray-300 border-y-2 border-dashed border-gray-300">
           {hostReviews.map(({ episode, review }) => (
             <button
               key={episode.id}
               type="button"
               onClick={() => onNavigate({ page: "episode", id: episode.id })}
-              className="grid w-full gap-4 py-5 text-left transition hover:bg-white/[0.025] sm:grid-cols-[120px_minmax(0,1fr)_90px]"
+              className="grid w-full gap-4 py-5 text-left transition hover:bg-white/50 px-2 sm:grid-cols-[120px_minmax(0,1fr)_90px] text-black"
             >
               <EpisodePoster episode={episode} ratingScale={dataset.ratingScale.label} size="mini" />
               <div>
-                <p className="text-xs uppercase tracking-[0.32em] text-slate-500">{formatEpisodeCode(episode)}</p>
-                <h3 className="mt-1 text-xl font-semibold text-white">{episode.title}</h3>
-                <p className="mt-2 line-clamp-2 text-sm leading-6 text-slate-400">{review.pullQuote || review.review || "No review yet."}</p>
+                <p className="text-xs font-black uppercase tracking-[0.32em] text-gray-500">{formatEpisodeCode(episode)}</p>
+                <h3 className="mt-1 text-lg font-black text-black uppercase leading-tight">{episode.title}</h3>
+                <p className="mt-2 line-clamp-2 text-xs font-bold leading-relaxed text-gray-600">{review.pullQuote || review.review || "No review yet."}</p>
               </div>
               <div className="text-right">
-                <p className="text-2xl font-semibold text-white">{review.rating == null ? "--" : review.rating.toFixed(1)}</p>
-                <p className="text-xs text-slate-500">{dataset.ratingScale.label}</p>
+                <p className="text-2xl font-black text-black leading-none">{review.rating == null ? "--" : review.rating.toFixed(1)}</p>
+                <p className="text-xs font-bold text-gray-500 uppercase mt-1">{dataset.ratingScale.label}</p>
               </div>
             </button>
           ))}
@@ -1476,8 +1932,29 @@ function EpisodePoster({
 }) {
   const colors = posterColors(episode.id);
   const average = averageRating(episode.reviews);
-  const sizeClass = size === "hero" ? "aspect-[4/5]" : size === "detail" ? "aspect-[4/5]" : size === "mini" ? "aspect-[5/3]" : "aspect-[4/5]";
-  const titleClass = size === "mini" ? "text-sm" : size === "hero" || size === "detail" ? "text-3xl" : "text-2xl";
+
+  if (size === "mini") {
+    return (
+      <div
+        className="relative overflow-hidden border-2 border-black p-2 bg-white w-[90px] h-[120px] flex flex-col justify-between text-black shadow-[2px_2px_0px_0px_#000] shrink-0"
+        style={{
+          background: `linear-gradient(145deg, #ffffff, #fffbeb 62%, ${colors[2]}22)`,
+        }}
+      >
+        <div className="text-[8px] font-black uppercase text-black/60 leading-none">
+          {formatEpisodeCode(episode)}
+        </div>
+        <div className="h-5 w-8 border border-black/35 bg-black/5 self-center my-0.5" />
+        <h3 className="text-[9px] font-black leading-tight text-black uppercase truncate w-full">{episode.title}</h3>
+        <div className="border-t border-black/15 pt-0.5 text-[8px] text-black/75 font-bold flex justify-between items-center leading-none">
+          <span>{average === null ? "--" : average.toFixed(1)} {ratingScale.slice(0, 3)}</span>
+        </div>
+      </div>
+    );
+  }
+
+  const sizeClass = size === "hero" ? "aspect-[4/5]" : size === "detail" ? "aspect-[4/5]" : "aspect-[4/5]";
+  const titleClass = size === "hero" || size === "detail" ? "text-3xl" : "text-2xl";
 
   return (
     <div
@@ -1565,12 +2042,14 @@ function ReviewRow({
   ratingLabel: string;
   onHost: (route: Route) => void;
 }) {
+  const mapped = host ? (COHOST_NAME_MAP[host.id.toLowerCase()] || COHOST_NAME_MAP[host.name?.toLowerCase()]) : null;
+  const name = mapped?.name ?? host?.name ?? review.cohostId;
   return (
     <div className="grid gap-4 py-5 sm:grid-cols-[220px_minmax(0,1fr)_90px] text-black">
       <button type="button" onClick={() => host && onHost({ page: "host", id: host.id })} className="flex items-center gap-3 text-left">
         {host ? <Avatar host={host} /> : null}
         <div>
-          <p className="font-black text-black">{host?.name ?? review.cohostId}</p>
+          <p className="font-black text-black">{name}</p>
           <p className="text-xs font-bold text-gray-500">{review.draftSource === "transcript" ? "Transcript draft" : "Manual edit"}</p>
         </div>
       </button>
@@ -1587,13 +2066,10 @@ function ReviewRow({
 }
 
 function Avatar({ host, large = false }: { host: Cohost; large?: boolean }) {
-  const defaultMapping: Record<string, string> = {
-    collin: "/collinhost.png",
-    tyler: "/tylerhost.png",
-    jason: "/jasonhost.png",
-  };
-  const photoUrl = defaultMapping[host.id.toLowerCase()];
-  const initials = host.name
+  const mapped = COHOST_NAME_MAP[host.id.toLowerCase()] || COHOST_NAME_MAP[host.name?.toLowerCase()];
+  const photoUrl = mapped?.photo;
+  const name = mapped?.name ?? host.name;
+  const initials = name
     .split(/\s+/)
     .map((part) => part[0])
     .join("")
@@ -1607,14 +2083,14 @@ function Avatar({ host, large = false }: { host: Cohost; large?: boolean }) {
       {photoUrl ? (
         <img 
           src={photoUrl} 
-          alt={host.name} 
-          className="w-full h-full object-cover filter contrast-125"
+          alt={name} 
+          className="w-full h-full object-cover filter contrast-125 relative z-10"
           onError={(e) => {
             e.currentTarget.style.display = 'none';
           }}
         />
       ) : null}
-      <span className="absolute inset-0 flex items-center justify-center bg-transparent" style={{ zIndex: -1 }}>
+      <span className="absolute inset-0 flex items-center justify-center bg-transparent z-0">
         {initials}
       </span>
     </div>
