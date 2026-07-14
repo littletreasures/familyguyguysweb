@@ -22,6 +22,20 @@ function loadEnv() {
   }
 }
 
+
+function escapeXml(unsafe) {
+  if (typeof unsafe !== 'string') return unsafe;
+  return unsafe.replace(/[<>&'"]/g, function (c) {
+    switch (c) {
+      case '<': return '&lt;';
+      case '>': return '&gt;';
+      case '&': return '&amp;';
+      case '\'': return '&apos;';
+      case '"': return '&quot;';
+    }
+  });
+}
+
 async function generateFeed() {
   loadEnv();
 
@@ -80,18 +94,18 @@ async function generateFeed() {
   if (episodes && episodes.length > 0) {
     for (const ep of episodes) {
       const pubDate = ep.air_date ? new Date(ep.air_date).toUTCString() : new Date(ep.created_at).toUTCString();
-      const episodeUrl = `${siteUrl}/reviews/${encodeURIComponent(ep.id)}`;
-      const mediaUrl = ep.podcast_url || 'https://familyguyguys.com/placeholder.mp3'; // fallback placeholder
+      const episodeUrl = `${siteUrl}/reviews/${escapeXml(encodeURIComponent(ep.id))}`;
+      const mediaUrl = escapeXml(ep.podcast_url) || 'https://familyguyguys.com/placeholder.mp3'; // fallback placeholder
 
       xml += `    <item>
-      <title>${ep.title}</title>
-      <description>${ep.summary || ''}</description>
+      <title>${escapeXml(ep.title)}</title>
+      <description>${escapeXml(ep.summary || '')}</description>
       <link>${episodeUrl}</link>
       <guid isPermaLink="true">${episodeUrl}</guid>
-      <pubDate>${pubDate}</pubDate>
+      <pubDate>${escapeXml(String(pubDate))}</pubDate>
       <itunes:episodeType>full</itunes:episodeType>
-      <itunes:season>${ep.season}</itunes:season>
-      <itunes:episode>${ep.episode_number}</itunes:episode>
+      <itunes:season>${escapeXml(String(ep.season))}</itunes:season>
+      <itunes:episode>${escapeXml(String(ep.episode_number))}</itunes:episode>
       <itunes:explicit>yes</itunes:explicit>
       <enclosure url="${mediaUrl}" length="0" type="audio/mpeg" />
     </item>
