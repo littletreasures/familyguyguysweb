@@ -44,7 +44,7 @@ async function generateFeed() {
 
   if (!supabaseUrl || !supabaseAnonKey) {
     console.error('Skipping RSS generation: Missing VITE_SUPABASE_URL or VITE_SUPABASE_ANON_KEY.');
-    return;
+    process.exit(0);
   }
 
   const supabase = createClient(supabaseUrl, supabaseAnonKey);
