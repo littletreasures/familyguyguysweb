@@ -628,24 +628,7 @@ if (loadError) {
 
   return (
     <div className="min-h-screen text-black reviews-halftone-bg relative p-4 md:p-8 animate-rise" id="review-app">
-      <Hero dataset={dataset} metrics={metrics} onNavigate={navigate} onExport={exportDataset} isAdmin={isAdmin} />
-      <main className="mx-auto max-w-7xl px-5 pb-16 pt-8 sm:px-6 lg:px-8">
-        <Toolbar
-          dataset={dataset}
-          route={route}
-          search={search}
-          seasonFilter={seasonFilter}
-          statusFilter={statusFilter}
-          selectedCohostId={selectedCohostId}
-          onNavigate={navigate}
-          onSearch={setSearch}
-          onSeasonFilter={setSeasonFilter}
-          onStatusFilter={setStatusFilter}
-          onCohost={setSelectedCohostId}
-          onScaleLabel={(label) => setDataset((current) => ({ ...current, ratingScale: { ...current.ratingScale, label } }))}
-          isAdmin={isAdmin}
-          onLogout={handleLogout}
-        />
+      <main className="mx-auto max-w-7xl px-5 pb-16 pt-2 sm:px-6 lg:px-8">
 
         {route.page === "catalog" ? (
           <CatalogPage
@@ -670,11 +653,11 @@ if (loadError) {
         ) : null}
 
         {route.page === "season" ? (
-          <SeasonPage dataset={dataset} season={route.season} onNavigate={navigate} onStatus={isAdmin ? updateStatus : undefined} />
+          <SeasonPage dataset={dataset} season={route.season} onNavigate={navigate} onStatus={isAdmin ? updateStatus : undefined} isAdmin={isAdmin} />
         ) : null}
 
         {route.page === "host" ? (
-          <HostPage dataset={dataset} hostId={route.id} onNavigate={navigate} />
+          <HostPage dataset={dataset} hostId={route.id} onNavigate={navigate} isAdmin={isAdmin} />
         ) : null}
 
         {isAdmin && route.page === "pipeline" ? (
@@ -700,233 +683,6 @@ if (loadError) {
   );
 }
 
-function Hero({
-  dataset,
-  metrics,
-  onNavigate,
-  onExport,
-  isAdmin,
-}: {
-  dataset: PodcastDataset;
-  metrics: ReturnType<typeof getDatasetMetrics>;
-  onNavigate: (route: Route) => void;
-  onExport: () => void;
-  isAdmin: boolean;
-}) {
-  const featured = dataset.episodes.find((episode) => episode.watchStatus === "published") ?? dataset.episodes[0];
-
-  return (
-    <header className="relative border-[6px] border-black bg-white p-6 md:p-8 shadow-[8px_8px_0px_0px_#000] mb-10 text-black">
-      <div className="relative mx-auto grid gap-8 max-w-7xl lg:grid-cols-[minmax(0,1fr)_320px]">
-        <div className="max-w-4xl self-center">
-          <h1 className="text-4xl font-black uppercase tracking-tight sm:text-5xl lg:text-5xl leading-[1.05]">
-            {dataset.showName}
-          </h1>
-          <p className="mt-4 max-w-2xl text-sm font-bold text-gray-700 leading-relaxed border-l-4 border-yellow-400 pl-3">
-            {dataset.subtitle}
-          </p>
-          <div className="mt-6 flex flex-wrap gap-3">
-            <button className="primary-button" type="button" onClick={() => onNavigate({ page: "catalog" })}>
-              Browse episodes
-            </button>
-            {isAdmin && (
-              <button className="secondary-button" type="button" onClick={() => onNavigate({ page: "pipeline" })}>
-                Import pipeline
-              </button>
-            )}
-            {isAdmin && (
-              <button className="secondary-button" type="button" onClick={onExport}>
-                Export JSON
-              </button>
-            )}
-          </div>
-          <div className="mt-8 grid max-w-2xl grid-cols-2 gap-4 sm:grid-cols-4">
-            <Metric value={String(metrics.episodeCount)} label="Episodes" />
-            <Metric value={String(metrics.publishedCount)} label="Published" />
-            <Metric value={metrics.average === null ? "--" : metrics.average.toFixed(1)} label="Avg rating" />
-            <Metric value={dataset.ratingScale.label} label="Scale" />
-          </div>
-        </div>
-
-        {featured ? (
-          <button
-            type="button"
-            onClick={() => onNavigate({ page: "episode", id: featured.id })}
-            className="mx-auto w-full max-w-xs self-end text-left transition hover:-translate-y-1"
-          >
-            <EpisodePoster episode={featured} ratingScale={dataset.ratingScale.label} size="hero" />
-          </button>
-        ) : null}
-      </div>
-    </header>
-  );
-}
-
-function Metric({ value, label }: { value: string; label: string }) {
-  return (
-    <div className="border-l-4 border-black pl-3 text-black">
-      <p className="text-xl font-black leading-none">{value}</p>
-      <p className="mt-1 text-[10px] font-bold uppercase tracking-[0.2em] text-gray-500 leading-none">{label}</p>
-    </div>
-  );
-}
-
-function Toolbar({
-  dataset,
-  route,
-  search,
-  seasonFilter,
-  statusFilter,
-  selectedCohostId,
-  onNavigate,
-  onSearch,
-  onSeasonFilter,
-  onStatusFilter,
-  onCohost,
-  onScaleLabel,
-  isAdmin,
-  onLogout,
-}: {
-  dataset: PodcastDataset;
-  route: Route;
-  search: string;
-  seasonFilter: string;
-  statusFilter: WatchStatus | "all";
-  selectedCohostId: string;
-  onNavigate: (route: Route) => void;
-  onSearch: (value: string) => void;
-  onSeasonFilter: (value: string) => void;
-  onStatusFilter: (value: WatchStatus | "all") => void;
-  onCohost: (value: string) => void;
-  onScaleLabel: (value: string) => void;
-  isAdmin: boolean;
-  onLogout: () => void;
-}) {
-  const seasons = getSeasons(dataset.episodes);
-
-  return (
-    <section className="bg-white border-4 border-black p-5 shadow-[6px_6px_0px_0px_#000] mb-8 text-black">
-      <div className="flex flex-col gap-4">
-        <div className="flex flex-wrap items-center justify-between gap-4 border-b-4 border-black pb-4">
-          <nav className="flex flex-wrap gap-2">
-            <NavButton active={route.page === "catalog"} onClick={() => onNavigate({ page: "catalog" })}>
-              Catalog
-            </NavButton>
-            {seasons.map((season) => (
-              <NavButton
-                key={season}
-                active={route.page === "season" && route.season === season}
-                onClick={() => onNavigate({ page: "season", season })}
-              >
-                Season {season}
-              </NavButton>
-            ))}
-            {dataset.cohosts.map((host) => (
-              <NavButton
-                key={host.id}
-                active={route.page === "host" && route.id === host.id}
-                onClick={() => onNavigate({ page: "host", id: host.id })}
-              >
-                {host.name.split(" ")[0]}'s Reviews
-              </NavButton>
-            ))}
-            {isAdmin && (
-              <NavButton active={route.page === "pipeline"} onClick={() => onNavigate({ page: "pipeline" })}>
-                Import lab
-              </NavButton>
-            )}
-          </nav>
-
-          <div className="flex items-center gap-3">
-            {isAdmin && (
-              <button onClick={onLogout} className="secondary-button small">
-                Admin Logout
-              </button>
-            )}
-          </div>
-        </div>
-
-        {route.page === "catalog" || route.page === "season" ? (
-          <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-4 items-end">
-            <div>
-              <label className="block text-xs font-black uppercase mb-1">Search Feed</label>
-              <input
-                type="text"
-                value={search}
-                onChange={(e) => onSearch(e.target.value)}
-                placeholder="Search titles, cast..."
-                className="field text-sm !py-2"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-black uppercase mb-1">Filter Season</label>
-              <select
-                value={seasonFilter}
-                onChange={(e) => onSeasonFilter(e.target.value)}
-                className="field text-sm !py-2 animate-none"
-              >
-                <option value="all">All Seasons</option>
-                {seasons.map((s) => (
-                  <option key={s} value={s}>
-                    Season {s}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="block text-xs font-black uppercase mb-1">Filter Workflow</label>
-              <select
-                value={statusFilter}
-                onChange={(e) => onStatusFilter(e.target.value as WatchStatus | "all")}
-                className="field text-sm !py-2 animate-none"
-              >
-                <option value="all">All Statuses</option>
-                {STATUS_ORDER.map((status) => (
-                  <option key={status} value={status}>
-                    {STATUS_LABEL[status]}
-                  </option>
-                ))}
-              </select>
-            </div>
-            {isAdmin && (
-              <div>
-                <label className="block text-xs font-black uppercase mb-1">Write Cohost</label>
-                <select
-                  value={selectedCohostId}
-                  onChange={(e) => onCohost(e.target.value)}
-                  className="field text-sm !py-2 animate-none"
-                >
-                  {dataset.cohosts.map((host) => (
-                    <option key={host.id} value={host.id}>
-                      {host.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            )}
-          </div>
-        ) : null}
-      </div>
-    </section>
-  );
-}
-
-function NavButton({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={`border-4 border-black px-4 py-2 text-sm font-black transition hover:translate-y-[-1px] ${
-        active 
-          ? "bg-[#FBBF24] text-black shadow-[2px_2px_0px_0px_#000]" 
-          : "bg-white text-black shadow-[2px_2px_0px_0px_#000] hover:bg-gray-100"
-      }`}
-    >
-      {children}
-    </button>
-  );
-}
-
 
 function CatalogPage({
   dataset,
@@ -934,21 +690,30 @@ function CatalogPage({
   seasons,
   onNavigate,
   onStatus,
+  isAdmin,
+  onLogout,
+  onExport,
 }: {
   dataset: PodcastDataset;
   episodes: Episode[];
   seasons: number[];
   onNavigate: (route: Route) => void;
   onStatus: ((episodeId: string, status: WatchStatus) => void) | undefined;
+  isAdmin: boolean;
+  onLogout: () => void;
+  onExport: () => void;
 }) {
   return (
-    <div className="animate-rise mt-8 grid gap-8 lg:grid-cols-[minmax(0,1fr)_330px]">
+    <div className="animate-rise mt-4 grid gap-8 lg:grid-cols-[minmax(0,1fr)_330px]">
       <section>
-        <SectionIntro
-          eyebrow="Episode catalog"
-          title="Every episode gets a page."
-          copy="Open an episode to see metadata, status, cast, cohost ratings, and editable reviews."
-        />
+        <header className="mb-6 border-b-4 border-black pb-4">
+          <h1 
+            className="text-4xl md:text-6xl font-black uppercase tracking-tight select-none font-sans leading-none cursor-pointer hover:text-gray-700"
+            onClick={() => onNavigate({ page: "catalog" })}
+          >
+            REVIEWS
+          </h1>
+        </header>
         <div className="mt-6 grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
           {episodes.map((episode) => (
             <EpisodeTile
@@ -960,10 +725,26 @@ function CatalogPage({
             />
           ))}
         </div>
-        {!episodes.length ? <EmptyState title="No episodes found" copy="Try changing the search or status filters." /> : null}
+        {!episodes.length ? <EmptyState title="No episodes found" copy="Check back later for new reviews!" /> : null}
       </section>
 
       <aside className="space-y-6">
+        {isAdmin && (
+          <SidePanel title="Admin actions">
+            <div className="space-y-3">
+              <button onClick={onLogout} className="secondary-button small w-full text-center" type="button">
+                Admin Logout
+              </button>
+              <button onClick={() => onNavigate({ page: "pipeline" })} className="secondary-button small w-full text-center" type="button">
+                Import pipeline
+              </button>
+              <button onClick={onExport} className="secondary-button small w-full text-center" type="button">
+                Export JSON
+              </button>
+            </div>
+          </SidePanel>
+        )}
+
         <SidePanel title="Season shelves">
           <div className="space-y-4">
             {seasons.map((season) => {
@@ -1026,44 +807,14 @@ function EpisodeTile({
   onStatus: ((status: WatchStatus) => void) | undefined;
 }) {
   return (
-    <article className="group animate-rise border-4 border-black bg-white p-3 shadow-[6px_6px_0px_0px_#000] transition duration-300 hover:translate-y-[-2px] hover:shadow-[8px_8px_0px_0px_#000] text-black">
-      <button type="button" onClick={onOpen} className="block w-full text-left">
-        <EpisodePoster episode={episode} ratingScale={ratingLabel} />
-      </button>
-      <div className="px-1 pt-4">
-        <div className="flex items-start justify-between gap-3">
-          <div>
-            <p className="text-xs font-black uppercase tracking-[0.32em] text-gray-500">
-              {formatEpisodeCode(episode)}
-            </p>
-            <h3 className="mt-1 text-lg font-black leading-tight text-black uppercase">{episode.title}</h3>
-          </div>
-          <StatusBadge status={episode.watchStatus} />
-        </div>
-        <p className="mt-3 line-clamp-3 text-sm font-bold text-gray-600 leading-6">{episode.summary}</p>
-        <div className="mt-4 flex items-center justify-between gap-3">
-          {onStatus ? (
-            <select
-              value={episode.watchStatus}
-              onChange={(event) => onStatus!(event.target.value as WatchStatus)}
-              className="mini-field cursor-pointer animate-none"
-              aria-label={`Update watch status for ${episode.title}`}
-            >
-              {STATUS_ORDER.map((status) => (
-                <option key={status} value={status}>
-                  {STATUS_LABEL[status]}
-                </option>
-              ))}
-            </select>
-          ) : (
-            <StatusBadge status={episode.watchStatus} />
-          )}
-          <button type="button" onClick={onOpen} className="text-sm font-black text-pink-600 hover:underline uppercase">
-            Open page
-          </button>
-        </div>
-      </div>
-    </article>
+    <button
+      type="button"
+      onClick={onOpen}
+      className="block w-full text-left group animate-rise"
+      aria-label={`Open reviews for ${episode.title}`}
+    >
+      <EpisodePoster episode={episode} ratingScale={ratingLabel} />
+    </button>
   );
 }
 
@@ -1711,22 +1462,38 @@ function SeasonPage({
   season,
   onNavigate,
   onStatus,
+  isAdmin,
 }: {
   dataset: PodcastDataset;
   season: number;
   onNavigate: (route: Route) => void;
   onStatus: ((episodeId: string, status: WatchStatus) => void) | undefined;
+  isAdmin: boolean;
 }) {
-  const episodes = dataset.episodes.filter((episode) => episode.season === season).sort(compareEpisodes);
+  const episodes = dataset.episodes
+    .filter((episode) => episode.season === season)
+    .filter((episode) => isAdmin || episode.watchStatus === "published")
+    .sort(compareEpisodes);
   const average = averageRating(episodes.flatMap((episode) => episode.reviews));
 
   return (
-    <div className="animate-rise mt-8">
-      <SectionIntro
-        eyebrow="Season page"
-        title={`Season ${season}`}
-        copy={`${episodes.length} episodes, ${average === null ? "no" : average.toFixed(1)} average ${dataset.ratingScale.label.toLowerCase()}, ${Math.round(seasonProgress(episodes))}% through the production workflow.`}
-      />
+    <div className="animate-rise mt-4">
+      <div className="mb-4">
+        <button type="button" onClick={() => onNavigate({ page: "catalog" })} className="text-link">
+          &larr; Back to catalog
+        </button>
+      </div>
+      <header className="mb-6 border-b-4 border-black pb-4">
+        <h1 
+          className="text-4xl md:text-6xl font-black uppercase tracking-tight select-none font-sans leading-none cursor-pointer hover:text-gray-700"
+          onClick={() => onNavigate({ page: "catalog" })}
+        >
+          REVIEWS
+        </h1>
+        <p className="mt-2 text-md md:text-lg font-bold bg-white inline-block border-2 border-black px-3 py-1 shadow-[3px_3px_0px_0px_#000000] uppercase font-sans">
+          Season {season}
+        </p>
+      </header>
       <div className="mt-6 grid gap-4 sm:grid-cols-4">
         {STATUS_ORDER.map((status) => (
           <Info key={status} label={STATUS_LABEL[status]} value={String(episodes.filter((episode) => episode.watchStatus === status).length)} />
@@ -1743,18 +1510,29 @@ function SeasonPage({
           />
         ))}
       </div>
-      {!episodes.length ? <EmptyState title="Season not found" copy="Load a dataset with episodes for this season." /> : null}
+      {!episodes.length ? <EmptyState title="Season not found" copy="No episodes are published for this season yet." /> : null}
     </div>
   );
 }
 
-function HostPage({ dataset, hostId, onNavigate }: { dataset: PodcastDataset; hostId: string; onNavigate: (route: Route) => void }) {
+function HostPage({
+  dataset,
+  hostId,
+  onNavigate,
+  isAdmin,
+}: {
+  dataset: PodcastDataset;
+  hostId: string;
+  onNavigate: (route: Route) => void;
+  isAdmin: boolean;
+}) {
   const host = dataset.cohosts.find((item) => item.id === hostId);
   if (!host) return <EmptyState title="Host not found" copy="This profile does not exist in the loaded dataset." />;
 
   const hostReviews = dataset.episodes
     .map((episode) => ({ episode, review: episode.reviews.find((review) => review.cohostId === host.id) }))
-    .filter((item): item is { episode: Episode; review: Review } => Boolean(item.review));
+    .filter((item): item is { episode: Episode; review: Review } => Boolean(item.review))
+    .filter((item) => isAdmin || item.episode.watchStatus === "published");
   const ratings = hostReviews.map((item) => item.review.rating).filter((rating): rating is number => rating !== null);
   const average = ratings.length ? ratings.reduce((sum, rating) => sum + rating, 0) / ratings.length : null;
 
@@ -1763,43 +1541,62 @@ function HostPage({ dataset, hostId, onNavigate }: { dataset: PodcastDataset; ho
   const role = mapped?.role ?? host.role;
 
   return (
-    <div className="animate-rise mt-8 grid gap-8 lg:grid-cols-[320px_minmax(0,1fr)]">
-      <aside>
-        <div className="border-4 border-black bg-white p-6 shadow-[6px_6px_0px_0px_#000] text-black">
-          <Avatar host={host} large />
-          <h2 className="mt-5 text-3xl font-black uppercase text-black leading-tight">{name}</h2>
-          <p className="mt-1 font-bold text-pink-600 uppercase text-sm leading-none">{role}</p>
-          <p className="mt-4 text-xs font-bold leading-relaxed text-gray-700">{host.bio}</p>
-          <div className="mt-6 grid grid-cols-2 gap-3">
-            <Info label="Reviews" value={String(hostReviews.length)} />
-            <Info label="Average" value={average === null ? "--" : average.toFixed(1)} />
+    <div className="animate-rise mt-4">
+      <div className="mb-4">
+        <button type="button" onClick={() => onNavigate({ page: "catalog" })} className="text-link">
+          &larr; Back to catalog
+        </button>
+      </div>
+      <div className="grid gap-8 lg:grid-cols-[320px_minmax(0,1fr)]">
+        <aside>
+          <div className="border-4 border-black bg-white p-6 shadow-[6px_6px_0px_0px_#000] text-black">
+            <div className="flex justify-center mb-5">
+              <Avatar host={host} large />
+            </div>
+            <h2 className="text-3xl font-black uppercase text-black leading-tight text-center">{name}</h2>
+            <p className="mt-1 font-bold text-pink-600 uppercase text-sm leading-none text-center">{role}</p>
+            <p className="mt-4 text-xs font-bold leading-relaxed text-gray-700">{host.bio}</p>
+            <div className="mt-6 grid grid-cols-2 gap-3">
+              <Info label="Reviews" value={String(hostReviews.length)} />
+              <Info label="Average" value={average === null ? "--" : average.toFixed(1)} />
+            </div>
           </div>
-        </div>
-      </aside>
-      <section>
-        <SectionIntro eyebrow="Host profile" title={`${name.split(" ")[0]}'s Reviews`} copy="A profile view for every rating and pull quote this cohost has logged." />
-        <div className="mt-6 divide-y-2 divide-dashed divide-gray-300 border-y-2 border-dashed border-gray-300">
-          {hostReviews.map(({ episode, review }) => (
-            <button
-              key={episode.id}
-              type="button"
-              onClick={() => onNavigate({ page: "episode", id: episode.id })}
-              className="grid w-full gap-4 py-5 text-left transition hover:bg-white/50 px-2 sm:grid-cols-[120px_minmax(0,1fr)_90px] text-black"
+        </aside>
+        <section>
+          <header className="mb-6 border-b-4 border-black pb-4">
+            <h1 
+              className="text-4xl md:text-6xl font-black uppercase tracking-tight select-none font-sans leading-none cursor-pointer hover:text-gray-700"
+              onClick={() => onNavigate({ page: "catalog" })}
             >
-              <EpisodePoster episode={episode} ratingScale={dataset.ratingScale.label} size="mini" />
-              <div>
-                <p className="text-xs font-black uppercase tracking-[0.32em] text-gray-500">{formatEpisodeCode(episode)}</p>
-                <h3 className="mt-1 text-lg font-black text-black uppercase leading-tight">{episode.title}</h3>
-                <p className="mt-2 line-clamp-2 text-xs font-bold leading-relaxed text-gray-600">{review.pullQuote || review.review || "No review yet."}</p>
-              </div>
-              <div className="text-right">
-                <p className="text-2xl font-black text-black leading-none">{review.rating == null ? "--" : review.rating.toFixed(1)}</p>
-                <p className="text-xs font-bold text-gray-500 uppercase mt-1">{dataset.ratingScale.label}</p>
-              </div>
-            </button>
-          ))}
-        </div>
-      </section>
+              REVIEWS
+            </h1>
+            <p className="mt-2 text-md md:text-lg font-bold bg-white inline-block border-2 border-black px-3 py-1 shadow-[3px_3px_0px_0px_#000000] uppercase font-sans">
+              {name.split(" ")[0]}'s Reviews
+            </p>
+          </header>
+          <div className="mt-6 divide-y-2 divide-dashed divide-gray-300 border-y-2 border-dashed border-gray-300">
+            {hostReviews.map(({ episode, review }) => (
+              <button
+                key={episode.id}
+                type="button"
+                onClick={() => onNavigate({ page: "episode", id: episode.id })}
+                className="grid w-full gap-4 py-5 text-left transition hover:bg-white/50 px-2 sm:grid-cols-[120px_minmax(0,1fr)_90px] text-black"
+              >
+                <EpisodePoster episode={episode} ratingScale={dataset.ratingScale.label} size="mini" />
+                <div>
+                  <p className="text-xs font-black uppercase tracking-[0.32em] text-gray-500">{formatEpisodeCode(episode)}</p>
+                  <h3 className="mt-1 text-lg font-black text-black uppercase leading-tight">{episode.title}</h3>
+                  <p className="mt-2 line-clamp-2 text-xs font-bold leading-relaxed text-gray-600">{review.pullQuote || review.review || "No review yet."}</p>
+                </div>
+                <div className="text-right">
+                  <p className="text-2xl font-black text-black leading-none">{review.rating == null ? "--" : review.rating.toFixed(1)}</p>
+                  <p className="text-xs font-bold text-gray-500 uppercase mt-1">{dataset.ratingScale.label}</p>
+                </div>
+              </button>
+            ))}
+          </div>
+        </section>
+      </div>
     </div>
   );
 }
@@ -1953,9 +1750,6 @@ function EpisodePoster({
     return () => { isMounted = false; };
   }, [episode.season, episode.episodeNumber]);
 
-  const padEp = String(episode.episodeNumber).padStart(3, "0");
-  const imageSrc = posterUrl || `/assets/ep${padEp}-thumb-360w.webp`;
-
   if (size === "mini") {
     return (
       <div
@@ -1967,21 +1761,16 @@ function EpisodePoster({
         <div className="text-[8px] font-black uppercase text-black/60 leading-none">
           {formatEpisodeCode(episode)}
         </div>
-        <div className="h-10 w-full border border-black/35 bg-black/5 overflow-hidden relative my-0.5 flex items-center justify-center">
-          <img 
-            src={imageSrc} 
-            alt="" 
-            className="w-full h-full object-cover" 
-            onError={(e) => {
-              if (e.currentTarget.src.includes("/assets/ep")) {
-                e.currentTarget.src = `/episode-thumbs/s${episode.season}e${episode.episodeNumber}.webp`;
-              } else if (e.currentTarget.src.includes("/episode-thumbs/")) {
-                e.currentTarget.src = "/hero-480w.webp";
-              } else {
-                e.currentTarget.style.display = 'none';
-              }
-            }}
-          />
+        <div className="h-10 w-full border border-black/35 bg-black/5 overflow-hidden relative my-0.5 flex items-center justify-center bg-white/40">
+          {posterUrl ? (
+            <img 
+              src={posterUrl} 
+              alt="" 
+              className="w-full h-full object-cover" 
+            />
+          ) : (
+            <span className="text-xs">📺</span>
+          )}
         </div>
         <h3 className="text-[9px] font-black leading-tight text-black uppercase truncate w-full">{episode.title}</h3>
         <div className="border-t border-black/15 pt-0.5 text-[8px] text-black/75 font-bold flex justify-between items-center leading-none">
@@ -2007,20 +1796,18 @@ function EpisodePoster({
       </div>
       <div className="absolute inset-x-3.5 bottom-3.5 text-black">
         <div className="mb-3 aspect-[16/9] w-full border-4 border-black bg-black/5 overflow-hidden relative flex items-center justify-center">
-          <img 
-            src={imageSrc} 
-            alt="" 
-            className="w-full h-full object-cover" 
-            onError={(e) => {
-              if (e.currentTarget.src.includes("/assets/ep")) {
-                e.currentTarget.src = `/episode-thumbs/s${episode.season}e${episode.episodeNumber}.webp`;
-              } else if (e.currentTarget.src.includes("/episode-thumbs/")) {
-                e.currentTarget.src = "/hero-480w.webp";
-              } else {
-                e.currentTarget.style.display = 'none';
-              }
-            }}
-          />
+          {posterUrl ? (
+            <img 
+              src={posterUrl} 
+              alt="" 
+              className="w-full h-full object-cover" 
+            />
+          ) : (
+            <div className="flex flex-col items-center justify-center h-full text-[10px] uppercase font-black bg-white/40 w-full text-center p-2">
+              <span className="text-[16px] mb-1">📺</span>
+              <span>{episode.title}</span>
+            </div>
+          )}
         </div>
         <h3 className={`${titleClass} max-w-[92%] font-black leading-[0.95] tracking-[-0.05em] text-black uppercase`}>{episode.title}</h3>
         <div className="mt-4 flex items-center justify-between gap-4 border-t-2 border-black/15 pt-4 text-sm text-black/75 font-bold">
@@ -2128,21 +1915,24 @@ function Avatar({ host, large = false }: { host: Cohost; large?: boolean }) {
     .join("")
     .slice(0, 2)
     .toUpperCase();
+  const [imageError, setImageError] = useState(false);
+
+  if (photoUrl && !imageError) {
+    return (
+      <img 
+        src={photoUrl} 
+        alt={name} 
+        className={`object-contain filter contrast-125 shrink-0 ${large ? "h-24 w-24" : "h-11 w-11"}`}
+        onError={() => setImageError(true)}
+      />
+    );
+  }
+
   return (
     <div
       className={`grid shrink-0 place-items-center border-2 border-black font-black text-slate-950 overflow-hidden relative ${large ? "h-24 w-24 text-3xl" : "h-11 w-11 text-sm"}`}
       style={{ backgroundColor: host.accent }}
     >
-      {photoUrl ? (
-        <img 
-          src={photoUrl} 
-          alt={name} 
-          className="w-full h-full object-cover filter contrast-125 relative z-10"
-          onError={(e) => {
-            e.currentTarget.style.display = 'none';
-          }}
-        />
-      ) : null}
       <span className="absolute inset-0 flex items-center justify-center bg-transparent z-0">
         {initials}
       </span>
