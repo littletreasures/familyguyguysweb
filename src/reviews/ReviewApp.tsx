@@ -88,12 +88,12 @@ const STATUS_TONE: Record<WatchStatus, string> = {
 const PALETTE = ["#65e4d3", "#f7c948", "#a78bfa", "#fb7185", "#38bdf8", "#f97316"];
 
 const COHOST_NAME_MAP: Record<string, { name: string; role: string; photo: string }> = {
-  "01201e1a-dafd-424a-b596-ff9ece65f1aa": { name: "Jason Hackett", role: "Host", photo: "/jasonhost.png" },
-  "e08c8c4b-ecf5-427e-8890-fe9cef0a2c9a": { name: "Tyler Simpson", role: "Host", photo: "/tylerhost.png" },
-  "0a3dfd13-90b2-47db-b0af-2e0c0df21cff": { name: "Collin Brown", role: "Host", photo: "/collinhost.png" },
-  "jason": { name: "Jason Hackett", role: "Host", photo: "/jasonhost.png" },
-  "tyler": { name: "Tyler Simpson", role: "Host", photo: "/tylerhost.png" },
-  "collin": { name: "Collin Brown", role: "Host", photo: "/collinhost.png" },
+  "01201e1a-dafd-424a-b596-ff9ece65f1aa": { name: "Jason Hackett", role: "Host", photo: "/hosts/jasonhost.webp" },
+  "e08c8c4b-ecf5-427e-8890-fe9cef0a2c9a": { name: "Tyler Simpson", role: "Host", photo: "/hosts/tylerhost.webp" },
+  "0a3dfd13-90b2-47db-b0af-2e0c0df21cff": { name: "Collin Brown", role: "Host", photo: "/hosts/collinhost.webp" },
+  "jason": { name: "Jason Hackett", role: "Host", photo: "/hosts/jasonhost.webp" },
+  "tyler": { name: "Tyler Simpson", role: "Host", photo: "/hosts/tylerhost.webp" },
+  "collin": { name: "Collin Brown", role: "Host", photo: "/hosts/collinhost.webp" },
 };
 
 function cohostFromRow(row: any): Cohost {
@@ -719,7 +719,7 @@ function Hero({
     <header className="relative border-[6px] border-black bg-white p-6 md:p-8 shadow-[8px_8px_0px_0px_#000] mb-10 text-black">
       <div className="relative mx-auto grid gap-8 max-w-7xl lg:grid-cols-[minmax(0,1fr)_320px]">
         <div className="max-w-4xl self-center">
-          <h1 className="text-4xl font-black uppercase tracking-tight sm:text-6xl lg:text-7xl leading-[1.05]">
+          <h1 className="text-4xl font-black uppercase tracking-tight sm:text-5xl lg:text-5xl leading-[1.05]">
             {dataset.showName}
           </h1>
           <p className="mt-4 max-w-2xl text-sm font-bold text-gray-700 leading-relaxed border-l-4 border-yellow-400 pl-3">
@@ -807,7 +807,7 @@ function Toolbar({
   return (
     <section className="bg-white border-4 border-black p-5 shadow-[6px_6px_0px_0px_#000] mb-8 text-black">
       <div className="flex flex-col gap-4">
-        <div className="flex flex-wrap items-center justify-between gap-4 border-b-2 border-dashed border-gray-300 pb-4">
+        <div className="flex flex-wrap items-center justify-between gap-4 border-b-4 border-black pb-4">
           <nav className="flex flex-wrap gap-2">
             <NavButton active={route.page === "catalog"} onClick={() => onNavigate({ page: "catalog" })}>
               Catalog
@@ -827,7 +827,7 @@ function Toolbar({
                 active={route.page === "host" && route.id === host.id}
                 onClick={() => onNavigate({ page: "host", id: host.id })}
               >
-                {host.name.split(" ")[0]}'s Diary
+                {host.name.split(" ")[0]}'s Reviews
               </NavButton>
             ))}
             {isAdmin && (
@@ -1777,7 +1777,7 @@ function HostPage({ dataset, hostId, onNavigate }: { dataset: PodcastDataset; ho
         </div>
       </aside>
       <section>
-        <SectionIntro eyebrow="Host profile" title={`${name}'s diary`} copy="A profile view for every rating and pull quote this cohost has logged." />
+        <SectionIntro eyebrow="Host profile" title={`${name.split(" ")[0]}'s Reviews`} copy="A profile view for every rating and pull quote this cohost has logged." />
         <div className="mt-6 divide-y-2 divide-dashed divide-gray-300 border-y-2 border-dashed border-gray-300">
           {hostReviews.map(({ episode, review }) => (
             <button
@@ -1912,7 +1912,7 @@ function PipelinePage({
             <li>1. Backfill metadata from OMDb using the `omdb_fetch.py` tool.</li>
             <li>2. Run the transcript parsing tool locally via Streamlit or the `generate_review.py` script.</li>
             <li>3. Push reviews directly to database or paste the formatted JSON structure here.</li>
-            <li>4. Cohosts edit or rewrite reviews via the host diary/episode page.</li>
+            <li>4. Cohosts edit or rewrite reviews via the host reviews page.</li>
             <li>5. Move status to Published to make the episode go live.</li>
           </ol>
         </SidePanel>
@@ -1932,6 +1932,29 @@ function EpisodePoster({
 }) {
   const colors = posterColors(episode.id);
   const average = averageRating(episode.reviews);
+  const [posterUrl, setPosterUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    const apiKey = import.meta.env.VITE_OMDB_API_KEY?.trim();
+    if (!apiKey) return;
+    let isMounted = true;
+    const fetchPoster = async () => {
+      try {
+        const res = await fetch(`https://www.omdbapi.com/?t=Family+Guy&Season=${episode.season}&Episode=${episode.episodeNumber}&apikey=${apiKey}`);
+        const data = await res.json();
+        if (isMounted && data.Response === "True" && data.Poster && data.Poster !== "N/A") {
+          setPosterUrl(data.Poster);
+        }
+      } catch (err) {
+        console.warn("Failed to fetch poster from OMDB", err);
+      }
+    };
+    fetchPoster();
+    return () => { isMounted = false; };
+  }, [episode.season, episode.episodeNumber]);
+
+  const padEp = String(episode.episodeNumber).padStart(3, "0");
+  const imageSrc = posterUrl || `/assets/ep${padEp}-thumb-360w.webp`;
 
   if (size === "mini") {
     return (
@@ -1944,7 +1967,22 @@ function EpisodePoster({
         <div className="text-[8px] font-black uppercase text-black/60 leading-none">
           {formatEpisodeCode(episode)}
         </div>
-        <div className="h-5 w-8 border border-black/35 bg-black/5 self-center my-0.5" />
+        <div className="h-10 w-full border border-black/35 bg-black/5 overflow-hidden relative my-0.5 flex items-center justify-center">
+          <img 
+            src={imageSrc} 
+            alt="" 
+            className="w-full h-full object-cover" 
+            onError={(e) => {
+              if (e.currentTarget.src.includes("/assets/ep")) {
+                e.currentTarget.src = `/episode-thumbs/s${episode.season}e${episode.episodeNumber}.webp`;
+              } else if (e.currentTarget.src.includes("/episode-thumbs/")) {
+                e.currentTarget.src = "/hero-480w.webp";
+              } else {
+                e.currentTarget.style.display = 'none';
+              }
+            }}
+          />
+        </div>
         <h3 className="text-[9px] font-black leading-tight text-black uppercase truncate w-full">{episode.title}</h3>
         <div className="border-t border-black/15 pt-0.5 text-[8px] text-black/75 font-bold flex justify-between items-center leading-none">
           <span>{average === null ? "--" : average.toFixed(1)} {ratingScale.slice(0, 3)}</span>
@@ -1958,17 +1996,32 @@ function EpisodePoster({
 
   return (
     <div
-      className={`poster-shine relative overflow-hidden border-4 border-black p-5 shadow-[6px_6px_0px_0px_#000000] bg-white ${sizeClass}`}
+      className={`poster-shine relative overflow-hidden border-4 border-black p-3.5 shadow-[6px_6px_0px_0px_#000000] bg-white ${sizeClass}`}
       style={{
         background: `radial-gradient(circle at 20% 18%, ${colors[0]}33, transparent 32%), radial-gradient(circle at 80% 70%, ${colors[1]}33, transparent 35%), linear-gradient(145deg, #ffffff, #fffbeb 62%, ${colors[2]}22)`,
       }}
     >
-      <div className="absolute inset-x-5 top-5 flex items-center justify-between text-xs font-extrabold uppercase tracking-[0.28em] text-black/60">
+      <div className="absolute inset-x-3.5 top-3.5 flex items-center justify-between text-xs font-extrabold uppercase tracking-[0.28em] text-black/60">
         <span>{formatEpisodeCode(episode)}</span>
         <span className="bg-black text-white px-1.5 py-0.5 border border-black font-black">{STATUS_LABEL[episode.watchStatus]}</span>
       </div>
-      <div className="absolute inset-x-5 bottom-5 text-black">
-        <div className="mb-5 h-16 w-24 border border-black/45 bg-black/5" />
+      <div className="absolute inset-x-3.5 bottom-3.5 text-black">
+        <div className="mb-3 aspect-[16/9] w-full border-4 border-black bg-black/5 overflow-hidden relative flex items-center justify-center">
+          <img 
+            src={imageSrc} 
+            alt="" 
+            className="w-full h-full object-cover" 
+            onError={(e) => {
+              if (e.currentTarget.src.includes("/assets/ep")) {
+                e.currentTarget.src = `/episode-thumbs/s${episode.season}e${episode.episodeNumber}.webp`;
+              } else if (e.currentTarget.src.includes("/episode-thumbs/")) {
+                e.currentTarget.src = "/hero-480w.webp";
+              } else {
+                e.currentTarget.style.display = 'none';
+              }
+            }}
+          />
+        </div>
         <h3 className={`${titleClass} max-w-[92%] font-black leading-[0.95] tracking-[-0.05em] text-black uppercase`}>{episode.title}</h3>
         <div className="mt-4 flex items-center justify-between gap-4 border-t-2 border-black/15 pt-4 text-sm text-black/75 font-bold">
           <span>{episode.airDate}</span>

@@ -1,8 +1,19 @@
-@import "tailwindcss";
+@import "tailwindcss/theme";
+@import "tailwindcss/utilities";
+
+@theme {
+  --font-sans: "Neue Montreal", "Helvetica Neue", sans-serif;
+  --font-mono: "Special Elite", monospace;
+}
+
+#review-app * {
+  line-height: 1.2;
+  box-sizing: border-box;
+}
 
 #review-app {
   color: #000000;
-  font-family: 'Neue Montreal', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-family: var(--font-display);
   background: #FFFBEB;
   min-height: 100vh;
 }
@@ -11,7 +22,7 @@
 #review-app h2, 
 #review-app h3, 
 #review-app h4 {
-  font-family: 'Neue Montreal', 'Special Elite', sans-serif;
+  font-family: var(--font-display);
   color: #000000;
   text-transform: uppercase;
   font-weight: 900;
@@ -26,9 +37,9 @@
   content: '';
   position: absolute;
   inset: 0;
-  background-image: radial-gradient(circle, #000000 1.5px, transparent 1.5px);
-  background-size: 16px 16px;
-  opacity: 0.10;
+  background-image: radial-gradient(circle, #1a1a1a 1px, transparent 1px);
+  background-size: 6px 6px;
+  opacity: 0.13;
   pointer-events: none;
   z-index: 0;
 }
