@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "./lib/supabase";
 import { navigateTo } from "../router.js";
-import { Star, ThumbsUp, Sliders, AlertCircle } from "lucide-react";
+import { Star, ThumbsUp, Sliders } from "lucide-react";
 
 type WatchStatus = "backlog" | "watched" | "recorded" | "published";
 
@@ -68,9 +68,7 @@ type Route =
   | { page: "catalog" }
   | { page: "episode"; id: string }
   | { page: "season"; season: number }
-  | { page: "host"; id: string }
-  | { page: "pipeline" }
-  | { page: "fg-admin" };
+  | { page: "host"; id: string };
 
 const STATUS_ORDER: WatchStatus[] = ["backlog", "watched", "recorded", "published"];
 const STATUS_LABEL: Record<WatchStatus, string> = {
@@ -185,54 +183,7 @@ function buildDataset(
 
 const demoDataset = createDemoDataset();
 
-const schemaTemplate = JSON.stringify(
-  {
-    schemaVersion: "fg-letterlog-v2",
-    showName: "Family Guy Guys",
-    subtitle: "Join Collin, Tyler, and Jason as they watch and review every single episode of Family Guy in chronological order.",
-    ratingScale: { label: "Quahogs", max: 5 },
-    cohosts: [
-      {
-        id: "collin",
-        name: "Collin Brown",
-        role: "Host",
-        bio: "Longtime improv comedian, lifelong Family Guy apologist.",
-        accent: "#65e4d3",
-      },
-    ],
-    episodes: [
-      {
-        id: "s01e01-death-has-a-shadow",
-        season: 1,
-        episodeNumber: 1,
-        title: "Death Has a Shadow",
-        airDate: "1999-01-31",
-        runtime: "22 min",
-        imdbRating: "7.4",
-        watchStatus: "recorded",
-        podcastUrl: "https://example.com/podcast/s01e01",
-        summary: "Short episode summary from your metadata or transcript workflow.",
-        transcriptNotes: "Optional production notes from the recording.",
-        cast: ["Seth MacFarlane as Peter Griffin"],
-        guestStars: [],
-        writers: ["Seth MacFarlane", "David Zuckerman"],
-        director: "Peter Shin",
-        facts: [{ label: "Production code", value: "1ACX01" }],
-        reviews: [
-          {
-            cohostId: "collin",
-            rating: 4,
-            review: "Edited review text.",
-            pullQuote: "Strong pilot energy.",
-            draftSource: "manual",
-          },
-        ],
-      },
-    ],
-  },
-  null,
-  2,
-);
+// schemaTemplate removed
 
 
 
@@ -248,23 +199,7 @@ function App() {
   const [search, setSearch] = useState("");
   const [seasonFilter, setSeasonFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState<WatchStatus | "all">("all");
-  const [jsonText, setJsonText] = useState(schemaTemplate);
-  const [importMessage, setImportMessage] = useState("Demo v2 dataset loaded.");
-  const [importError, setImportError] = useState("");
-
-
-  // The secure SHA-256 hash of the admin password
-  // Default: giggity
-  const ADMIN_HASH = "1e021f487c656e1e90d621e588fcc8d40d0faded69d3f76f379a07a289381250";
-
-  // Admin mode: loaded securely from localStorage token and compared against ADMIN_HASH
-  const [isAdmin, setIsAdmin] = useState(() => {
-    if (typeof window !== "undefined") {
-      const token = localStorage.getItem("fg-admin-token");
-      return token === ADMIN_HASH;
-    }
-    return false;
-  });
+// Admin mode and related states are retired.
 
   useEffect(() => {
     const controller = new AbortController();
@@ -343,8 +278,6 @@ function App() {
           if (params.page === 'episode') setRoute({ page: 'episode', id: params.id });
           else if (params.page === 'season') setRoute({ page: 'season', season: params.season });
           else if (params.page === 'host') setRoute({ page: 'host', id: params.id });
-          else if (params.page === 'pipeline') setRoute({ page: 'pipeline' });
-          else if (params.page === 'fg-admin') setRoute({ page: 'fg-admin' });
         } else {
           setRoute({ page: 'catalog' });
         }
@@ -458,60 +391,7 @@ function App() {
     navigateTo(routeToPath(nextRoute));
   }
 
-  function updateEpisode(episodeId: string, updater: (episode: Episode) => Episode) {
-    setDataset((current) => ({
-      ...current,
-      episodes: current.episodes.map((episode) => (episode.id === episodeId ? updater(episode) : episode)),
-    }));
-  }
-
-  function updateSelectedReview(episodeId: string, updates: Partial<Review>) {
-    updateEpisode(episodeId, (episode) => ({
-      ...episode,
-      reviews: alignReviews(
-        episode.reviews.map((review) =>
-          review.cohostId === selectedCohostId
-            ? { ...review, ...updates, cohostId: selectedCohostId, updatedAt: new Date().toISOString() }
-            : review,
-        ),
-        dataset.cohosts,
-      ),
-    }));
-  }
-
-  function updateStatus(episodeId: string, watchStatus: WatchStatus) {
-    updateEpisode(episodeId, (episode) => ({ ...episode, watchStatus }));
-  }
-
-  function importJson(text: string, sourceLabel: string) {
-    try {
-      const next = normalizeDataset(JSON.parse(text));
-      setDataset(next);
-      setJsonText(JSON.stringify(next, null, 2));
-      setImportError("");
-      setImportMessage(`Imported ${next.episodes.length} episodes and ${next.cohosts.length} hosts from ${sourceLabel}.`);
-      setSelectedCohostId(next.cohosts[0]?.id ?? "");
-      navigate({ page: "catalog" });
-    } catch (error) {
-      setImportError(error instanceof Error ? error.message : "Could not import this JSON.");
-    }
-  }
-
-  async function importFile(file: File) {
-    const text = await file.text();
-    setJsonText(text);
-    importJson(text, file.name);
-  }
-
-  function exportDataset() {
-    const blob = new Blob([JSON.stringify(dataset, null, 2)], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = "fg-letterlog-v2.json";
-    link.click();
-    URL.revokeObjectURL(url);
-  }
+// Admin mutations and imports retired
 
 
 
@@ -573,59 +453,6 @@ if (loadError) {
 }
 
 
-  const handleLogout = () => {
-    localStorage.removeItem("fg-admin-token");
-    setIsAdmin(false);
-    navigate({ page: "catalog" });
-  };
-
-  if (route.page === "fg-admin") {
-    return (
-      <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
-        <div className="sm:mx-auto sm:w-full sm:max-w-md mb-4 text-center">
-          <button
-            onClick={() => navigate({ page: "catalog" })}
-            className="text-cyan-200 hover:text-cyan-100 text-sm font-medium transition"
-          >
-            ← Back to Catalog
-          </button>
-        </div>
-        {isAdmin ? (
-          <div className="mx-auto max-w-md px-4 py-16 text-center animate-rise">
-            <div className="rounded-[2rem] border border-white/10 bg-white/5 p-8 shadow-2xl">
-              <h2 className="text-3xl font-black tracking-tight text-white">Admin Active</h2>
-              <p className="mt-2 text-sm text-slate-400">You are currently logged in as an administrator.</p>
-              <div className="mt-8 flex flex-col gap-3">
-                <button
-                  type="button"
-                  onClick={() => navigate({ page: "catalog" })}
-                  className="primary-button w-full"
-                >
-                  Go to Catalog
-                </button>
-                <button
-                  type="button"
-                  onClick={handleLogout}
-                  className="rounded-full border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-sm font-medium text-rose-200 transition hover:bg-rose-500/20 w-full"
-                >
-                  Log Out
-                </button>
-              </div>
-            </div>
-          </div>
-        ) : (
-          <AdminLoginPage
-            adminHash={ADMIN_HASH}
-            onLoginSuccess={() => {
-              setIsAdmin(true);
-              navigate({ page: "catalog" });
-            }}
-          />
-        )}
-      </div>
-    );
-  }
-
   return (
     <div className="min-h-screen text-black reviews-halftone-bg relative p-4 md:p-8 animate-rise" id="review-app">
       <main className="mx-auto max-w-7xl px-5 pb-16 pt-2 sm:px-6 lg:px-8">
@@ -636,7 +463,6 @@ if (loadError) {
             episodes={visibleEpisodes}
             seasons={seasons}
             onNavigate={navigate}
-            onStatus={isAdmin ? updateStatus : undefined}
           />
         ) : null}
 
@@ -644,39 +470,16 @@ if (loadError) {
           <EpisodePage
             dataset={dataset}
             episodeId={route.id}
-            selectedCohost={selectedCohost}
             onNavigate={navigate}
-            onStatus={isAdmin ? updateStatus : undefined}
-            onReview={isAdmin ? updateSelectedReview : undefined}
-            isAdmin={isAdmin}
           />
         ) : null}
 
         {route.page === "season" ? (
-          <SeasonPage dataset={dataset} season={route.season} onNavigate={navigate} onStatus={isAdmin ? updateStatus : undefined} isAdmin={isAdmin} />
+          <SeasonPage dataset={dataset} season={route.season} onNavigate={navigate} />
         ) : null}
 
         {route.page === "host" ? (
-          <HostPage dataset={dataset} hostId={route.id} onNavigate={navigate} isAdmin={isAdmin} />
-        ) : null}
-
-        {isAdmin && route.page === "pipeline" ? (
-          <PipelinePage
-            dataset={dataset}
-            jsonText={jsonText}
-            importMessage={importMessage}
-            importError={importError}
-            onJsonText={setJsonText}
-            onImportJson={() => importJson(jsonText, "pasted JSON")}
-            onImportFile={(file) => void importFile(file)}
-            onRestoreTemplate={() => setJsonText(schemaTemplate)}
-            onResetDemo={() => {
-              setDataset(demoDataset);
-              setSelectedCohostId(demoDataset.cohosts[0].id);
-              setImportMessage("Demo v2 dataset restored.");
-              setImportError("");
-            }}
-          />
+          <HostPage dataset={dataset} hostId={route.id} onNavigate={navigate} />
         ) : null}
       </main>
     </div>
@@ -689,19 +492,11 @@ function CatalogPage({
   episodes,
   seasons,
   onNavigate,
-  onStatus,
-  isAdmin,
-  onLogout,
-  onExport,
 }: {
   dataset: PodcastDataset;
   episodes: Episode[];
   seasons: number[];
   onNavigate: (route: Route) => void;
-  onStatus: ((episodeId: string, status: WatchStatus) => void) | undefined;
-  isAdmin: boolean;
-  onLogout: () => void;
-  onExport: () => void;
 }) {
   return (
     <div className="animate-rise mt-4 grid gap-8 lg:grid-cols-[minmax(0,1fr)_330px]">
@@ -721,7 +516,6 @@ function CatalogPage({
               episode={episode}
               ratingLabel={dataset.ratingScale.label}
               onOpen={() => onNavigate({ page: "episode", id: episode.id })}
-              onStatus={onStatus ? (status) => onStatus!(episode.id, status) : undefined}
             />
           ))}
         </div>
@@ -729,21 +523,6 @@ function CatalogPage({
       </section>
 
       <aside className="space-y-6">
-        {isAdmin && (
-          <SidePanel title="Admin actions">
-            <div className="space-y-3">
-              <button onClick={onLogout} className="secondary-button small w-full text-center" type="button">
-                Admin Logout
-              </button>
-              <button onClick={() => onNavigate({ page: "pipeline" })} className="secondary-button small w-full text-center" type="button">
-                Import pipeline
-              </button>
-              <button onClick={onExport} className="secondary-button small w-full text-center" type="button">
-                Export JSON
-              </button>
-            </div>
-          </SidePanel>
-        )}
 
         <SidePanel title="Season shelves">
           <div className="space-y-4">
@@ -799,12 +578,10 @@ function EpisodeTile({
   episode,
   ratingLabel,
   onOpen,
-  onStatus,
 }: {
   episode: Episode;
   ratingLabel: string;
   onOpen: () => void;
-  onStatus: ((status: WatchStatus) => void) | undefined;
 }) {
   return (
     <button
@@ -833,24 +610,15 @@ type VisitorReview = {
 function EpisodePage({
   dataset,
   episodeId,
-  selectedCohost,
   onNavigate,
-  onStatus,
-  onReview,
-  isAdmin,
 }: {
   dataset: PodcastDataset;
   episodeId: string;
-  selectedCohost: Cohost | undefined;
   onNavigate: (route: Route) => void;
-  onStatus: ((episodeId: string, status: WatchStatus) => void) | undefined;
-  onReview: ((episodeId: string, updates: Partial<Review>) => void) | undefined;
-  isAdmin: boolean;
 }) {
   const episode = dataset.episodes.find((item) => item.id === episodeId);
   if (!episode) return <EmptyState title="Episode not found" copy="This URL does not match the loaded dataset." />;
 
-  const hostReview = selectedCohost ? episode.reviews.find((review) => review.cohostId === selectedCohost.id) : null;
   const average = averageRating(episode.reviews);
 
   return (
@@ -869,26 +637,9 @@ function EpisodePage({
         <aside className="space-y-6">
           <EpisodePoster episode={episode} ratingScale={dataset.ratingScale.label} size="detail" />
           <SidePanel title="Watch status">
-            {onStatus ? (
-              <select
-                value={episode.watchStatus}
-                onChange={(event) => onStatus(episode.id, event.target.value as WatchStatus)}
-                className="field w-full animate-none cursor-pointer"
-              >
-                {STATUS_ORDER.map((status) => (
-                  <option key={status} value={status}>
-                    {STATUS_LABEL[status]}
-                  </option>
-                ))}
-              </select>
-            ) : (
-              <div className="field w-full bg-gray-50 border-4 border-black p-3">
-                <span className="text-black font-bold">{STATUS_LABEL[episode.watchStatus]}</span>
-              </div>
-            )}
-            <p className="mt-3 text-xs font-bold leading-6 text-gray-500">
-              Use this as your production workflow: backlog, watched, recorded, then published.
-            </p>
+            <div className="field w-full bg-gray-50 border-4 border-black p-3">
+              <span className="text-black font-bold">{STATUS_LABEL[episode.watchStatus]}</span>
+            </div>
           </SidePanel>
         </aside>
 
@@ -969,43 +720,7 @@ function EpisodePage({
           {/* Visitor Reviews Feed & Composer */}
           <VisitorReviewsSection episodeId={episode.id} />
 
-          {/* Admin editing form */}
-          {isAdmin && selectedCohost ? (
-            <SectionBlock title={`Rewrite as ${selectedCohost.name}`}>
-              <div className="space-y-4">
-                <label className="block text-sm font-black text-black">
-                  Rating: {hostReview?.rating == null ? "not rated" : `${hostReview.rating.toFixed(1)} / ${dataset.ratingScale.max}`}
-                  <input
-                    type="range"
-                    min="0"
-                    max={dataset.ratingScale.max}
-                    step="0.5"
-                    value={hostReview?.rating ?? 0}
-                    onChange={(event) => onReview!(episode.id, { rating: Number(event.target.value), draftSource: "manual" })}
-                    className="mt-3 w-full cursor-pointer h-2 bg-gray-200 border border-black rounded-none appearance-none"
-                  />
-                </label>
-                <label className="block text-sm font-black text-black">
-                  Pull quote
-                  <input
-                    value={hostReview?.pullQuote ?? ""}
-                    onChange={(event) => onReview!(episode.id, { pullQuote: event.target.value, draftSource: "manual" })}
-                    className="field mt-2 w-full text-sm"
-                    placeholder="One-sentence quote for profile pages"
-                  />
-                </label>
-                <label className="block text-sm font-black text-black">
-                  Review
-                  <textarea
-                    value={hostReview?.review ?? ""}
-                    onChange={(event) => onReview!(episode.id, { review: event.target.value, draftSource: "manual" })}
-                    className="field mt-2 min-h-44 w-full text-sm"
-                    placeholder="Rewrite your review here..."
-                  />
-                </label>
-              </div>
-            </SectionBlock>
-          ) : null}
+// Admin editing form retired
         </section>
     </div>
   </div>
@@ -1461,18 +1176,14 @@ function SeasonPage({
   dataset,
   season,
   onNavigate,
-  onStatus,
-  isAdmin,
 }: {
   dataset: PodcastDataset;
   season: number;
   onNavigate: (route: Route) => void;
-  onStatus: ((episodeId: string, status: WatchStatus) => void) | undefined;
-  isAdmin: boolean;
 }) {
   const episodes = dataset.episodes
     .filter((episode) => episode.season === season)
-    .filter((episode) => isAdmin || episode.watchStatus === "published")
+    .filter((episode) => episode.watchStatus === "published")
     .sort(compareEpisodes);
   const average = averageRating(episodes.flatMap((episode) => episode.reviews));
 
@@ -1506,7 +1217,7 @@ function SeasonPage({
             episode={episode}
             ratingLabel={dataset.ratingScale.label}
             onOpen={() => onNavigate({ page: "episode", id: episode.id })}
-            onStatus={onStatus ? (status) => onStatus!(episode.id, status) : undefined}
+// onStatus retired
           />
         ))}
       </div>
@@ -1519,12 +1230,10 @@ function HostPage({
   dataset,
   hostId,
   onNavigate,
-  isAdmin,
 }: {
   dataset: PodcastDataset;
   hostId: string;
   onNavigate: (route: Route) => void;
-  isAdmin: boolean;
 }) {
   const host = dataset.cohosts.find((item) => item.id === hostId);
   if (!host) return <EmptyState title="Host not found" copy="This profile does not exist in the loaded dataset." />;
@@ -1532,7 +1241,7 @@ function HostPage({
   const hostReviews = dataset.episodes
     .map((episode) => ({ episode, review: episode.reviews.find((review) => review.cohostId === host.id) }))
     .filter((item): item is { episode: Episode; review: Review } => Boolean(item.review))
-    .filter((item) => isAdmin || item.episode.watchStatus === "published");
+    .filter((item) => item.episode.watchStatus === "published");
   const ratings = hostReviews.map((item) => item.review.rating).filter((rating): rating is number => rating !== null);
   const average = ratings.length ? ratings.reduce((sum, rating) => sum + rating, 0) / ratings.length : null;
 
@@ -1601,122 +1310,7 @@ function HostPage({
   );
 }
 
-function PipelinePage({
-  dataset,
-  jsonText,
-  importMessage,
-  importError,
-  onJsonText,
-  onImportJson,
-  onImportFile,
-  onRestoreTemplate,
-  onResetDemo,
-}: {
-  dataset: PodcastDataset;
-  jsonText: string;
-  importMessage: string;
-  importError: string;
-  onJsonText: (value: string) => void;
-  onImportJson: () => void;
-  onImportFile: (file: File) => void;
-  onRestoreTemplate: () => void;
-  onResetDemo: () => void;
-}) {
-  return (
-    <div className="animate-rise mt-8 grid gap-8 xl:grid-cols-[minmax(0,1fr)_420px]">
-      <section>
-        <SectionIntro
-          eyebrow="Import lab"
-          title="A schema for the workflow you actually have."
-          copy="Review, validate, and load generated dataset JSON structures from your local Python admin pipeline."
-        />
-        <div className="mt-6 grid gap-5 lg:grid-cols-2">
-          <div className="rounded-[1.6rem] border border-white/10 bg-white/5 p-5">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <h3 className="text-xl font-semibold text-white">Dataset JSON</h3>
-              <div className="flex gap-2">
-                <button type="button" onClick={onRestoreTemplate} className="secondary-button small">
-                  Template
-                </button>
-                <button type="button" onClick={onResetDemo} className="secondary-button small">
-                  Demo
-                </button>
-              </div>
-            </div>
-            <textarea value={jsonText} onChange={(event) => onJsonText(event.target.value)} className="field mt-4 min-h-[520px] w-full font-mono text-xs" />
-            <div className="mt-4 flex flex-wrap gap-3">
-              <button type="button" onClick={onImportJson} className="primary-button">
-                Validate and load JSON
-              </button>
-              <label className="secondary-button cursor-pointer">
-                Upload file
-                <input
-                  type="file"
-                  accept="application/json"
-                  className="hidden"
-                  onChange={(event) => {
-                    const file = event.target.files?.[0];
-                    if (file) onImportFile(file);
-                  }}
-                />
-              </label>
-            </div>
-            {importMessage ? <p className="mt-4 text-sm text-emerald-300">{importMessage}</p> : null}
-            {importError ? <p className="mt-4 text-sm text-rose-300">{importError}</p> : null}
-          </div>
-
-          <div className="rounded-[1.6rem] border border-white/10 bg-white/5 p-5">
-            <h3 className="text-xl font-semibold text-white">Python Admin Pipeline</h3>
-            <p className="mt-2 text-sm leading-6 text-slate-400">
-              For a secure and structured review workflow, use the local pipeline scripts in the admin-tools/ directory. You can launch a Streamlit GUI or execute raw commands via CLI to push updates directly to Supabase.
-            </p>
-            <div className="mt-5 space-y-4 rounded-3xl border border-white/10 bg-slate-950/50 p-4 text-xs font-mono text-slate-300">
-              <div>
-                <p className="text-cyan-200 font-semibold mb-1">1. Install Dependencies &amp; Secrets</p>
-                <pre className="bg-black/30 p-2 rounded border border-white/5 overflow-x-auto whitespace-pre-wrap">
-                  cd admin-tools{"\n"}
-                  pip install -r requirements.txt{"\n"}
-                  cp .env.example .env
-                </pre>
-              </div>
-              <div>
-                <p className="text-cyan-200 font-semibold mb-1">2. Launch Streamlit Hub</p>
-                <pre className="bg-black/30 p-2 rounded border border-white/5 overflow-x-auto whitespace-pre-wrap">
-                  streamlit run app.py
-                </pre>
-              </div>
-              <div>
-                <p className="text-cyan-200 font-semibold mb-1">3. CLI Command Guide</p>
-                <pre className="bg-black/30 p-2 rounded border border-white/5 overflow-x-auto whitespace-pre-wrap">
-                  python omdb_fetch.py --season 1 --episode 4 --episode-id s01e04
-                </pre>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <aside className="space-y-5">
-        <SidePanel title="Pipeline schema">
-          <SchemaLine label="schemaVersion" value="fg-letterlog-v2" />
-          <SchemaLine label="ratingScale" value="Flexible label plus max score" />
-          <SchemaLine label="cohosts" value="Profiles, colors, review ownership" />
-          <SchemaLine label="episodes" value="Metadata, status, transcript notes" />
-          <SchemaLine label="reviews" value="Per-host rating, review, pull quote" />
-        </SidePanel>
-        <SidePanel title="Suggested pipeline">
-          <ol className="space-y-3 text-sm leading-6 text-slate-300">
-            <li>1. Backfill metadata from OMDb using the `omdb_fetch.py` tool.</li>
-            <li>2. Run the transcript parsing tool locally via Streamlit or the `generate_review.py` script.</li>
-            <li>3. Push reviews directly to database or paste the formatted JSON structure here.</li>
-            <li>4. Cohosts edit or rewrite reviews via the host reviews page.</li>
-            <li>5. Move status to Published to make the episode go live.</li>
-          </ol>
-        </SidePanel>
-      </aside>
-    </div>
-  );
-}
+// PipelinePage retired
 
 function EpisodePoster({
   episode,
@@ -1948,14 +1542,7 @@ function ProgressBar({ value }: { value: number }) {
   );
 }
 
-function SchemaLine({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="border-b border-white/10 py-3 first:pt-0 last:border-b-0 last:pb-0">
-      <p className="font-mono text-xs text-cyan-200">{label}</p>
-      <p className="mt-1 text-sm text-slate-400">{value}</p>
-    </div>
-  );
-}
+// SchemaLine retired
 
 function EmptyState({ title, copy }: { title: string; copy: string }) {
   return (
@@ -2043,112 +1630,7 @@ function demoReviews(cohosts: Cohost[], index: number): Review[] {
   });
 }
 
-function normalizeDataset(raw: unknown): PodcastDataset {
-  if (!isRecord(raw)) throw new Error("The import must be a JSON object.");
-  const source = isRecord(raw.dataset) ? raw.dataset : raw;
-  const cohosts = normalizeCohosts(source.cohosts);
-  const episodesRaw = Array.isArray(source.episodes) ? source.episodes : [];
-  if (!episodesRaw.length) throw new Error("No episodes array was found.");
-  const episodes = episodesRaw.map((episodeRaw, index) => normalizeEpisode(episodeRaw, cohosts, index)).sort(compareEpisodes);
-
-  return {
-    schemaVersion: "fg-letterlog-v2",
-    showName: stringValue(source.showName ?? source.title ?? source.name, "Family Guy Rewatch Log"),
-    subtitle: stringValue(source.subtitle ?? source.description, "A chronological podcast archive."),
-    ratingScale: normalizeRatingScale(source.ratingScale, source.ratingLabel),
-    cohosts,
-    episodes,
-  };
-}
-
-function normalizeRatingScale(raw: unknown, legacyLabel: unknown): PodcastDataset["ratingScale"] {
-  if (isRecord(raw)) {
-    return { label: stringValue(raw.label ?? raw.name, "Quahogs"), max: numberValue(raw.max, 5) };
-  }
-  return { label: stringValue(legacyLabel, "Quahogs"), max: 5 };
-}
-
-function normalizeCohosts(raw: unknown): Cohost[] {
-  const cohosts = Array.isArray(raw) ? raw : [];
-  const normalized = cohosts.map((hostRaw, index) => {
-    if (typeof hostRaw === "string") {
-      return { id: slugify(hostRaw), name: hostRaw, role: "Cohost", bio: "", accent: PALETTE[index % PALETTE.length] };
-    }
-    const record = isRecord(hostRaw) ? hostRaw : {};
-    const name = stringValue(record.name ?? record.label ?? record.cohost, `Cohost ${index + 1}`);
-    return {
-      id: stringValue(record.id ?? record.slug, slugify(name)),
-      name,
-      role: stringValue(record.role, "Cohost"),
-      bio: stringValue(record.bio ?? record.description, ""),
-      accent: stringValue(record.accent ?? record.color, PALETTE[index % PALETTE.length]),
-    };
-  });
-  return normalized.length ? normalized : demoDataset.cohosts;
-}
-
-function normalizeEpisode(raw: unknown, cohosts: Cohost[], index: number): Episode {
-  const record = isRecord(raw) ? raw : {};
-  const season = numberValue(record.season ?? record.seasonNumber, 1);
-  const episodeNumber = numberValue(record.episodeNumber ?? record.episode ?? record.number, index + 1);
-  const title = stringValue(record.title ?? record.name, `Episode ${index + 1}`);
-  const reviews = normalizeReviews(record.reviews, cohosts);
-
-  return {
-    id: stringValue(record.id ?? record.slug, `s${String(season).padStart(2, "0")}e${String(episodeNumber).padStart(2, "0")}-${slugify(title)}`),
-    season,
-    episodeNumber,
-    title,
-    airDate: stringValue(record.airDate ?? record.firstAired ?? record.date, "Unknown"),
-    runtime: formatRuntime(record.runtime ?? record.duration),
-    imdbRating: stringValue(record.imdbRating ?? record.imdb ?? record.score, "--"),
-    summary: stringValue(record.summary ?? record.synopsis ?? record.description, "No summary supplied."),
-    cast: listValue(record.cast),
-    guestStars: listValue(record.guestStars ?? record.guests),
-    writers: listValue(record.writers ?? record.writer),
-    director: stringValue(record.director, ""),
-    facts: normalizeFacts(record.facts ?? record.metadata ?? record.details),
-    watchStatus: normalizeStatus(record.watchStatus ?? record.status),
-    podcastUrl: stringValue(record.podcastUrl ?? record.podcastEpisodeUrl ?? record.url, ""),
-    transcriptNotes: stringValue(record.transcriptNotes ?? record.notes, ""),
-    reviews,
-  };
-}
-
-function normalizeReviews(raw: unknown, cohosts: Cohost[]): Review[] {
-  const rawReviews = Array.isArray(raw) ? raw : [];
-  const mapped: Review[] = rawReviews
-    .map((item): Review | null => {
-      if (!isRecord(item)) return null;
-      const hostName = stringValue(item.cohost ?? item.name ?? item.author, "");
-      const directId = stringValue(item.cohostId ?? item.hostId ?? item.id, "");
-      const host = cohosts.find((cohost) => cohost.id === directId || cohost.name.toLowerCase() === hostName.toLowerCase());
-      return {
-        cohostId: (host?.id ?? directId) || slugify(hostName),
-        rating: ratingValue(item.rating ?? item.score),
-        review: stringValue(item.review ?? item.text ?? item.body, ""),
-        pullQuote: stringValue(item.pullQuote ?? item.quote, ""),
-        draftSource: item.draftSource === "transcript" ? "transcript" : "manual",
-        updatedAt: stringValue(item.updatedAt, ""),
-      };
-    })
-    .filter((item): item is Review => Boolean(item && item.cohostId));
-  return alignReviews(mapped, cohosts);
-}
-
-function normalizeFacts(raw: unknown): EpisodeFact[] {
-  if (Array.isArray(raw)) {
-    return raw
-      .map((item) => (isRecord(item) ? { label: stringValue(item.label ?? item.name, "Detail"), value: stringValue(item.value, "") } : null))
-      .filter((item): item is EpisodeFact => Boolean(item && item.value));
-  }
-  if (isRecord(raw)) {
-    return Object.entries(raw)
-      .map(([label, value]) => ({ label: titleCase(label), value: listOrString(value) }))
-      .filter((item) => item.value);
-  }
-  return [];
-}
+// Unused normalize functions retired
 
 
 
@@ -2157,12 +1639,7 @@ function parsePath(): Route {
   const path = window.location.pathname;
   if (path.startsWith('/reviews')) {
     const subpath = path.slice('/reviews'.length);
-    if (subpath === '/pipeline') {
-      return { page: 'pipeline' };
-    }
-    if (subpath === '/fg-admin') {
-      return { page: 'fg-admin' };
-    }
+// Retired subpaths handled globally by router
     if (subpath.startsWith('/season/')) {
       const seasonNum = Number(subpath.split('/')[2]);
       if (!isNaN(seasonNum)) return { page: 'season', season: seasonNum };
@@ -2183,9 +1660,7 @@ function routeToPath(route: Route): string {
   if (route.page === 'catalog') return '/reviews';
   if (route.page === 'episode') return `/reviews/${encodeURIComponent(route.id)}`;
   if (route.page === 'season') return `/reviews/season/${route.season}`;
-  if (route.page === 'host') return `/reviews/host/${encodeURIComponent(route.id)}`;
-  if (route.page === 'fg-admin') return '/reviews/fg-admin';
-  return '/reviews/pipeline';
+  return `/reviews/host/${encodeURIComponent(route.id)}`;
 }
 
 function getDatasetMetrics(dataset: PodcastDataset) {
@@ -2247,136 +1722,11 @@ function posterColors(seed: string): string[] {
   return [PALETTE[Math.abs(hash) % PALETTE.length], PALETTE[Math.abs(hash + 2) % PALETTE.length], PALETTE[Math.abs(hash + 4) % PALETTE.length]];
 }
 
-function normalizeStatus(raw: unknown): WatchStatus {
-  const value = stringValue(raw, "backlog").toLowerCase();
-  return STATUS_ORDER.includes(value as WatchStatus) ? (value as WatchStatus) : "backlog";
-}
-
-function stringValue(value: unknown, fallback = ""): string {
-  if (typeof value === "string") return value.trim() || fallback;
-  if (typeof value === "number" && Number.isFinite(value)) return String(value);
-  if (typeof value === "boolean") return value ? "true" : "false";
-  return fallback;
-}
-
-function numberValue(value: unknown, fallback: number): number {
-  if (typeof value === "number" && Number.isFinite(value)) return value;
-  if (typeof value === "string" && value.trim()) {
-    const parsed = Number(value);
-    return Number.isFinite(parsed) ? parsed : fallback;
-  }
-  return fallback;
-}
-
-function ratingValue(value: unknown): number | null {
-  const parsed = numberValue(value, Number.NaN);
-  return Number.isFinite(parsed) ? Math.min(5, Math.max(0, parsed)) : null;
-}
-
-function listValue(value: unknown): string[] {
-  if (Array.isArray(value)) return value.map((item) => stringValue(item, "")).filter(Boolean);
-  const text = stringValue(value, "");
-  return text ? text.split(/\s*,\s*/).filter(Boolean) : [];
-}
-
-function listOrString(value: unknown): string {
-  if (Array.isArray(value)) return listValue(value).join(", ");
-  if (isRecord(value)) return Object.entries(value).map(([key, entry]) => `${titleCase(key)}: ${listOrString(entry)}`).join("; ");
-  return stringValue(value, "");
-}
-
-function formatRuntime(value: unknown): string {
-  if (typeof value === "number" && Number.isFinite(value)) return `${value} min`;
-  return stringValue(value, "Unknown");
-}
-
-function titleCase(value: string): string {
-  return value.replace(/([a-z])([A-Z])/g, "$1 $2").replace(/[_-]+/g, " ").replace(/\b\w/g, (char) => char.toUpperCase());
-}
-
-
-
-function slugify(value: string): string {
-  return value.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "") || "item";
-}
-
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
 // Helper to hash string to SHA-256 hex string using standard SubtleCrypto
-async function sha256(message: string): Promise<string> {
-  const msgBuffer = new TextEncoder().encode(message);
-  const hashBuffer = await crypto.subtle.digest("SHA-256", msgBuffer);
-  const hashArray = Array.from(new Uint8Array(hashBuffer));
-  return hashArray.map((b) => b.toString(16).padStart(2, "0")).join("");
-}
-
-function AdminLoginPage({
-  adminHash,
-  onLoginSuccess,
-}: {
-  adminHash: string;
-  onLoginSuccess: () => void;
-}) {
-  const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError("");
-    setLoading(true);
-
-    try {
-      const hashedInput = await sha256(password);
-      if (hashedInput === adminHash) {
-        localStorage.setItem("fg-admin-token", adminHash);
-        onLoginSuccess();
-      } else {
-        setError("Invalid passcode. Access denied.");
-      }
-    } catch (err) {
-      setError("An unexpected error occurred during authorization.");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  return (
-    <div className="mx-auto max-w-md px-4 py-16 text-center animate-rise">
-      <div className="rounded-[2rem] border border-white/10 bg-white/5 p-8 shadow-2xl">
-        <h2 className="text-3xl font-black tracking-tight text-white">Admin Portal</h2>
-        <p className="mt-2 text-sm text-slate-400">Enter the administration passcode to continue.</p>
-
-        <form onSubmit={handleSubmit} className="mt-8 space-y-4">
-          <div>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="Passcode"
-              className="field w-full text-center"
-              autoFocus
-              required
-            />
-          </div>
-
-          {error && (
-            <p className="text-sm font-semibold text-rose-400">{error}</p>
-          )}
-
-          <button
-            type="submit"
-            disabled={loading}
-            className="primary-button w-full"
-          >
-            {loading ? "Authenticating..." : "Authorize"}
-          </button>
-        </form>
-      </div>
-    </div>
-  );
-}
+// sha256 and AdminLoginPage retired
 
 export default App;

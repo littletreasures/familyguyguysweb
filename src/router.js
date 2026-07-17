@@ -48,10 +48,9 @@ function handleLocation() {
     activePage = 'reviews';
     const subpath = path.slice('/reviews'.length);
     
-    if (subpath === '/pipeline') {
-      routeParams = { page: 'pipeline' };
-    } else if (subpath === '/fg-admin') {
-      routeParams = { page: 'fg-admin' };
+    if (subpath === '/pipeline' || subpath === '/fg-admin') {
+      window.history.replaceState({}, '', '/reviews');
+      routeParams = null;
     } else if (subpath.startsWith('/season/')) {
       const seasonNum = Number(subpath.split('/')[2]);
       routeParams = { page: 'season', season: seasonNum };
