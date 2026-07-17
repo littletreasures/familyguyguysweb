@@ -463,6 +463,12 @@ if (loadError) {
             episodes={visibleEpisodes}
             seasons={seasons}
             onNavigate={navigate}
+            search={search}
+            onSearchChange={setSearch}
+            seasonFilter={seasonFilter}
+            onSeasonFilterChange={setSeasonFilter}
+            statusFilter={statusFilter}
+            onStatusFilterChange={setStatusFilter}
           />
         ) : null}
 
@@ -492,11 +498,23 @@ function CatalogPage({
   episodes,
   seasons,
   onNavigate,
+  search,
+  onSearchChange,
+  seasonFilter,
+  onSeasonFilterChange,
+  statusFilter,
+  onStatusFilterChange,
 }: {
   dataset: PodcastDataset;
   episodes: Episode[];
   seasons: number[];
   onNavigate: (route: Route) => void;
+  search: string;
+  onSearchChange: (value: string) => void;
+  seasonFilter: string;
+  onSeasonFilterChange: (value: string) => void;
+  statusFilter: WatchStatus | "all";
+  onStatusFilterChange: (value: WatchStatus | "all") => void;
 }) {
   return (
     <div className="animate-rise mt-4 grid gap-8 lg:grid-cols-[minmax(0,1fr)_330px]">
@@ -509,6 +527,62 @@ function CatalogPage({
             REVIEWS
           </h1>
         </header>
+
+        {/* Search and Filters Block */}
+        <div className="mb-8 flex flex-col gap-4 font-sans">
+          <div className="flex flex-wrap md:flex-nowrap md:items-center gap-3">
+            <div className="relative flex-grow min-w-0">
+              <input
+                type="text"
+                value={search}
+                onChange={(e) => onSearchChange(e.target.value)}
+                placeholder="Search reviews..."
+                className="field w-full text-sm font-sans"
+                aria-label="Search reviews"
+              />
+              {search && (
+                <button 
+                  onClick={() => onSearchChange("")}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-black font-black text-sm"
+                  aria-label="Clear search"
+                  type="button"
+                >
+                  ✕
+                </button>
+              )}
+            </div>
+            <div className="flex gap-3 flex-shrink-0 flex-wrap sm:flex-nowrap">
+              <select
+                value={seasonFilter}
+                onChange={(e) => onSeasonFilterChange(e.target.value)}
+                className="field min-w-[120px] text-sm font-sans cursor-pointer"
+                aria-label="Filter by season"
+              >
+                <option value="all">All Seasons</option>
+                {seasons.map((s) => (
+                  <option key={s} value={String(s)}>Season {s}</option>
+                ))}
+              </select>
+              <select
+                value={statusFilter}
+                onChange={(e) => onStatusFilterChange(e.target.value as WatchStatus | "all")}
+                className="field min-w-[125px] text-sm font-sans cursor-pointer"
+                aria-label="Filter by status"
+              >
+                <option value="all">All Statuses</option>
+                {STATUS_ORDER.map((status) => (
+                  <option key={status} value={status}>
+                    {STATUS_LABEL[status]}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+          <div className="text-xs font-bold text-gray-500 tracking-wider uppercase font-sans">
+            Found {episodes.length} {episodes.length === 1 ? 'episode' : 'episodes'}
+          </div>
+        </div>
+
         <div className="mt-6 grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
           {episodes.map((episode) => (
             <EpisodeTile
@@ -533,11 +607,11 @@ function CatalogPage({
                   key={season}
                   type="button"
                   onClick={() => onNavigate({ page: "season", season })}
-                  className="group w-full border-b border-white/10 pb-4 text-left last:border-b-0 last:pb-0"
+                  className="group w-full border-b border-gray-200 pb-4 text-left last:border-b-0 last:pb-0 focus:ring-2 focus:ring-black focus:outline-none"
                 >
-                  <div className="flex items-center justify-between gap-4">
-                    <p className="font-semibold text-white">Season {season}</p>
-                    <p className="text-sm text-slate-400">{seasonEpisodes.length} eps</p>
+                  <div className="flex items-center justify-between gap-4 font-sans">
+                    <p className="font-bold text-black group-hover:text-pink-600 transition-colors">Season {season}</p>
+                    <p className="text-sm font-semibold text-gray-500">{seasonEpisodes.length} eps</p>
                   </div>
                   <ProgressBar value={seasonProgress(seasonEpisodes)} />
                 </button>
@@ -616,25 +690,72 @@ function EpisodePage({
   episodeId: string;
   onNavigate: (route: Route) => void;
 }) {
+  const publishedEpisodes = useMemo(() => {
+    return [...dataset.episodes]
+      .sort(compareEpisodes)
+      .filter((ep) => ep.watchStatus === "published");
+  }, [dataset.episodes]);
+
   const episode = dataset.episodes.find((item) => item.id === episodeId);
   if (!episode) return <EmptyState title="Episode not found" copy="This URL does not match the loaded dataset." />;
+
+  const currentIndex = publishedEpisodes.findIndex((item) => item.id === episodeId);
+  const prevEpisode = currentIndex > 0 ? publishedEpisodes[currentIndex - 1] : null;
+  const nextEpisode = currentIndex < publishedEpisodes.length - 1 && currentIndex !== -1 ? publishedEpisodes[currentIndex + 1] : null;
 
   const average = averageRating(episode.reviews);
 
   return (
     <div className="animate-rise mt-8 text-black">
-      {/* Neo-brutalist Canva Mockup Header */}
-      <header className="mb-6 text-center md:text-left border-b-4 border-black pb-4">
-        <h1 className="text-4xl md:text-6xl font-black uppercase tracking-tight select-none font-sans leading-none">
-          REVIEWS
-        </h1>
-        <p className="mt-2 text-md md:text-lg font-bold bg-white inline-block border-2 border-black px-3 py-1 shadow-[3px_3px_0px_0px_#000000] uppercase font-sans">
+      {/* Top adjacent navigation */}
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b-4 border-black pb-3 mb-6 font-sans">
+        <button
+          type="button"
+          onClick={() => onNavigate({ page: "catalog" })}
+          className="text-link hover:text-gray-700 focus:ring-2 focus:ring-black focus:outline-none"
+        >
+          ← Back to catalog
+        </button>
+        <div className="flex items-center gap-3 text-xs font-black uppercase">
+          {prevEpisode ? (
+            <button
+              type="button"
+              onClick={() => onNavigate({ page: "episode", id: prevEpisode.id })}
+              className="hover:underline focus:ring-2 focus:ring-black focus:outline-none px-3.5 py-2 bg-white border-2 border-black shadow-[1.5px_1.5px_0px_0px_#000] active:translate-y-0.5 active:shadow-none min-h-[44px] inline-flex items-center justify-center"
+              aria-label={`Previous episode: ${formatEpisodeCode(prevEpisode)}, ${prevEpisode.title}`}
+            >
+              &larr; {formatEpisodeCode(prevEpisode)}
+            </button>
+          ) : (
+            <span className="text-gray-400 opacity-55 px-3.5 py-2 bg-gray-100 border-2 border-black min-h-[44px] inline-flex items-center justify-center select-none">&larr; Start</span>
+          )}
+          
+          <span className="text-black select-none">/</span>
+          
+          {nextEpisode ? (
+            <button
+              type="button"
+              onClick={() => onNavigate({ page: "episode", id: nextEpisode.id })}
+              className="hover:underline focus:ring-2 focus:ring-black focus:outline-none px-3.5 py-2 bg-white border-2 border-black shadow-[1.5px_1.5px_0px_0px_#000] active:translate-y-0.5 active:shadow-none min-h-[44px] inline-flex items-center justify-center"
+              aria-label={`Next episode: ${formatEpisodeCode(nextEpisode)}, ${nextEpisode.title}`}
+            >
+              {formatEpisodeCode(nextEpisode)} &rarr;
+            </button>
+          ) : (
+            <span className="text-gray-400 opacity-55 px-3.5 py-2 bg-gray-100 border-2 border-black min-h-[44px] inline-flex items-center justify-center select-none font-bold">End &rarr;</span>
+          )}
+        </div>
+      </div>
+
+      {/* Compact Episode Identity */}
+      <div className="mb-6 font-sans">
+        <h1 className="text-2xl md:text-3xl font-black uppercase tracking-tight text-black">
           {formatEpisodeCode(episode)}: {episode.title}
-        </p>
-      </header>
+        </h1>
+      </div>
 
       <div className="grid gap-8 lg:grid-cols-[360px_minmax(0,1fr)]">
-        <aside className="space-y-6">
+        <aside className="space-y-6 w-full max-w-[360px] mx-auto lg:mx-0">
           <EpisodePoster episode={episode} ratingScale={dataset.ratingScale.label} size="detail" />
           <SidePanel title="Watch status">
             <div className="field w-full bg-gray-50 border-4 border-black p-3">
@@ -720,7 +841,40 @@ function EpisodePage({
           {/* Visitor Reviews Feed & Composer */}
           <VisitorReviewsSection episodeId={episode.id} />
 
-// Admin editing form retired
+          {/* Bottom adjacent navigation */}
+          <div className="mt-12 pt-6 border-t-4 border-black flex flex-wrap items-center justify-between gap-4 font-sans">
+            <button
+              type="button"
+              onClick={() => onNavigate({ page: "catalog" })}
+              className="text-link hover:text-gray-700 focus:ring-2 focus:ring-black focus:outline-none"
+            >
+              ← Back to catalog
+            </button>
+            <div className="flex items-center gap-3 text-sm font-black uppercase max-w-full min-w-0">
+              {prevEpisode && (
+                <button
+                  type="button"
+                  onClick={() => onNavigate({ page: "episode", id: prevEpisode.id })}
+                  className="px-3.5 py-2.5 border-2 border-black hover:bg-yellow-50 bg-white shadow-[2px_2px_0px_0px_#000] active:translate-y-0.5 active:shadow-none min-h-[44px] inline-flex items-center justify-center focus:ring-2 focus:ring-black focus:outline-none max-w-full min-w-0"
+                  aria-label={`Previous episode: ${formatEpisodeCode(prevEpisode)}, ${prevEpisode.title}`}
+                >
+                  <span className="flex-shrink-0">&larr;&nbsp;{formatEpisodeCode(prevEpisode)}</span>
+                  <span className="hidden sm:inline truncate max-w-[240px]">: {prevEpisode.title}</span>
+                </button>
+              )}
+              {nextEpisode && (
+                <button
+                  type="button"
+                  onClick={() => onNavigate({ page: "episode", id: nextEpisode.id })}
+                  className="px-3.5 py-2.5 border-2 border-black hover:bg-yellow-50 bg-white shadow-[2px_2px_0px_0px_#000] active:translate-y-0.5 active:shadow-none min-h-[44px] inline-flex items-center justify-center focus:ring-2 focus:ring-black focus:outline-none max-w-full min-w-0"
+                  aria-label={`Next episode: ${formatEpisodeCode(nextEpisode)}, ${nextEpisode.title}`}
+                >
+                  <span className="hidden sm:inline truncate max-w-[240px]">{nextEpisode.title}: </span>
+                  <span className="flex-shrink-0">{formatEpisodeCode(nextEpisode)}&nbsp;&rarr;</span>
+                </button>
+              )}
+            </div>
+          </div>
         </section>
     </div>
   </div>
@@ -1536,8 +1690,8 @@ function Avatar({ host, large = false }: { host: Cohost; large?: boolean }) {
 
 function ProgressBar({ value }: { value: number }) {
   return (
-    <div className="mt-3 h-2 overflow-hidden rounded-full bg-white/10">
-      <div className="h-full rounded-full bg-gradient-to-r from-cyan-300 to-emerald-300" style={{ width: `${Math.max(2, Math.min(100, value))}%` }} />
+    <div className="mt-2.5 h-3 overflow-hidden border-2 border-black bg-white">
+      <div className="h-full bg-[#C2410C]" style={{ width: `${Math.max(2, Math.min(100, value))}%` }} />
     </div>
   );
 }
