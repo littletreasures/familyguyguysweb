@@ -38,7 +38,7 @@ button { cursor: pointer; border: none; background: none; font: inherit; }
   --teal: #1a6b6b;
   --teal-dark: #0f3f3f;
   --maroon: #5c1a1a;
-  --amber: #b86a00;
+  --amber: #aa6200;
   --sky-blue: #8ecfdb;
   --black: #1a1a1a;
   --off-white: #f5f4f0;
@@ -327,11 +327,9 @@ nav {
 }
 .host-bio {
   font-family: 'Special Elite', monospace;
-  font-size: 0.72rem;
+  font-size: 0.85rem;
   line-height: 1.6;
   letter-spacing: 0.04em;
-  text-transform: uppercase;
-  opacity: 0.9;
 }
 
 /* Merch Section */
