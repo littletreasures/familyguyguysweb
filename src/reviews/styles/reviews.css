@@ -65,16 +65,16 @@
   letter-spacing: 0.08em;
   text-transform: uppercase;
   padding: 0.6rem 1.3rem;
-  border-radius: 0;
-  border: 4px solid #000000;
-  box-shadow: 4px 4px 0px 0px #000000;
+  border-radius: 6px;
+  border: 2px solid #000000;
+  box-shadow: 3px 3px 0px 0px #000000;
   transition: all 0.1s ease;
   cursor: pointer;
 }
 
 #review-app .primary-button:hover {
-  transform: translateY(-2px);
-  box-shadow: 6px 6px 0px 0px #000000;
+  transform: translateY(-1px);
+  box-shadow: 4px 4px 0px 0px #000000;
   background: #f5b014;
 }
 
@@ -95,17 +95,17 @@
   letter-spacing: 0.05em;
   text-transform: uppercase;
   padding: 0.6rem 1.3rem;
-  border-radius: 0;
-  border: 4px solid #000000;
-  box-shadow: 4px 4px 0px 0px #000000;
+  border-radius: 6px;
+  border: 2px solid #000000;
+  box-shadow: 3px 3px 0px 0px #000000;
   transition: all 0.1s ease;
   cursor: pointer;
 }
 
 #review-app .secondary-button:hover {
   background: #f3f4f6;
-  transform: translateY(-2px);
-  box-shadow: 6px 6px 0px 0px #000000;
+  transform: translateY(-1px);
+  box-shadow: 4px 4px 0px 0px #000000;
 }
 
 #review-app .secondary-button:active {
@@ -116,13 +116,16 @@
 #review-app .secondary-button.small {
   padding: 0.4rem 0.9rem;
   font-size: 0.7rem;
-  border-width: 3px;
-  box-shadow: 3px 3px 0px 0px #000000;
+  border-radius: 4px;
+  border-width: 2px;
+  box-shadow: 2px 2px 0px 0px #000000;
 }
 #review-app .secondary-button.small:hover {
-  box-shadow: 4px 4px 0px 0px #000000;
+  box-shadow: 3px 3px 0px 0px #000000;
+  transform: translateY(-1px);
 }
 #review-app .secondary-button.small:active {
+  transform: translate(1px, 1px);
   box-shadow: none;
 }
 
@@ -144,20 +147,20 @@
 /* Form inputs & controls re-theme */
 #review-app .field {
   width: 100%;
-  border: 4px solid #000000;
+  border: 2px solid #000000;
   background: #ffffff;
   color: #000000;
-  border-radius: 0;
+  border-radius: 6px;
   padding: 0.75rem 1rem;
   font-size: 0.875rem;
   font-weight: 700;
   outline: none;
-  box-shadow: 3px 3px 0px 0px #000000;
+  box-shadow: 2px 2px 0px 0px #000000;
   transition: box-shadow 0.1s, background-color 0.1s;
 }
 
 #review-app .field:focus {
-  box-shadow: 5px 5px 0px 0px #000000;
+  box-shadow: 3px 3px 0px 0px #000000;
   background: #fffdf5;
   outline: 2px solid #000000;
   outline-offset: 2px;
@@ -182,11 +185,14 @@
   border: 2px solid #000000;
   background: #ffffff;
   color: #000000;
-  border-radius: 0;
+  border-radius: 4px;
   padding: 0.4rem 0.8rem;
   font-size: 0.75rem;
   font-weight: 700;
-  outline: none;
+}
+#review-app .mini-field:focus-visible {
+  outline: 2px solid #000;
+  outline-offset: 2px;
 }
 
 /* Star rating range input re-theme */
@@ -212,11 +218,10 @@
 
 /* Neobrutalist custom card classes */
 #review-app .cohost-card-themed {
-  border: 4px solid #000000;
-  border-radius: 0;
+  border: 2px solid #000000;
+  border-radius: 8px;
   overflow: hidden;
   background: #ffffff;
-  box-shadow: 6px 6px 0px 0px #000000;
 }
 
 /* Status colors tailored to Neobrutalist theme */
@@ -227,8 +232,8 @@
   letter-spacing: 0.05em;
   text-transform: uppercase;
   padding: 0.25rem 0.65rem;
-  border-radius: 0;
-  border: 3px solid #000000;
+  border-radius: 4px;
+  border: 2px solid #000000;
   box-shadow: 2px 2px 0px 0px #000000;
 }
 

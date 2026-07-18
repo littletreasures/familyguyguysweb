@@ -97,24 +97,24 @@ const COHOST_NAME_MAP: Record<string, { name: string; role: string; photo: strin
 function getHostTheme(hostId: string): { bgClass: string; starColor: string; fallbackBg: string; textClass: string } {
   const id = hostId.toLowerCase();
   if (id === 'collin' || id === '0a3dfd13-90b2-47db-b0af-2e0c0df21cff') {
-    return { 
-      bgClass: "host-bg-collin", 
-      starColor: "var(--teal, #1a6b6b)", 
+    return {
+      bgClass: "host-bg-collin",
+      starColor: "var(--teal, #1a6b6b)",
       fallbackBg: "var(--teal, #1a6b6b)",
       textClass: "text-white"
     };
   }
   if (id === 'tyler' || id === 'e08c8c4b-ecf5-427e-8890-fe9cef0a2c9a') {
-    return { 
-      bgClass: "host-bg-tyler", 
-      starColor: "var(--maroon, #5c1a1a)", 
+    return {
+      bgClass: "host-bg-tyler",
+      starColor: "var(--maroon, #5c1a1a)",
       fallbackBg: "var(--maroon, #5c1a1a)",
       textClass: "text-white"
     };
   }
-  return { 
-    bgClass: "host-bg-jason", 
-    starColor: "var(--amber, #aa6200)", 
+  return {
+    bgClass: "host-bg-jason",
+    starColor: "var(--amber, #aa6200)",
     fallbackBg: "var(--amber, #aa6200)",
     textClass: "text-white"
   };
@@ -225,7 +225,7 @@ function App() {
   const [search, setSearch] = useState("");
   const [seasonFilter, setSeasonFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState<WatchStatus | "all">("all");
-// Admin mode and related states are retired.
+  // Admin mode and related states are retired.
 
   useEffect(() => {
     const controller = new AbortController();
@@ -260,7 +260,7 @@ function App() {
 
         // Supabase returns fulfilled promises with { data, error } objects
         // Check for both rejected promises AND Supabase errors in fulfilled responses
-        const hasCriticalError = 
+        const hasCriticalError =
           cohostsRes.status === "rejected" ||
           episodesRes.status === "rejected" ||
           reviewsRes.status === "rejected" ||
@@ -321,81 +321,81 @@ function App() {
   }, [dataset, selectedCohostId]);
 
   useEffect(() => {
-  if (retryCount === 0) return; // Only run on retry attempts
-  
-  setLoading(true);
-  
-  const controller = new AbortController();
-  
-  const retryFetch = async () => {
-    setLoadError(null);
-    try {
-      if (!supabase) {
-        console.warn("Missing Supabase credentials. Database features are disabled.");
-        setLoading(false);
-        return;
-      }
-      const fetchReviews = async () => {
-        const res = await supabase.from("reviews").select(
-          "episode_id, cohost_id, rating, review, pull_quote, draft_source, updated_at, rating_terminology, rating_scale_max",
-        );
-        if (!res.error) return res;
-        console.warn("New columns not found in reviews table, falling back to legacy schema:", res.error.message);
-        return await supabase.from("reviews").select(
-          "episode_id, cohost_id, rating, review, pull_quote, draft_source, updated_at",
-        );
-      };
-      const results = await Promise.allSettled([
-        supabase.from("cohosts").select("id, name, role, bio, accent"),
-        supabase.from("episodes").select(
-          "id, season, episode_number, title, air_date, runtime, imdb_rating, summary, cast, guest_stars, writers, director, facts, watch_status, podcast_url, transcript_notes",
-        ),
-        fetchReviews(),
-        supabase.from("config").select("rating_label, rating_max, show_name, subtitle"),
-      ]);
-      
-      const [cohostsRes, episodesRes, reviewsRes, configRes] = results;
-      
-      // Supabase returns fulfilled promises with { data, error } objects
-      // Check for both rejected promises AND Supabase errors in fulfilled responses
-      const hasCriticalError = 
-        cohostsRes.status === "rejected" ||
-        episodesRes.status === "rejected" ||
-        reviewsRes.status === "rejected" ||
-        (cohostsRes.status === "fulfilled" && cohostsRes.value.error) ||
-        (episodesRes.status === "fulfilled" && episodesRes.value.error) ||
-        (reviewsRes.status === "fulfilled" && reviewsRes.value.error);
-      
-      if (hasCriticalError) {
-        setLoadError("Critical data fetch failed");
-        setLoading(false);
-        return;
-      }
-      
-      const cohosts = (cohostsRes as any).value.data;
-      const episodes = (episodesRes as any).value.data;
-      const reviews = (reviewsRes as any).value.data;
-      const config = (configRes.status === "fulfilled" ? (configRes as any).value.data : null)?.[0];
+    if (retryCount === 0) return; // Only run on retry attempts
 
-      if (!episodes || episodes.length === 0) {
-        setLoading(false);
-        return;
-      }
+    setLoading(true);
 
-      const nextDataset = buildDataset(cohosts, episodes, reviews, config);
-      setDataset(nextDataset);
-      setSelectedCohostId(nextDataset.cohosts[0]?.id ?? demoDataset.cohosts[0].id);
-      setLoading(false);
-    } catch (error) {
-      setLoadError(error instanceof Error ? error.message : "Failed to load data from Supabase");
-      setLoading(false);
+    const controller = new AbortController();
+
+    const retryFetch = async () => {
+      setLoadError(null);
+      try {
+        if (!supabase) {
+          console.warn("Missing Supabase credentials. Database features are disabled.");
+          setLoading(false);
+          return;
+        }
+        const fetchReviews = async () => {
+          const res = await supabase.from("reviews").select(
+            "episode_id, cohost_id, rating, review, pull_quote, draft_source, updated_at, rating_terminology, rating_scale_max",
+          );
+          if (!res.error) return res;
+          console.warn("New columns not found in reviews table, falling back to legacy schema:", res.error.message);
+          return await supabase.from("reviews").select(
+            "episode_id, cohost_id, rating, review, pull_quote, draft_source, updated_at",
+          );
+        };
+        const results = await Promise.allSettled([
+          supabase.from("cohosts").select("id, name, role, bio, accent"),
+          supabase.from("episodes").select(
+            "id, season, episode_number, title, air_date, runtime, imdb_rating, summary, cast, guest_stars, writers, director, facts, watch_status, podcast_url, transcript_notes",
+          ),
+          fetchReviews(),
+          supabase.from("config").select("rating_label, rating_max, show_name, subtitle"),
+        ]);
+
+        const [cohostsRes, episodesRes, reviewsRes, configRes] = results;
+
+        // Supabase returns fulfilled promises with { data, error } objects
+        // Check for both rejected promises AND Supabase errors in fulfilled responses
+        const hasCriticalError =
+          cohostsRes.status === "rejected" ||
+          episodesRes.status === "rejected" ||
+          reviewsRes.status === "rejected" ||
+          (cohostsRes.status === "fulfilled" && cohostsRes.value.error) ||
+          (episodesRes.status === "fulfilled" && episodesRes.value.error) ||
+          (reviewsRes.status === "fulfilled" && reviewsRes.value.error);
+
+        if (hasCriticalError) {
+          setLoadError("Critical data fetch failed");
+          setLoading(false);
+          return;
+        }
+
+        const cohosts = (cohostsRes as any).value.data;
+        const episodes = (episodesRes as any).value.data;
+        const reviews = (reviewsRes as any).value.data;
+        const config = (configRes.status === "fulfilled" ? (configRes as any).value.data : null)?.[0];
+
+        if (!episodes || episodes.length === 0) {
+          setLoading(false);
+          return;
+        }
+
+        const nextDataset = buildDataset(cohosts, episodes, reviews, config);
+        setDataset(nextDataset);
+        setSelectedCohostId(nextDataset.cohosts[0]?.id ?? demoDataset.cohosts[0].id);
+        setLoading(false);
+      } catch (error) {
+        setLoadError(error instanceof Error ? error.message : "Failed to load data from Supabase");
+        setLoading(false);
+      }
     }
-  }
 
-  retryFetch();
-  
-  return () => controller.abort();
-}, [retryCount]);
+    retryFetch();
+
+    return () => controller.abort();
+  }, [retryCount]);
 
 
   const seasons = useMemo(() => getSeasons(dataset.episodes), [dataset.episodes]);
@@ -417,66 +417,66 @@ function App() {
     navigateTo(routeToPath(nextRoute));
   }
 
-// Admin mutations and imports retired
+  // Admin mutations and imports retired
 
 
 
-if (loading) {
-  return (
-    <div className="flex h-screen flex-col bg-slate-950 text-white">
-      {/* Full-width top banner */}
-      <div className="w-full border-b border-white/10 p-4 text-center">
-        <p className="text-sm font-semibold tracking-wider uppercase text-cyan-200/80">Loading from Supabase…</p>
-      </div>
-      
-      {/* Centered animation */}
-      <div className="flex h-[calc(100%-56px)] items-center justify-center">
-        <div className="animate-pulse rounded-full bg-white/5 p-4">
-          <svg className="h-8 w-8 animate-spin text-cyan-200" fill="none" viewBox="0 0 24 24">
-            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-            <path
-              className="opacity-75"
-              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-              stroke="currentColor"
-              strokeWidth="4"></path>
-          </svg>
+  if (loading) {
+    return (
+      <div className="flex h-screen flex-col bg-slate-950 text-white">
+        {/* Full-width top banner */}
+        <div className="w-full border-b border-white/10 p-4 text-center">
+          <p className="text-sm font-semibold tracking-wider uppercase text-cyan-200/80">Loading…</p>
+        </div>
+
+        {/* Centered animation */}
+        <div className="flex h-[calc(100%-56px)] items-center justify-center">
+          <div className="animate-pulse rounded-full bg-white/5 p-4">
+            <svg className="h-8 w-8 animate-spin text-cyan-200" fill="none" viewBox="0 0 24 24">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+              <path
+                className="opacity-75"
+                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                stroke="currentColor"
+                strokeWidth="4"></path>
+            </svg>
+          </div>
         </div>
       </div>
-    </div>
-  );
-}
+    );
+  }
 
 
-if (loadError) {
-  return (
-    <div className="flex h-screen flex-col bg-slate-950 text-white p-5">
-      {/* Full-width top banner */}
-      <div className="w-full border-b border-white/10 p-4 text-center">
-        <p className="text-sm font-semibold tracking-wider uppercase text-cyan-200/80">Couldn't reach Supabase: {loadError}</p>
-      </div>
-      
-      {/* Retry section */}
-      <div className="flex h-[calc(100%-56px)] flex-col items-center justify-center gap-4 p-5">
-        {/* Retry counter badge */}
-        <div className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs font-medium uppercase tracking-wider text-slate-400">
-          Retry #{retryCount + 1}
+  if (loadError) {
+    return (
+      <div className="flex h-screen flex-col bg-slate-950 text-white p-5">
+        {/* Full-width top banner */}
+        <div className="w-full border-b border-white/10 p-4 text-center">
+          <p className="text-sm font-semibold tracking-wider uppercase text-cyan-200/80">Couldn't reach Supabase: {loadError}</p>
         </div>
-        
-        {/* Error message */}
-        <p className="text-rose-400 text-xl font-bold">{loadError}</p>
-        
-        {/* Retry button */}
-        <button
-          type="button"
-          onClick={() => { setRetryCount(prev => prev + 1); window.location.reload(); }}
-          className="primary-button"
-        >
-          Retry
-        </button>
+
+        {/* Retry section */}
+        <div className="flex h-[calc(100%-56px)] flex-col items-center justify-center gap-4 p-5">
+          {/* Retry counter badge */}
+          <div className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs font-medium uppercase tracking-wider text-slate-400">
+            Retry #{retryCount + 1}
+          </div>
+
+          {/* Error message */}
+          <p className="text-rose-400 text-xl font-bold">{loadError}</p>
+
+          {/* Retry button */}
+          <button
+            type="button"
+            onClick={() => { setRetryCount(prev => prev + 1); window.location.reload(); }}
+            className="primary-button"
+          >
+            Retry
+          </button>
+        </div>
       </div>
-    </div>
-  );
-}
+    );
+  }
 
 
   return (
@@ -546,7 +546,7 @@ function CatalogPage({
     <div className="animate-rise mt-4 grid gap-8 lg:grid-cols-[minmax(0,1fr)_330px]">
       <section>
         <header className="mb-6 border-b-4 border-black pb-4">
-          <h1 
+          <h1
             className="text-4xl md:text-6xl font-black uppercase tracking-tight select-none font-sans leading-none cursor-pointer hover:text-gray-700"
             onClick={() => onNavigate({ page: "catalog" })}
           >
@@ -567,7 +567,7 @@ function CatalogPage({
                 aria-label="Search reviews"
               />
               {search && (
-                <button 
+                <button
                   onClick={() => onSearchChange("")}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-black font-black text-sm"
                   aria-label="Clear search"
@@ -755,9 +755,9 @@ function EpisodePage({
           ) : (
             <span className="text-gray-400 opacity-55 px-3.5 py-2 bg-gray-100 border-2 border-black min-h-[44px] inline-flex items-center justify-center select-none">&larr; Start</span>
           )}
-          
+
           <span className="text-black select-none">/</span>
-          
+
           {nextEpisode ? (
             <button
               type="button"
@@ -784,7 +784,7 @@ function EpisodePage({
         <aside className="space-y-6 w-full max-w-[360px] mx-auto lg:mx-0">
           <EpisodePoster episode={episode} ratingScale={dataset.ratingScale.label} size="detail" />
           <SidePanel title="Watch status">
-            <div className="field w-full bg-gray-50 border-4 border-black p-3">
+            <div className="field w-full bg-gray-50 border-2 border-black p-3 rounded-md">
               <span className="text-black font-bold">{STATUS_LABEL[episode.watchStatus]}</span>
             </div>
           </SidePanel>
@@ -792,7 +792,7 @@ function EpisodePage({
 
         <section className="space-y-8">
           {/* Main info card */}
-          <div className="bg-white border-4 border-black p-6 shadow-[6px_6px_0px_0px_#000]">
+          <div className="bg-white border-2 border-black rounded-lg p-6">
             <div className="flex flex-wrap items-start justify-between gap-4 border-b-2 border-dashed border-gray-300 pb-6">
               <div>
                 <button type="button" onClick={() => onNavigate({ page: "catalog" })} className="text-link">
@@ -806,7 +806,7 @@ function EpisodePage({
                 </p>
                 <h2 className="mt-2 text-3xl font-black uppercase text-black">{episode.title}</h2>
               </div>
-              <div className="bg-yellow-200 border-4 border-black px-5 py-4 text-right shadow-[3px_3px_0px_0px_#000]">
+              <div className="bg-yellow-200 border-2 border-black rounded-md px-5 py-4 text-right shadow-[2px_2px_0px_0px_#000]">
                 <p className="text-xs font-black uppercase tracking-[0.2em] text-gray-600">Average</p>
                 <p className="mt-1 text-3xl font-black text-black">
                   {average === null ? "--" : average.toFixed(1)} / {dataset.ratingScale.max}
@@ -902,8 +902,8 @@ function EpisodePage({
             </div>
           </div>
         </section>
+      </div>
     </div>
-  </div>
   );
 }
 
@@ -920,36 +920,46 @@ function HostReviewRow({
   const name = mapped?.name ?? host.name;
   const photoUrl = mapped?.photo;
   const theme = getHostTheme(host.id);
+  const [imgError, setImgError] = useState(false);
 
   const scaleMax = review.ratingScaleMax || 5;
   const terminology = review.ratingTerminology || ratingLabel;
   const ratingVal = review.rating !== null ? (review.rating / 5) * scaleMax : null;
 
+  const initials = name
+    .split(/\s+/)
+    .map((part) => part[0])
+    .join("")
+    .slice(0, 2)
+    .toUpperCase();
+
   return (
-    <div className="flex flex-col sm:flex-row gap-4 items-start bg-white border-4 border-black p-4 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:translate-y-[-1px] transition-transform duration-100">
+    <div className="flex flex-col sm:flex-row gap-4 items-start bg-white border-2 border-black rounded-lg p-4 transition-transform duration-100">
       <div className="flex-shrink-0 self-start">
-        <div className="w-20 h-20 border-4 border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] relative overflow-hidden flex items-center justify-center bg-gray-200">
-          {photoUrl ? (
-            <img 
-              src={photoUrl} 
-              alt={name} 
-              className="w-full h-full object-cover filter contrast-125 relative z-10"
-              onError={(e) => {
-                e.currentTarget.style.display = 'none';
-              }}
-            />
-          ) : null}
-          <div className="absolute inset-0 flex items-center justify-center font-black text-xl" style={{ backgroundColor: theme.fallbackBg, zIndex: -1 }}>
-            {name.split(" ").map(n => n[0]).join("").slice(0,2).toUpperCase()}
+        {photoUrl && !imgError ? (
+          <img
+            src={photoUrl}
+            alt={name}
+            className="w-20 h-20 object-contain filter contrast-125 shrink-0"
+            onError={() => setImgError(true)}
+          />
+        ) : (
+          <div
+            className={`w-20 h-20 grid place-items-center border-2 border-black font-black overflow-hidden relative ${theme.textClass}`}
+            style={{ backgroundColor: theme.fallbackBg }}
+          >
+            <span className="absolute inset-0 flex items-center justify-center bg-transparent z-0">
+              {initials}
+            </span>
+            <div className="absolute bottom-0 inset-x-0 bg-black text-white text-[8px] font-black uppercase text-center py-0.5 tracking-wider leading-none z-10">
+              {name.split(" ")[0].toUpperCase()}
+            </div>
           </div>
-          <div className="absolute bottom-0 inset-x-0 bg-black text-white text-[8px] font-black uppercase text-center py-0.5 tracking-wider leading-none">
-            {name.split(" ")[0].toUpperCase()}
-          </div>
-        </div>
+        )}
       </div>
 
       <div className="flex-grow w-full text-black">
-        <div className={`border-2 border-black p-2 mb-2.5 flex flex-wrap items-center justify-between shadow-[2px_2px_0px_0px_#000000] ${theme.bgClass}`}>
+        <div className={`border-2 border-black p-2 mb-2.5 flex flex-wrap items-center justify-between rounded-md ${theme.bgClass}`}>
           <span className="font-black text-xs uppercase tracking-wider">{name.split(" ")[0]}'S METRIC</span>
           <div className="flex items-center gap-1">
             {ratingVal === null ? (
@@ -968,11 +978,11 @@ function HostReviewRow({
             ) : (
               <div className="flex items-center gap-1">
                 {[1, 2, 3, 4, 5].map((s) => (
-                  <Star 
-                    key={s} 
-                    size={14} 
-                    fill={s <= Math.round(ratingVal) ? theme.starColor : 'transparent'} 
-                    className="stroke-[2.5] text-black" 
+                  <Star
+                    key={s}
+                    size={14}
+                    fill={s <= Math.round(ratingVal) ? '#ffffff' : 'transparent'}
+                    className="stroke-[2.5] text-black"
                   />
                 ))}
                 <span className="bg-black text-white font-black text-[10px] px-1.5 py-0.5 ml-1 border border-white leading-none">
@@ -1122,34 +1132,34 @@ function VisitorReviewsSection({ episodeId }: { episodeId: string }) {
   return (
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start mt-8 text-black">
       <div className="lg:col-span-7 space-y-4">
-        <div className="inline-block bg-[#A7F3D0] border-2 border-black px-3 py-1.5 shadow-[2px_2px_0px_0px_#000000]">
+        <div className="inline-block bg-[#A7F3D0] border-2 border-black px-3 py-1.5 rounded-md">
           <h3 className="text-md font-black uppercase tracking-wide">USER COMMUNITY FEED</h3>
         </div>
 
         {loading ? (
           <div className="p-4 text-center font-bold">Loading comments...</div>
         ) : reviews.length === 0 ? (
-          <div className="bg-white border-4 border-black p-6 text-center shadow-[4px_4px_0px_0px_#000000]">
+          <div className="bg-white border-2 border-black rounded-lg p-6 text-center">
             <p className="font-black text-sm">No reviews posted yet! Use the composer on the right to post yours.</p>
           </div>
         ) : (
           <div className="space-y-4">
             {reviews.map((review) => {
-              const dateStr = new Date(review.created_at).toLocaleDateString(undefined, { 
-                year: 'numeric', 
-                month: 'short', 
-                day: 'numeric' 
+              const dateStr = new Date(review.created_at).toLocaleDateString(undefined, {
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric'
               });
               const likedKey = `liked_${review.id}`;
               const isLiked = localStorage.getItem(likedKey) === 'true';
 
               return (
-                <div 
-                  key={review.id} 
-                  className="flex gap-3 items-start bg-white border-4 border-black p-4 shadow-[4px_4px_0px_0px_#000000] relative hover:translate-y-[-1px] transition-transform duration-100"
+                <div
+                  key={review.id}
+                  className="flex gap-3 items-start bg-white border-2 border-black rounded-lg p-4 relative transition-transform duration-100"
                 >
                   <div className="flex-shrink-0">
-                    <div className="w-10 h-10 border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] bg-pink-300 flex items-center justify-center font-black text-sm uppercase">
+                    <div className="w-10 h-10 border-2 border-black rounded-md bg-pink-300 flex items-center justify-center font-black text-sm uppercase">
                       {review.author[0] || "?"}
                     </div>
                   </div>
@@ -1170,11 +1180,11 @@ function VisitorReviewsSection({ episodeId }: { episodeId: string }) {
                           <span>Rating:</span>
                           <div className="flex items-center">
                             {[1, 2, 3, 4, 5].map((s) => (
-                              <Star 
-                                key={s} 
-                                size={10} 
-                                fill={s <= review.rating ? "#F59E0B" : "transparent"} 
-                                className="text-black" 
+                              <Star
+                                key={s}
+                                size={10}
+                                fill={s <= review.rating ? "#F59E0B" : "transparent"}
+                                className="text-black"
                               />
                             ))}
                           </div>
@@ -1186,8 +1196,8 @@ function VisitorReviewsSection({ episodeId }: { episodeId: string }) {
                         <div className="flex items-center gap-1.5">
                           <span>Score:</span>
                           <div className="w-14 bg-white border border-black h-2.5 relative overflow-hidden">
-                            <div 
-                              className="bg-pink-500 h-full border-r border-black" 
+                            <div
+                              className="bg-pink-500 h-full border-r border-black"
                               style={{ width: `${review.rating}%` }}
                             />
                           </div>
@@ -1203,13 +1213,12 @@ function VisitorReviewsSection({ episodeId }: { episodeId: string }) {
                     </p>
 
                     <div className="flex items-center gap-3 border-t border-dashed border-gray-200 pt-2">
-                      <button 
+                      <button
                         onClick={() => handleToggleLike(review.id)}
-                        className={`flex items-center gap-1 text-[10px] font-bold px-1.5 py-0.5 border border-black shadow-[1.5px_1.5px_0px_0px_#000000] active:translate-x-0.5 active:translate-y-0.5 active:shadow-none transition-colors ${
-                          isLiked ? 'bg-pink-300 text-black' : 'bg-white hover:bg-gray-100'
-                        }`}
+                        className={`flex items-center gap-1 text-[10px] font-bold px-1.5 py-0.5 border border-black shadow-[1.5px_1.5px_0px_0px_#000000] active:translate-x-0.5 active:translate-y-0.5 active:shadow-none transition-colors ${isLiked ? 'bg-pink-300 text-black' : 'bg-white hover:bg-gray-100'
+                          }`}
                       >
-                        <ThumbsUp size={10} /> 
+                        <ThumbsUp size={10} />
                         <span>{review.likes} Helpful</span>
                       </button>
                     </div>
@@ -1222,7 +1231,7 @@ function VisitorReviewsSection({ episodeId }: { episodeId: string }) {
       </div>
 
       <div className="lg:col-span-5">
-        <div className="bg-[#F472B6] border-4 border-black p-4 shadow-[4px_4px_0px_0px_#000000]">
+        <div className="bg-[#F472B6] border-2 border-black p-4 rounded-lg">
           <div className="flex items-center justify-between mb-3 pb-2 border-b-2 border-black">
             <h4 className="text-md font-black uppercase tracking-tight flex items-center gap-1.5">
               <Sliders size={16} /> WRITE A REVIEW
@@ -1248,18 +1257,16 @@ function VisitorReviewsSection({ episodeId }: { episodeId: string }) {
                 <button
                   type="button"
                   onClick={() => handleScaleToggle('stars')}
-                  className={`py-1.5 px-2 border-2 border-black font-black text-[10px] uppercase tracking-wider transition-colors ${
-                    formScale === 'stars' ? 'bg-yellow-300 text-black shadow-[1.5px_1.5px_0px_0px_#000000]' : 'bg-white hover:bg-gray-100'
-                  }`}
+                  className={`py-1.5 px-2 border-2 border-black font-black text-[10px] uppercase tracking-wider transition-colors ${formScale === 'stars' ? 'bg-yellow-300 text-black shadow-[1.5px_1.5px_0px_0px_#000000]' : 'bg-white hover:bg-gray-100'
+                    }`}
                 >
                   5-Star Scale
                 </button>
                 <button
                   type="button"
                   onClick={() => handleScaleToggle('points')}
-                  className={`py-1.5 px-2 border-2 border-black font-black text-[10px] uppercase tracking-wider transition-colors ${
-                    formScale === 'points' ? 'bg-yellow-300 text-black shadow-[1.5px_1.5px_0px_0px_#000000]' : 'bg-white hover:bg-gray-100'
-                  }`}
+                  className={`py-1.5 px-2 border-2 border-black font-black text-[10px] uppercase tracking-wider transition-colors ${formScale === 'points' ? 'bg-yellow-300 text-black shadow-[1.5px_1.5px_0px_0px_#000000]' : 'bg-white hover:bg-gray-100'
+                    }`}
                 >
                   100-Point Scale
                 </button>
@@ -1295,9 +1302,9 @@ function VisitorReviewsSection({ episodeId }: { episodeId: string }) {
                       onClick={() => setFormRating(num)}
                       className="hover:scale-110 transition-transform"
                     >
-                      <Star 
-                        size={22} 
-                        fill={num <= formRating ? "#F59E0B" : "transparent"} 
+                      <Star
+                        size={22}
+                        fill={num <= formRating ? "#F59E0B" : "transparent"}
                         className="stroke-[2] text-black"
                       />
                     </button>
@@ -1371,7 +1378,7 @@ function SeasonPage({
         </button>
       </div>
       <header className="mb-6 border-b-4 border-black pb-4">
-        <h1 
+        <h1
           className="text-4xl md:text-6xl font-black uppercase tracking-tight select-none font-sans leading-none cursor-pointer hover:text-gray-700"
           onClick={() => onNavigate({ page: "catalog" })}
         >
@@ -1393,7 +1400,7 @@ function SeasonPage({
             episode={episode}
             ratingLabel={dataset.ratingScale.label}
             onOpen={() => onNavigate({ page: "episode", id: episode.id })}
-// onStatus retired
+          // onStatus retired
           />
         ))}
       </div>
@@ -1434,7 +1441,7 @@ function HostPage({
       </div>
       <div className="grid gap-8 lg:grid-cols-[320px_minmax(0,1fr)]">
         <aside>
-          <div className="border-4 border-black bg-white p-6 shadow-[4px_4px_0px_0px_#000] text-black">
+          <div className="border-2 border-black rounded-lg bg-white p-6 text-black">
             <div className="flex justify-center mb-5">
               <Avatar host={host} large />
             </div>
@@ -1449,7 +1456,7 @@ function HostPage({
         </aside>
         <section>
           <header className="mb-6 border-b-4 border-black pb-4">
-            <h1 
+            <h1
               className="text-4xl md:text-6xl font-black uppercase tracking-tight select-none font-sans leading-none cursor-pointer hover:text-gray-700"
               onClick={() => onNavigate({ page: "catalog" })}
             >
@@ -1523,23 +1530,27 @@ function EpisodePoster({
   if (size === "mini") {
     return (
       <div
-        className="relative overflow-hidden border-2 border-black p-2 bg-white w-[90px] h-[120px] flex flex-col justify-between text-black shadow-[2px_2px_0px_0px_#000] shrink-0"
+        className="relative overflow-hidden border-2 border-black p-2 bg-white w-[90px] h-[120px] flex flex-col justify-between text-black rounded-md shrink-0"
         style={{
-          background: `linear-gradient(145deg, #ffffff, #fffbeb 62%, ${colors[2]}22)`,
+          background: `linear-gradient(145deg, #ffffff, #f5f4f0 62%, ${colors[2]}22)`,
         }}
       >
         <div className="text-[8px] font-black uppercase text-black/60 leading-none">
           {formatEpisodeCode(episode)}
         </div>
-        <div className="h-10 w-full border border-black/35 bg-black/5 overflow-hidden relative my-0.5 flex items-center justify-center bg-white/40">
+        <div className="h-10 w-full border border-black/35 bg-[#f5f4f0] overflow-hidden relative my-0.5 flex items-center justify-center rounded">
           {posterUrl ? (
-            <img 
-              src={posterUrl} 
-              alt="" 
-              className="w-full h-full object-cover" 
+            <img
+              src={posterUrl}
+              alt=""
+              className="w-full h-full object-cover"
+              onError={() => setPosterUrl(null)}
             />
           ) : (
-            <span className="text-xs">📺</span>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="w-4 h-4 text-black/30" aria-hidden="true">
+              <rect x="2" y="7" width="20" height="15" rx="2" ry="2" />
+              <polyline points="17 2 12 7 7 2" />
+            </svg>
           )}
         </div>
         <h3 className="text-[9px] font-black leading-tight text-black uppercase truncate w-full">{episode.title}</h3>
@@ -1555,27 +1566,30 @@ function EpisodePoster({
 
   return (
     <div
-      className={`poster-shine relative overflow-hidden border-4 border-black p-3.5 shadow-[6px_6px_0px_0px_#000000] bg-white ${sizeClass}`}
+      className={`poster-shine relative overflow-hidden border-2 border-black p-3.5 rounded-lg bg-white ${sizeClass}`}
       style={{
-        background: `radial-gradient(circle at 20% 18%, ${colors[0]}33, transparent 32%), radial-gradient(circle at 80% 70%, ${colors[1]}33, transparent 35%), linear-gradient(145deg, #ffffff, #fffbeb 62%, ${colors[2]}22)`,
+        background: `radial-gradient(circle at 20% 18%, ${colors[0]}33, transparent 32%), radial-gradient(circle at 80% 70%, ${colors[1]}33, transparent 35%), linear-gradient(145deg, #ffffff, #f5f4f0 62%, ${colors[2]}22)`,
       }}
     >
       <div className="absolute inset-x-3.5 top-3.5 flex items-center justify-between text-xs font-extrabold uppercase tracking-[0.28em] text-black/60">
         <span>{formatEpisodeCode(episode)}</span>
-        <span className="bg-black text-white px-1.5 py-0.5 border border-black font-black">{STATUS_LABEL[episode.watchStatus]}</span>
+        <span className="bg-black text-white px-1.5 py-0.5 border border-black font-black rounded">{STATUS_LABEL[episode.watchStatus]}</span>
       </div>
       <div className="absolute inset-x-3.5 bottom-3.5 text-black">
-        <div className="mb-3 aspect-[16/9] w-full border-4 border-black bg-black/5 overflow-hidden relative flex items-center justify-center">
+        <div className="mb-3 aspect-[16/9] w-full border-2 border-black bg-[#f5f4f0] overflow-hidden relative flex items-center justify-center rounded">
           {posterUrl ? (
-            <img 
-              src={posterUrl} 
-              alt="" 
-              className="w-full h-full object-cover" 
+            <img
+              src={posterUrl}
+              alt=""
+              className="w-full h-full object-cover"
+              onError={() => setPosterUrl(null)}
             />
           ) : (
-            <div className="flex flex-col items-center justify-center h-full text-[10px] uppercase font-black bg-white/40 w-full text-center p-2">
-              <span className="text-[16px] mb-1">📺</span>
-              <span>{episode.title}</span>
+            <div className="flex items-center justify-center h-full w-full bg-[#f5f4f0]" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="w-10 h-10 text-black/30">
+                <rect x="2" y="7" width="20" height="15" rx="2" ry="2" />
+                <polyline points="17 2 12 7 7 2" />
+              </svg>
             </div>
           )}
         </div>
@@ -1595,7 +1609,7 @@ function StatusBadge({ status }: { status: WatchStatus }) {
 
 function Info({ label, value }: { label: string; value: string }) {
   return (
-    <div className="bg-white border-4 border-black p-4 shadow-[4px_4px_0px_0px_#000] text-black">
+    <div className="bg-white border-2 border-black rounded-md p-4 text-black">
       <p className="text-[11px] font-black uppercase tracking-[0.3em] text-gray-500">{label}</p>
       <p className="mt-1 font-extrabold text-black">{value}</p>
     </div>
@@ -1614,7 +1628,7 @@ function SectionIntro({ eyebrow, title, copy }: { eyebrow: string; title: string
 
 function SectionBlock({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <section className="mt-8 bg-white border-4 border-black p-5 shadow-[6px_6px_0px_0px_#000] text-black">
+    <section className="mt-8 bg-white border-2 border-black rounded-lg p-5 text-black">
       <p className="mb-3 text-xs font-black uppercase tracking-[0.35em] text-gray-500">{title}</p>
       {children}
     </section>
@@ -1623,7 +1637,7 @@ function SectionBlock({ title, children }: { title: string; children: React.Reac
 
 function SidePanel({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <section className="bg-white border-4 border-black p-5 shadow-[6px_6px_0px_0px_#000] text-black">
+    <section className="bg-white border-2 border-black rounded-lg p-5 text-black">
       <h3 className="text-lg font-black text-black uppercase tracking-wider">{title}</h3>
       <div className="mt-4">{children}</div>
     </section>
@@ -1632,7 +1646,7 @@ function SidePanel({ title, children }: { title: string; children: React.ReactNo
 
 function DetailList({ title, items }: { title: string; items: string[] }) {
   return (
-    <div className="bg-white border-4 border-black p-4 shadow-[4px_4px_0px_0px_#000] text-black">
+    <div className="bg-white border-2 border-black rounded-md p-4 text-black">
       <p className="text-xs font-black uppercase tracking-[0.35em] text-gray-500">{title}</p>
       <ul className="mt-2 space-y-1 text-sm font-bold text-gray-700 leading-6">
         {items.length ? items.map((item) => <li key={item}>{item}</li>) : <li className="text-gray-400">Unknown</li>}
@@ -1689,9 +1703,9 @@ function Avatar({ host, large = false }: { host: Cohost; large?: boolean }) {
 
   if (photoUrl && !imageError) {
     return (
-      <img 
-        src={photoUrl} 
-        alt={name} 
+      <img
+        src={photoUrl}
+        alt={name}
         className={`object-contain filter contrast-125 shrink-0 ${large ? "h-24 w-24" : "h-11 w-11"}`}
         onError={() => setImageError(true)}
       />
@@ -1816,7 +1830,7 @@ function parsePath(): Route {
   const path = window.location.pathname;
   if (path.startsWith('/reviews')) {
     const subpath = path.slice('/reviews'.length);
-// Retired subpaths handled globally by router
+    // Retired subpaths handled globally by router
     if (subpath.startsWith('/season/')) {
       const seasonNum = Number(subpath.split('/')[2]);
       if (!isNaN(seasonNum)) return { page: 'season', season: seasonNum };

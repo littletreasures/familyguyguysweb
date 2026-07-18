@@ -142,7 +142,7 @@ function createEpisodeMarkup(ep, isFeatured = false) {
   const isBoth = hasYoutube && hasReviews;
 
   const tag = isBoth ? 'div' : 'a';
-  const classNames = isFeatured ? 'episode-card-featured' : 'ep-row';
+  const classNames = isFeatured ? 'episode-card-featured' : (isBoth ? 'ep-row' : 'ep-row ep-row-clickable');
   
   let linkAttrs = '';
   if (!isBoth) {
@@ -177,7 +177,7 @@ function createEpisodeMarkup(ep, isFeatured = false) {
       <picture>
         <source srcset="${thumbPrefix}-180w.avif 180w, ${thumbPrefix}-360w.avif 360w" type="image/avif" sizes="${isFeatured ? '160px' : '180px'}">
         <source srcset="${thumbPrefix}-180w.webp 180w, ${thumbPrefix}-360w.webp 360w" type="image/webp" sizes="${isFeatured ? '160px' : '180px'}">
-        <img src="${thumbUrl}" alt="Episode ${epNumStr} thumbnail" class="${thumbImgClass}" width="${isFeatured ? '160' : '180'}" height="${isFeatured ? '90' : '101'}" loading="lazy" onerror="this.src='/hero-480w.webp'; this.onerror=null;">
+        <img src="${thumbUrl}" alt="Episode ${epNumStr} thumbnail" class="${thumbImgClass}" width="${isFeatured ? '160' : '180'}" height="${isFeatured ? '90' : '101'}" loading="lazy" onerror="this.onerror=null; this.src='/tv-watching-480w.webp'; this.alt='Family Guy Guys default thumbnail';">
       </picture>
     </div>
     <div class="${metaContainerClass}">
