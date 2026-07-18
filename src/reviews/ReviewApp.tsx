@@ -94,6 +94,32 @@ const COHOST_NAME_MAP: Record<string, { name: string; role: string; photo: strin
   "collin": { name: "Collin Brown", role: "Host", photo: "/hosts/collinhost.webp" },
 };
 
+function getHostTheme(hostId: string): { bgClass: string; starColor: string; fallbackBg: string; textClass: string } {
+  const id = hostId.toLowerCase();
+  if (id === 'collin' || id === '0a3dfd13-90b2-47db-b0af-2e0c0df21cff') {
+    return { 
+      bgClass: "host-bg-collin", 
+      starColor: "var(--teal, #1a6b6b)", 
+      fallbackBg: "var(--teal, #1a6b6b)",
+      textClass: "text-white"
+    };
+  }
+  if (id === 'tyler' || id === 'e08c8c4b-ecf5-427e-8890-fe9cef0a2c9a') {
+    return { 
+      bgClass: "host-bg-tyler", 
+      starColor: "var(--maroon, #5c1a1a)", 
+      fallbackBg: "var(--maroon, #5c1a1a)",
+      textClass: "text-white"
+    };
+  }
+  return { 
+    bgClass: "host-bg-jason", 
+    starColor: "var(--amber, #aa6200)", 
+    fallbackBg: "var(--amber, #aa6200)",
+    textClass: "text-white"
+  };
+}
+
 function cohostFromRow(row: any): Cohost {
   const mapped = COHOST_NAME_MAP[row.id?.toLowerCase()] || COHOST_NAME_MAP[row.name?.toLowerCase()];
   return {
@@ -631,7 +657,7 @@ function CatalogPage({
                   key={host.id}
                   type="button"
                   onClick={() => onNavigate({ page: "host", id: host.id })}
-                  className="flex w-full items-center gap-3 border-4 border-black bg-white p-3 text-left transition shadow-[4px_4px_0px_0px_#000] hover:translate-y-[-1px] hover:shadow-[5px_5px_0px_0px_#000] text-black"
+                  className="flex w-full items-center gap-3 border-2 border-black bg-white p-3 text-left transition shadow-[3px_3px_0px_0px_#000] hover:translate-y-[-1px] hover:shadow-[4px_4px_0px_0px_#000] text-black"
                 >
                   <Avatar host={host} />
                   <div>
@@ -824,7 +850,7 @@ function EpisodePage({
 
           {/* Host ratings */}
           <div>
-            <div className="inline-block bg-[#F99F1B] border-4 border-black px-4 py-2 mb-6 shadow-[4px_4px_0px_0px_#000000] text-black">
+            <div className="inline-block bg-[#F99F1B] border-2 border-black px-4 py-2 mb-6 shadow-[2px_2px_0px_0px_#000000] text-black">
               <h3 className="text-xl font-black uppercase tracking-wide">HOST RATINGS FOR THIS EPISODE</h3>
             </div>
             <div className="space-y-6">
@@ -893,18 +919,14 @@ function HostReviewRow({
   const mapped = COHOST_NAME_MAP[host.id.toLowerCase()] || COHOST_NAME_MAP[host.name?.toLowerCase()];
   const name = mapped?.name ?? host.name;
   const photoUrl = mapped?.photo;
-  const accentClass = host.id.toLowerCase() === 'tyler' 
-    ? "bg-[#43141F] text-white" 
-    : host.id.toLowerCase() === 'collin' 
-      ? "bg-[#59C3F1] text-black" 
-      : "bg-[#F99F1B] text-black";
+  const theme = getHostTheme(host.id);
 
   const scaleMax = review.ratingScaleMax || 5;
   const terminology = review.ratingTerminology || ratingLabel;
   const ratingVal = review.rating !== null ? (review.rating / 5) * scaleMax : null;
 
   return (
-    <div className="flex flex-col sm:flex-row gap-4 items-start bg-white border-4 border-black p-4 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] hover:translate-y-[-1px] transition-transform duration-100">
+    <div className="flex flex-col sm:flex-row gap-4 items-start bg-white border-4 border-black p-4 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:translate-y-[-1px] transition-transform duration-100">
       <div className="flex-shrink-0 self-start">
         <div className="w-20 h-20 border-4 border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] relative overflow-hidden flex items-center justify-center bg-gray-200">
           {photoUrl ? (
@@ -917,7 +939,7 @@ function HostReviewRow({
               }}
             />
           ) : null}
-          <div className="absolute inset-0 flex items-center justify-center font-black text-xl" style={{ backgroundColor: host.accent, zIndex: -1 }}>
+          <div className="absolute inset-0 flex items-center justify-center font-black text-xl" style={{ backgroundColor: theme.fallbackBg, zIndex: -1 }}>
             {name.split(" ").map(n => n[0]).join("").slice(0,2).toUpperCase()}
           </div>
           <div className="absolute bottom-0 inset-x-0 bg-black text-white text-[8px] font-black uppercase text-center py-0.5 tracking-wider leading-none">
@@ -927,7 +949,7 @@ function HostReviewRow({
       </div>
 
       <div className="flex-grow w-full text-black">
-        <div className={`border-4 border-black p-2 mb-2.5 flex flex-wrap items-center justify-between shadow-[2px_2px_0px_0px_#000000] ${accentClass}`}>
+        <div className={`border-2 border-black p-2 mb-2.5 flex flex-wrap items-center justify-between shadow-[2px_2px_0px_0px_#000000] ${theme.bgClass}`}>
           <span className="font-black text-xs uppercase tracking-wider">{name.split(" ")[0]}'S METRIC</span>
           <div className="flex items-center gap-1">
             {ratingVal === null ? (
@@ -949,8 +971,8 @@ function HostReviewRow({
                   <Star 
                     key={s} 
                     size={14} 
-                    fill={s <= Math.round(ratingVal) ? (host.id.toLowerCase() === 'tyler' ? '#F99F1B' : '#43141F') : 'transparent'} 
-                    className={`stroke-[2.5] ${host.id.toLowerCase() === 'tyler' ? 'text-white' : 'text-black'}`} 
+                    fill={s <= Math.round(ratingVal) ? theme.starColor : 'transparent'} 
+                    className="stroke-[2.5] text-black" 
                   />
                 ))}
                 <span className="bg-black text-white font-black text-[10px] px-1.5 py-0.5 ml-1 border border-white leading-none">
@@ -1100,7 +1122,7 @@ function VisitorReviewsSection({ episodeId }: { episodeId: string }) {
   return (
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start mt-8 text-black">
       <div className="lg:col-span-7 space-y-4">
-        <div className="inline-block bg-[#A7F3D0] border-4 border-black px-3 py-1.5 shadow-[4px_4px_0px_0px_#000000]">
+        <div className="inline-block bg-[#A7F3D0] border-2 border-black px-3 py-1.5 shadow-[2px_2px_0px_0px_#000000]">
           <h3 className="text-md font-black uppercase tracking-wide">USER COMMUNITY FEED</h3>
         </div>
 
@@ -1412,7 +1434,7 @@ function HostPage({
       </div>
       <div className="grid gap-8 lg:grid-cols-[320px_minmax(0,1fr)]">
         <aside>
-          <div className="border-4 border-black bg-white p-6 shadow-[6px_6px_0px_0px_#000] text-black">
+          <div className="border-4 border-black bg-white p-6 shadow-[4px_4px_0px_0px_#000] text-black">
             <div className="flex justify-center mb-5">
               <Avatar host={host} large />
             </div>
@@ -1676,10 +1698,11 @@ function Avatar({ host, large = false }: { host: Cohost; large?: boolean }) {
     );
   }
 
+  const theme = getHostTheme(host.id);
   return (
     <div
-      className={`grid shrink-0 place-items-center border-2 border-black font-black text-slate-950 overflow-hidden relative ${large ? "h-24 w-24 text-3xl" : "h-11 w-11 text-sm"}`}
-      style={{ backgroundColor: host.accent }}
+      className={`grid shrink-0 place-items-center border-2 border-black font-black overflow-hidden relative ${theme.textClass} ${large ? "h-24 w-24 text-3xl" : "h-11 w-11 text-sm"}`}
+      style={{ backgroundColor: theme.fallbackBg }}
     >
       <span className="absolute inset-0 flex items-center justify-center bg-transparent z-0">
         {initials}
@@ -1691,7 +1714,7 @@ function Avatar({ host, large = false }: { host: Cohost; large?: boolean }) {
 function ProgressBar({ value }: { value: number }) {
   return (
     <div className="mt-2.5 h-3 overflow-hidden border-2 border-black bg-white">
-      <div className="h-full bg-[#C2410C]" style={{ width: `${Math.max(2, Math.min(100, value))}%` }} />
+      <div className="h-full bg-black" style={{ width: `${Math.max(2, Math.min(100, value))}%` }} />
     </div>
   );
 }

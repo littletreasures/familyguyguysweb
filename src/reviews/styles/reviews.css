@@ -3,7 +3,6 @@
 
 @theme {
   --font-sans: "Neue Montreal", "Helvetica Neue", sans-serif;
-  --font-mono: "Special Elite", monospace;
 }
 
 #review-app * {
@@ -14,7 +13,7 @@
 #review-app {
   color: #000000;
   font-family: var(--font-display);
-  background: #FFFBEB;
+  background: #f5f4f0;
   min-height: 100vh;
 }
 
@@ -28,10 +27,15 @@
   font-weight: 900;
 }
 
+/* Host Color Mappings */
+#review-app .host-bg-collin { background-color: var(--teal, #1a6b6b); color: #ffffff; }
+#review-app .host-bg-tyler { background-color: var(--maroon, #5c1a1a); color: #ffffff; }
+#review-app .host-bg-jason { background-color: var(--amber, #aa6200); color: #ffffff; }
+
 /* Halftone Texture Overlay */
 .reviews-halftone-bg {
   position: relative;
-  background-color: #FFFBEB;
+  background-color: #f5f4f0;
 }
 .reviews-halftone-bg::before {
   content: '';
