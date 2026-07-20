@@ -1,8 +1,8 @@
-@import "tailwindcss/theme";
-@import "tailwindcss/utilities";
+@import 'tailwindcss/theme';
+@import 'tailwindcss/utilities';
 
 @theme {
-  --font-sans: "Neue Montreal", "Helvetica Neue", sans-serif;
+  --font-sans: 'Neue Montreal', 'Helvetica Neue', sans-serif;
 }
 
 #review-app * {
@@ -17,9 +17,9 @@
   min-height: 100vh;
 }
 
-#review-app h1, 
-#review-app h2, 
-#review-app h3, 
+#review-app h1,
+#review-app h2,
+#review-app h3,
 #review-app h4 {
   font-family: var(--font-display);
   color: #000000;
@@ -28,9 +28,18 @@
 }
 
 /* Host Color Mappings */
-#review-app .host-bg-collin { background-color: var(--teal, #1a6b6b); color: #ffffff; }
-#review-app .host-bg-tyler { background-color: var(--maroon, #5c1a1a); color: #ffffff; }
-#review-app .host-bg-jason { background-color: var(--amber, #aa6200); color: #ffffff; }
+#review-app .host-bg-collin {
+  background-color: var(--teal, #1a6b6b);
+  color: #ffffff;
+}
+#review-app .host-bg-tyler {
+  background-color: var(--maroon, #5c1a1a);
+  color: #ffffff;
+}
+#review-app .host-bg-jason {
+  background-color: var(--amber, #aa6200);
+  color: #ffffff;
+}
 
 /* Halftone Texture Overlay */
 .reviews-halftone-bg {
@@ -57,7 +66,7 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  background: #FBBF24; /* Yellow-400 */
+  background: #fbbf24; /* Yellow-400 */
   color: #000000;
   font-family: 'Neue Montreal', sans-serif;
   font-size: 0.85rem;
@@ -141,7 +150,7 @@
 }
 
 #review-app .text-link:hover {
-  color: #59C3F1;
+  color: #59c3f1;
 }
 
 /* Form inputs & controls re-theme */
@@ -156,7 +165,9 @@
   font-weight: 700;
   outline: none;
   box-shadow: 2px 2px 0px 0px #000000;
-  transition: box-shadow 0.1s, background-color 0.1s;
+  transition:
+    box-shadow 0.1s,
+    background-color 0.1s;
 }
 
 #review-app .field:focus {
@@ -196,7 +207,7 @@
 }
 
 /* Star rating range input re-theme */
-#review-app input[type="range"] {
+#review-app input[type='range'] {
   accent-color: #f472b6 !important; /* Accent Pink */
 }
 
@@ -242,14 +253,14 @@
   color: #000000;
 }
 #review-app .status-watched {
-  background: #A7F3D0; /* teal */
+  background: #a7f3d0; /* teal */
   color: #000000;
 }
 #review-app .status-recorded {
-  background: #C084FC; /* purple */
+  background: #c084fc; /* purple */
   color: #000000;
 }
 #review-app .status-published {
-  background: #FBBF24; /* yellow */
+  background: #fbbf24; /* yellow */
   color: #000000;
 }

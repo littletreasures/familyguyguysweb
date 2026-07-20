@@ -10,7 +10,9 @@
     "command": "npm run build"
   },
   "assets": {
-    "directory": "./dist"
+    "directory": "./dist",
+    "html_handling": "single-page-app",
+    "not_found_handling": "single-page-app"
   },
   "compatibility_flags": [
     "nodejs_compat"

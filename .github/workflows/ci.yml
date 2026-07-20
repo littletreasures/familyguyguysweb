@@ -1,0 +1,48 @@
+name: CI Quality & Security Gates
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  ci-verification:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install Node dependencies
+        run: npm ci
+
+      - name: Secret Scan (Gitleaks)
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        continue-on-error: false
+
+      - name: Dependency Vulnerability Audit
+        run: npm audit --audit-level=high
+
+      - name: TypeScript Typecheck
+        run: npm run typecheck
+
+      - name: ESLint Code Quality Check
+        run: npx eslint src
+
+      - name: Prettier Formatting Check
+        run: npx prettier --check "src/**/*.{js,jsx,ts,tsx,css,html}"
+
+      - name: Vitest Security & Unit Tests
+        run: npm test
+
+      - name: Production Build
+        run: npm run build

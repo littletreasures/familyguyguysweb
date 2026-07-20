@@ -1,0 +1,22 @@
+# Gitleaks Configuration for Family Guy Guys Website
+title = "Family Guy Guys Gitleaks Config"
+
+[allowlist]
+description = "Global allowlist for example environment templates and test mocks"
+paths = [
+  '''\.env\.example''',
+  '''admin-tools/\.env\.example''',
+  '''tests/.*''',
+]
+
+[[rules]]
+id = "supabase-service-key"
+description = "Supabase Service Role Key detection"
+regex = '''eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9\.[a-zA-Z0-9_\-]+\.[a-zA-Z0-9_\-]+'''
+tags = ["key", "supabase", "service-role"]
+
+[[rules]]
+id = "generic-api-key"
+description = "Generic High Entropy API Key detection"
+regex = '''(?i)(api_key|service_key|secret_key|auth_token)\s*=\s*['"]?[a-zA-Z0-9_\-]{20,}['"]?'''
+tags = ["key", "generic"]

@@ -11,18 +11,23 @@ import json
 import sys
 from supabase import create_client
 import config
+from validation import validate_review_dict, log_audit_event
 
 
 def build_review_rows(review_data: dict) -> list:
-    episode_id = review_data["episode_id"]
+    episode_id = review_data.get("episode_id", "").strip()
+    if not episode_id:
+        raise ValueError("Missing required 'episode_id' in review data JSON")
+
     rows = []
     for r in review_data.get("reviews", []):
         host_name = r.get("host_name")
         cohost_id = config.COHOST_UUIDS.get(host_name)
         if not cohost_id:
-            print(f"WARNING: no UUID found for host '{host_name}', skipping.")
+            log_audit_event("BUILD_REVIEWS", episode_id, "WARN", f"No host UUID for '{host_name}'")
             continue
-        rows.append({
+
+        raw_row = {
             "episode_id": episode_id,
             "cohost_id": cohost_id,
             "rating": r.get("rating"),
@@ -31,18 +36,33 @@ def build_review_rows(review_data: dict) -> list:
             "draft_source": "transcript",
             "rating_terminology": r.get("rating_terminology", "Quahogs"),
             "rating_scale_max": r.get("rating_scale_max", 5),
-        })
+        }
+        # Validate schema allow-list and rating bounds (0 to 5)
+        validated_row = validate_review_dict(raw_row, config.COHOST_UUIDS)
+        rows.append(validated_row)
+
     return rows
 
 
 def upsert_reviews(rows: list, dry_run: bool = False):
+    if not rows:
+        print("No review rows provided.")
+        return
+
+    ep_id = rows[0]["episode_id"]
     if dry_run:
-        print("[DRY RUN] Would upsert into `reviews`:")
+        log_audit_event("UPSERT_REVIEWS", ep_id, "DRY_RUN", f"Would upsert {len(rows)} review row(s).")
+        print(f"[DRY RUN] Would upsert {len(rows)} row(s) into `reviews`:")
         for row in rows:
             print(json.dumps(row, indent=2))
         return
+
+    # Fail closed assertion
+    config.require_supabase_credentials()
+
     client = create_client(config.SUPABASE_URL, config.SUPABASE_SERVICE_KEY)
     result = client.table("reviews").upsert(rows, on_conflict="episode_id,cohost_id").execute()
+    log_audit_event("UPSERT_REVIEWS", ep_id, "SUCCESS", f"Upserted {len(rows)} review row(s).")
     print("Upserted reviews:", result.data)
 
 
@@ -52,14 +72,20 @@ def main():
     parser.add_argument("--dry-run", action="store_true")
     args = parser.parse_args()
 
-    with open(args.review_json, "r") as f:
-        review_data = json.load(f)
+    try:
+        with open(args.review_json, "r") as f:
+            review_data = json.load(f)
 
-    rows = build_review_rows(review_data)
-    if not rows:
-        sys.exit("No valid review rows to upsert.")
-    upsert_reviews(rows, dry_run=args.dry_run)
+        rows = build_review_rows(review_data)
+        if not rows:
+            sys.exit("No valid review rows to upsert.")
+
+        upsert_reviews(rows, dry_run=args.dry_run)
+    except Exception as e:
+        log_audit_event("UPSERT_REVIEWS", "UNKNOWN", "FAILED", str(e))
+        sys.exit(f"Error: {e}")
 
 
 if __name__ == "__main__":
     main()
+

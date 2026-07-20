@@ -1,10 +1,26 @@
+# Build and dependencies
 node_modules
 dist/*
 !dist/.gitkeep
-.env.local
-.env.*.local
+
+# Environment and Secrets (Never commit secrets)
+.env
+.env.*
+!.env.example
+admin-tools/.env
+!admin-tools/.env.example
+
+# Python virtual environment and bytecode
+.venv/
+venv/
+__pycache__/
+*.pyc
+
+# Local artifacts & OS files
 .DS_Store
-originalfamilyguyguys-site.zip
+*.zip
 originalfamilyguyguys-site/
 family-guy-guys.html
 .agents/
+.wrangler/
+

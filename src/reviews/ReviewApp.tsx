@@ -1,9 +1,9 @@
-import { useEffect, useMemo, useState } from "react";
-import { supabase } from "./lib/supabase";
-import { navigateTo } from "../router.js";
-import { Star, ThumbsUp, Sliders } from "lucide-react";
+import { useEffect, useMemo, useState } from 'react';
+import { supabase } from './lib/supabase';
+import { navigateTo } from '../router.js';
+import { Star, ThumbsUp, Sliders } from 'lucide-react';
 
-type WatchStatus = "backlog" | "watched" | "recorded" | "published";
+type WatchStatus = 'backlog' | 'watched' | 'recorded' | 'published';
 
 type Cohost = {
   id: string;
@@ -18,7 +18,7 @@ type Review = {
   rating: number | null;
   review: string;
   pullQuote?: string;
-  draftSource?: "manual" | "transcript";
+  draftSource?: 'manual' | 'transcript';
   updatedAt?: string;
   ratingTerminology?: string;
   ratingScaleMax?: number;
@@ -50,7 +50,7 @@ type Episode = {
 };
 
 type PodcastDataset = {
-  schemaVersion: "fg-letterlog-v2";
+  schemaVersion: 'fg-letterlog-v2';
   showName: string;
   subtitle: string;
   ratingScale: {
@@ -61,62 +61,76 @@ type PodcastDataset = {
   episodes: Episode[];
 };
 
-
-
-
 type Route =
-  | { page: "catalog" }
-  | { page: "episode"; id: string }
-  | { page: "season"; season: number }
-  | { page: "host"; id: string };
+  | { page: 'catalog' }
+  | { page: 'episode'; id: string }
+  | { page: 'season'; season: number }
+  | { page: 'host'; id: string };
 
-const STATUS_ORDER: WatchStatus[] = ["backlog", "watched", "recorded", "published"];
+const STATUS_ORDER: WatchStatus[] = ['backlog', 'watched', 'recorded', 'published'];
 const STATUS_LABEL: Record<WatchStatus, string> = {
-  backlog: "Backlog",
-  watched: "Watched",
-  recorded: "Recorded",
-  published: "Published",
+  backlog: 'Backlog',
+  watched: 'Watched',
+  recorded: 'Recorded',
+  published: 'Published',
 };
 const STATUS_TONE: Record<WatchStatus, string> = {
-  backlog: "border-slate-500/30 bg-slate-500/10 text-slate-300",
-  watched: "border-blue-300/30 bg-blue-300/10 text-blue-200",
-  recorded: "border-amber-300/30 bg-amber-300/10 text-amber-200",
-  published: "border-emerald-300/30 bg-emerald-300/10 text-emerald-200",
+  backlog: 'border-slate-500/30 bg-slate-500/10 text-slate-300',
+  watched: 'border-blue-300/30 bg-blue-300/10 text-blue-200',
+  recorded: 'border-amber-300/30 bg-amber-300/10 text-amber-200',
+  published: 'border-emerald-300/30 bg-emerald-300/10 text-emerald-200',
 };
-const PALETTE = ["#65e4d3", "#f7c948", "#a78bfa", "#fb7185", "#38bdf8", "#f97316"];
+const PALETTE = ['#65e4d3', '#f7c948', '#a78bfa', '#fb7185', '#38bdf8', '#f97316'];
 
 const COHOST_NAME_MAP: Record<string, { name: string; role: string; photo: string }> = {
-  "01201e1a-dafd-424a-b596-ff9ece65f1aa": { name: "Jason Hackett", role: "Host", photo: "/hosts/jasonhost.webp" },
-  "e08c8c4b-ecf5-427e-8890-fe9cef0a2c9a": { name: "Tyler Simpson", role: "Host", photo: "/hosts/tylerhost.webp" },
-  "0a3dfd13-90b2-47db-b0af-2e0c0df21cff": { name: "Collin Brown", role: "Host", photo: "/hosts/collinhost.webp" },
-  "jason": { name: "Jason Hackett", role: "Host", photo: "/hosts/jasonhost.webp" },
-  "tyler": { name: "Tyler Simpson", role: "Host", photo: "/hosts/tylerhost.webp" },
-  "collin": { name: "Collin Brown", role: "Host", photo: "/hosts/collinhost.webp" },
+  '01201e1a-dafd-424a-b596-ff9ece65f1aa': {
+    name: 'Jason Hackett',
+    role: 'Host',
+    photo: '/hosts/jasonhost.webp',
+  },
+  'e08c8c4b-ecf5-427e-8890-fe9cef0a2c9a': {
+    name: 'Tyler Simpson',
+    role: 'Host',
+    photo: '/hosts/tylerhost.webp',
+  },
+  '0a3dfd13-90b2-47db-b0af-2e0c0df21cff': {
+    name: 'Collin Brown',
+    role: 'Host',
+    photo: '/hosts/collinhost.webp',
+  },
+  jason: { name: 'Jason Hackett', role: 'Host', photo: '/hosts/jasonhost.webp' },
+  tyler: { name: 'Tyler Simpson', role: 'Host', photo: '/hosts/tylerhost.webp' },
+  collin: { name: 'Collin Brown', role: 'Host', photo: '/hosts/collinhost.webp' },
 };
 
-function getHostTheme(hostId: string): { bgClass: string; starColor: string; fallbackBg: string; textClass: string } {
+function getHostTheme(hostId: string): {
+  bgClass: string;
+  starColor: string;
+  fallbackBg: string;
+  textClass: string;
+} {
   const id = hostId.toLowerCase();
   if (id === 'collin' || id === '0a3dfd13-90b2-47db-b0af-2e0c0df21cff') {
     return {
-      bgClass: "host-bg-collin",
-      starColor: "var(--teal, #1a6b6b)",
-      fallbackBg: "var(--teal, #1a6b6b)",
-      textClass: "text-white"
+      bgClass: 'host-bg-collin',
+      starColor: 'var(--teal, #1a6b6b)',
+      fallbackBg: 'var(--teal, #1a6b6b)',
+      textClass: 'text-white',
     };
   }
   if (id === 'tyler' || id === 'e08c8c4b-ecf5-427e-8890-fe9cef0a2c9a') {
     return {
-      bgClass: "host-bg-tyler",
-      starColor: "var(--maroon, #5c1a1a)",
-      fallbackBg: "var(--maroon, #5c1a1a)",
-      textClass: "text-white"
+      bgClass: 'host-bg-tyler',
+      starColor: 'var(--maroon, #5c1a1a)',
+      fallbackBg: 'var(--maroon, #5c1a1a)',
+      textClass: 'text-white',
     };
   }
   return {
-    bgClass: "host-bg-jason",
-    starColor: "var(--amber, #aa6200)",
-    fallbackBg: "var(--amber, #aa6200)",
-    textClass: "text-white"
+    bgClass: 'host-bg-jason',
+    starColor: 'var(--amber, #aa6200)',
+    fallbackBg: 'var(--amber, #aa6200)',
+    textClass: 'text-white',
   };
 }
 
@@ -168,10 +182,12 @@ function episodeFromRow(row: any): Episode {
 
 function configFromRow(row: any) {
   return {
-    showName: row?.show_name ?? "Family Guy Guys",
-    subtitle: row?.subtitle ?? "Join Collin, Tyler, and Jason as they watch and review every single episode of Family Guy in chronological order.",
+    showName: row?.show_name ?? 'Family Guy Guys',
+    subtitle:
+      row?.subtitle ??
+      'Join Collin, Tyler, and Jason as they watch and review every single episode of Family Guy in chronological order.',
     ratingScale: {
-      label: row?.rating_label ?? "Quahogs",
+      label: row?.rating_label ?? 'Quahogs',
       max: row?.rating_max ?? 5,
     },
   };
@@ -181,7 +197,7 @@ function buildDataset(
   cohostsRaw: any[],
   episodesRaw: any[],
   reviewsRaw: any[],
-  configRaw: any,
+  configRaw: any
 ): PodcastDataset {
   const cohosts = cohostsRaw.map(cohostFromRow);
   const config = configFromRow(configRaw);
@@ -189,16 +205,14 @@ function buildDataset(
   const episodes = episodesRaw.map((row) => {
     const episode = episodeFromRow(row);
     episode.reviews = alignReviews(
-      reviewsRaw
-        .filter((r) => r.episode_id === episode.id)
-        .map(reviewFromRow),
-      cohosts,
+      reviewsRaw.filter((r) => r.episode_id === episode.id).map(reviewFromRow),
+      cohosts
     );
     return episode;
   });
 
   return {
-    schemaVersion: "fg-letterlog-v2",
+    schemaVersion: 'fg-letterlog-v2',
     showName: config.showName,
     subtitle: config.subtitle,
     ratingScale: config.ratingScale,
@@ -211,20 +225,16 @@ const demoDataset = createDemoDataset();
 
 // schemaTemplate removed
 
-
-
 function App() {
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [retryCount, setRetryCount] = useState(0);
   const [dataset, setDataset] = useState<PodcastDataset>(demoDataset);
-  const [selectedCohostId, setSelectedCohostId] = useState(
-    demoDataset.cohosts[0].id,
-  );
+  const [selectedCohostId, setSelectedCohostId] = useState(demoDataset.cohosts[0].id);
   const [route, setRoute] = useState<Route>(() => parsePath());
-  const [search, setSearch] = useState("");
-  const [seasonFilter, setSeasonFilter] = useState("all");
-  const [statusFilter, setStatusFilter] = useState<WatchStatus | "all">("all");
+  const [search, setSearch] = useState('');
+  const [seasonFilter, setSeasonFilter] = useState('all');
+  const [statusFilter, setStatusFilter] = useState<WatchStatus | 'all'>('all');
   // Admin mode and related states are retired.
 
   useEffect(() => {
@@ -233,27 +243,35 @@ function App() {
     async function fetchData() {
       try {
         if (!supabase) {
-          console.warn("Missing Supabase credentials. Database features are disabled.");
+          console.warn('Missing Supabase credentials. Database features are disabled.');
           setLoading(false);
           return;
         }
+        const client = supabase;
         const fetchReviews = async () => {
-          const res = await supabase.from("reviews").select(
-            "episode_id, cohost_id, rating, review, pull_quote, draft_source, updated_at, rating_terminology, rating_scale_max",
-          );
+          const res = await client
+            .from('reviews')
+            .select(
+              'episode_id, cohost_id, rating, review, pull_quote, draft_source, updated_at, rating_terminology, rating_scale_max'
+            );
           if (!res.error) return res;
-          console.warn("New columns not found in reviews table, falling back to legacy schema:", res.error.message);
-          return await supabase.from("reviews").select(
-            "episode_id, cohost_id, rating, review, pull_quote, draft_source, updated_at",
+          console.warn(
+            'New columns not found in reviews table, falling back to legacy schema:',
+            res.error.message
           );
+          return await client
+            .from('reviews')
+            .select('episode_id, cohost_id, rating, review, pull_quote, draft_source, updated_at');
         };
         const results = await Promise.allSettled([
-          supabase.from("cohosts").select("id, name, role, bio, accent"),
-          supabase.from("episodes").select(
-            "id, season, episode_number, title, air_date, runtime, imdb_rating, summary, cast, guest_stars, writers, director, facts, watch_status, podcast_url, transcript_notes",
-          ),
+          client.from('cohosts').select('id, name, role, bio, accent'),
+          client
+            .from('episodes')
+            .select(
+              'id, season, episode_number, title, air_date, runtime, imdb_rating, summary, cast, guest_stars, writers, director, facts, watch_status, podcast_url, transcript_notes'
+            ),
           fetchReviews(),
-          supabase.from("config").select("rating_label, rating_max, show_name, subtitle"),
+          client.from('config').select('rating_label, rating_max, show_name, subtitle'),
         ]);
 
         const [cohostsRes, episodesRes, reviewsRes, configRes] = results;
@@ -261,21 +279,23 @@ function App() {
         // Supabase returns fulfilled promises with { data, error } objects
         // Check for both rejected promises AND Supabase errors in fulfilled responses
         const hasCriticalError =
-          cohostsRes.status === "rejected" ||
-          episodesRes.status === "rejected" ||
-          reviewsRes.status === "rejected" ||
-          (cohostsRes.status === "fulfilled" && cohostsRes.value.error) ||
-          (episodesRes.status === "fulfilled" && episodesRes.value.error) ||
-          (reviewsRes.status === "fulfilled" && reviewsRes.value.error);
+          cohostsRes.status === 'rejected' ||
+          episodesRes.status === 'rejected' ||
+          reviewsRes.status === 'rejected' ||
+          (cohostsRes.status === 'fulfilled' && cohostsRes.value.error) ||
+          (episodesRes.status === 'fulfilled' && episodesRes.value.error) ||
+          (reviewsRes.status === 'fulfilled' && reviewsRes.value.error);
 
         if (hasCriticalError) {
-          throw new Error("Critical data fetch failed");
+          throw new Error('Critical data fetch failed');
         }
 
         const cohosts = (cohostsRes as any).value.data;
         const episodes = (episodesRes as any).value.data;
         const reviews = (reviewsRes as any).value.data;
-        const config = (configRes.status === "fulfilled" ? (configRes as any).value.data : null)?.[0];
+        const config = (
+          configRes.status === 'fulfilled' ? (configRes as any).value.data : null
+        )?.[0];
 
         if (!episodes || episodes.length === 0) {
           setLoading(false);
@@ -287,7 +307,7 @@ function App() {
         setSelectedCohostId(nextDataset.cohosts[0]?.id ?? demoDataset.cohosts[0].id);
         setLoading(false);
       } catch (error) {
-        setLoadError(error instanceof Error ? error.message : "Failed to load data from Supabase");
+        setLoadError(error instanceof Error ? error.message : 'Failed to load data from Supabase');
         setLoading(false);
       }
     }
@@ -316,7 +336,7 @@ function App() {
 
   useEffect(() => {
     if (!dataset.cohosts.some((host) => host.id === selectedCohostId)) {
-      setSelectedCohostId(dataset.cohosts[0]?.id ?? "");
+      setSelectedCohostId(dataset.cohosts[0]?.id ?? '');
     }
   }, [dataset, selectedCohostId]);
 
@@ -331,27 +351,35 @@ function App() {
       setLoadError(null);
       try {
         if (!supabase) {
-          console.warn("Missing Supabase credentials. Database features are disabled.");
+          console.warn('Missing Supabase credentials. Database features are disabled.');
           setLoading(false);
           return;
         }
+        const client = supabase;
         const fetchReviews = async () => {
-          const res = await supabase.from("reviews").select(
-            "episode_id, cohost_id, rating, review, pull_quote, draft_source, updated_at, rating_terminology, rating_scale_max",
-          );
+          const res = await client
+            .from('reviews')
+            .select(
+              'episode_id, cohost_id, rating, review, pull_quote, draft_source, updated_at, rating_terminology, rating_scale_max'
+            );
           if (!res.error) return res;
-          console.warn("New columns not found in reviews table, falling back to legacy schema:", res.error.message);
-          return await supabase.from("reviews").select(
-            "episode_id, cohost_id, rating, review, pull_quote, draft_source, updated_at",
+          console.warn(
+            'New columns not found in reviews table, falling back to legacy schema:',
+            res.error.message
           );
+          return await client
+            .from('reviews')
+            .select('episode_id, cohost_id, rating, review, pull_quote, draft_source, updated_at');
         };
         const results = await Promise.allSettled([
-          supabase.from("cohosts").select("id, name, role, bio, accent"),
-          supabase.from("episodes").select(
-            "id, season, episode_number, title, air_date, runtime, imdb_rating, summary, cast, guest_stars, writers, director, facts, watch_status, podcast_url, transcript_notes",
-          ),
+          client.from('cohosts').select('id, name, role, bio, accent'),
+          client
+            .from('episodes')
+            .select(
+              'id, season, episode_number, title, air_date, runtime, imdb_rating, summary, cast, guest_stars, writers, director, facts, watch_status, podcast_url, transcript_notes'
+            ),
           fetchReviews(),
-          supabase.from("config").select("rating_label, rating_max, show_name, subtitle"),
+          client.from('config').select('rating_label, rating_max, show_name, subtitle'),
         ]);
 
         const [cohostsRes, episodesRes, reviewsRes, configRes] = results;
@@ -359,15 +387,15 @@ function App() {
         // Supabase returns fulfilled promises with { data, error } objects
         // Check for both rejected promises AND Supabase errors in fulfilled responses
         const hasCriticalError =
-          cohostsRes.status === "rejected" ||
-          episodesRes.status === "rejected" ||
-          reviewsRes.status === "rejected" ||
-          (cohostsRes.status === "fulfilled" && cohostsRes.value.error) ||
-          (episodesRes.status === "fulfilled" && episodesRes.value.error) ||
-          (reviewsRes.status === "fulfilled" && reviewsRes.value.error);
+          cohostsRes.status === 'rejected' ||
+          episodesRes.status === 'rejected' ||
+          reviewsRes.status === 'rejected' ||
+          (cohostsRes.status === 'fulfilled' && cohostsRes.value.error) ||
+          (episodesRes.status === 'fulfilled' && episodesRes.value.error) ||
+          (reviewsRes.status === 'fulfilled' && reviewsRes.value.error);
 
         if (hasCriticalError) {
-          setLoadError("Critical data fetch failed");
+          setLoadError('Critical data fetch failed');
           setLoading(false);
           return;
         }
@@ -375,7 +403,9 @@ function App() {
         const cohosts = (cohostsRes as any).value.data;
         const episodes = (episodesRes as any).value.data;
         const reviews = (reviewsRes as any).value.data;
-        const config = (configRes.status === "fulfilled" ? (configRes as any).value.data : null)?.[0];
+        const config = (
+          configRes.status === 'fulfilled' ? (configRes as any).value.data : null
+        )?.[0];
 
         if (!episodes || episodes.length === 0) {
           setLoading(false);
@@ -387,25 +417,25 @@ function App() {
         setSelectedCohostId(nextDataset.cohosts[0]?.id ?? demoDataset.cohosts[0].id);
         setLoading(false);
       } catch (error) {
-        setLoadError(error instanceof Error ? error.message : "Failed to load data from Supabase");
+        setLoadError(error instanceof Error ? error.message : 'Failed to load data from Supabase');
         setLoading(false);
       }
-    }
+    };
 
     retryFetch();
 
     return () => controller.abort();
   }, [retryCount]);
 
-
   const seasons = useMemo(() => getSeasons(dataset.episodes), [dataset.episodes]);
-  const selectedCohost = dataset.cohosts.find((host) => host.id === selectedCohostId) ?? dataset.cohosts[0];
+  const selectedCohost =
+    dataset.cohosts.find((host) => host.id === selectedCohostId) ?? dataset.cohosts[0];
   const visibleEpisodes = useMemo(() => {
     const query = search.trim().toLowerCase();
     return [...dataset.episodes]
       .sort(compareEpisodes)
-      .filter((episode) => seasonFilter === "all" || episode.season === Number(seasonFilter))
-      .filter((episode) => statusFilter === "all" || episode.watchStatus === statusFilter)
+      .filter((episode) => seasonFilter === 'all' || episode.season === Number(seasonFilter))
+      .filter((episode) => statusFilter === 'all' || episode.watchStatus === statusFilter)
       .filter((episode) => {
         if (!query) return true;
         return searchableEpisodeText(episode).includes(query);
@@ -419,26 +449,34 @@ function App() {
 
   // Admin mutations and imports retired
 
-
-
   if (loading) {
     return (
       <div className="flex h-screen flex-col bg-slate-950 text-white">
         {/* Full-width top banner */}
         <div className="w-full border-b border-white/10 p-4 text-center">
-          <p className="text-sm font-semibold tracking-wider uppercase text-cyan-200/80">Loading…</p>
+          <p className="text-sm font-semibold tracking-wider uppercase text-cyan-200/80">
+            Loading…
+          </p>
         </div>
 
         {/* Centered animation */}
         <div className="flex h-[calc(100%-56px)] items-center justify-center">
           <div className="animate-pulse rounded-full bg-white/5 p-4">
             <svg className="h-8 w-8 animate-spin text-cyan-200" fill="none" viewBox="0 0 24 24">
-              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+              <circle
+                className="opacity-25"
+                cx="12"
+                cy="12"
+                r="10"
+                stroke="currentColor"
+                strokeWidth="4"
+              ></circle>
               <path
                 className="opacity-75"
                 d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
                 stroke="currentColor"
-                strokeWidth="4"></path>
+                strokeWidth="4"
+              ></path>
             </svg>
           </div>
         </div>
@@ -446,13 +484,14 @@ function App() {
     );
   }
 
-
   if (loadError) {
     return (
       <div className="flex h-screen flex-col bg-slate-950 text-white p-5">
         {/* Full-width top banner */}
         <div className="w-full border-b border-white/10 p-4 text-center">
-          <p className="text-sm font-semibold tracking-wider uppercase text-cyan-200/80">Couldn't reach Supabase: {loadError}</p>
+          <p className="text-sm font-semibold tracking-wider uppercase text-cyan-200/80">
+            Couldn't reach Supabase: {loadError}
+          </p>
         </div>
 
         {/* Retry section */}
@@ -468,7 +507,10 @@ function App() {
           {/* Retry button */}
           <button
             type="button"
-            onClick={() => { setRetryCount(prev => prev + 1); window.location.reload(); }}
+            onClick={() => {
+              setRetryCount((prev) => prev + 1);
+              window.location.reload();
+            }}
             className="primary-button"
           >
             Retry
@@ -478,12 +520,13 @@ function App() {
     );
   }
 
-
   return (
-    <div className="min-h-screen text-black reviews-halftone-bg relative p-4 md:p-8 animate-rise" id="review-app">
+    <div
+      className="min-h-screen text-black reviews-halftone-bg relative p-4 md:p-8 animate-rise"
+      id="review-app"
+    >
       <main className="mx-auto max-w-7xl px-5 pb-16 pt-2 sm:px-6 lg:px-8">
-
-        {route.page === "catalog" ? (
+        {route.page === 'catalog' ? (
           <CatalogPage
             dataset={dataset}
             episodes={visibleEpisodes}
@@ -498,26 +541,21 @@ function App() {
           />
         ) : null}
 
-        {route.page === "episode" ? (
-          <EpisodePage
-            dataset={dataset}
-            episodeId={route.id}
-            onNavigate={navigate}
-          />
+        {route.page === 'episode' ? (
+          <EpisodePage dataset={dataset} episodeId={route.id} onNavigate={navigate} />
         ) : null}
 
-        {route.page === "season" ? (
+        {route.page === 'season' ? (
           <SeasonPage dataset={dataset} season={route.season} onNavigate={navigate} />
         ) : null}
 
-        {route.page === "host" ? (
+        {route.page === 'host' ? (
           <HostPage dataset={dataset} hostId={route.id} onNavigate={navigate} />
         ) : null}
       </main>
     </div>
   );
 }
-
 
 function CatalogPage({
   dataset,
@@ -539,8 +577,8 @@ function CatalogPage({
   onSearchChange: (value: string) => void;
   seasonFilter: string;
   onSeasonFilterChange: (value: string) => void;
-  statusFilter: WatchStatus | "all";
-  onStatusFilterChange: (value: WatchStatus | "all") => void;
+  statusFilter: WatchStatus | 'all';
+  onStatusFilterChange: (value: WatchStatus | 'all') => void;
 }) {
   return (
     <div className="animate-rise mt-4 grid gap-8 lg:grid-cols-[minmax(0,1fr)_330px]">
@@ -548,7 +586,7 @@ function CatalogPage({
         <header className="mb-6 border-b-4 border-black pb-4">
           <h1
             className="text-4xl md:text-6xl font-black uppercase tracking-tight select-none font-sans leading-none cursor-pointer hover:text-gray-700"
-            onClick={() => onNavigate({ page: "catalog" })}
+            onClick={() => onNavigate({ page: 'catalog' })}
           >
             REVIEWS
           </h1>
@@ -568,7 +606,7 @@ function CatalogPage({
               />
               {search && (
                 <button
-                  onClick={() => onSearchChange("")}
+                  onClick={() => onSearchChange('')}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-black font-black text-sm"
                   aria-label="Clear search"
                   type="button"
@@ -586,12 +624,14 @@ function CatalogPage({
               >
                 <option value="all">All Seasons</option>
                 {seasons.map((s) => (
-                  <option key={s} value={String(s)}>Season {s}</option>
+                  <option key={s} value={String(s)}>
+                    Season {s}
+                  </option>
                 ))}
               </select>
               <select
                 value={statusFilter}
-                onChange={(e) => onStatusFilterChange(e.target.value as WatchStatus | "all")}
+                onChange={(e) => onStatusFilterChange(e.target.value as WatchStatus | 'all')}
                 className="field min-w-[125px] text-sm font-sans cursor-pointer"
                 aria-label="Filter by status"
               >
@@ -615,29 +655,36 @@ function CatalogPage({
               key={episode.id}
               episode={episode}
               ratingLabel={dataset.ratingScale.label}
-              onOpen={() => onNavigate({ page: "episode", id: episode.id })}
+              onOpen={() => onNavigate({ page: 'episode', id: episode.id })}
             />
           ))}
         </div>
-        {!episodes.length ? <EmptyState title="No episodes found" copy="Check back later for new reviews!" /> : null}
+        {!episodes.length ? (
+          <EmptyState title="No episodes found" copy="Check back later for new reviews!" />
+        ) : null}
       </section>
 
       <aside className="space-y-6">
-
         <SidePanel title="Season shelves">
           <div className="space-y-4">
             {seasons.map((season) => {
-              const seasonEpisodes = dataset.episodes.filter((episode) => episode.season === season);
+              const seasonEpisodes = dataset.episodes.filter(
+                (episode) => episode.season === season
+              );
               return (
                 <button
                   key={season}
                   type="button"
-                  onClick={() => onNavigate({ page: "season", season })}
+                  onClick={() => onNavigate({ page: 'season', season })}
                   className="group w-full border-b border-gray-200 pb-4 text-left last:border-b-0 last:pb-0 focus:ring-2 focus:ring-black focus:outline-none"
                 >
                   <div className="flex items-center justify-between gap-4 font-sans">
-                    <p className="font-bold text-black group-hover:text-pink-600 transition-colors">Season {season}</p>
-                    <p className="text-sm font-semibold text-gray-500">{seasonEpisodes.length} eps</p>
+                    <p className="font-bold text-black group-hover:text-pink-600 transition-colors">
+                      Season {season}
+                    </p>
+                    <p className="text-sm font-semibold text-gray-500">
+                      {seasonEpisodes.length} eps
+                    </p>
                   </div>
                   <ProgressBar value={seasonProgress(seasonEpisodes)} />
                 </button>
@@ -649,14 +696,15 @@ function CatalogPage({
         <SidePanel title="Host profiles">
           <div className="space-y-3">
             {dataset.cohosts.map((host) => {
-              const mapped = COHOST_NAME_MAP[host.id.toLowerCase()] || COHOST_NAME_MAP[host.name?.toLowerCase()];
+              const mapped =
+                COHOST_NAME_MAP[host.id.toLowerCase()] || COHOST_NAME_MAP[host.name?.toLowerCase()];
               const name = mapped?.name ?? host.name;
               const role = mapped?.role ?? host.role;
               return (
                 <button
                   key={host.id}
                   type="button"
-                  onClick={() => onNavigate({ page: "host", id: host.id })}
+                  onClick={() => onNavigate({ page: 'host', id: host.id })}
                   className="flex w-full items-center gap-3 border-2 border-black bg-white p-3 text-left transition shadow-[3px_3px_0px_0px_#000] hover:translate-y-[-1px] hover:shadow-[4px_4px_0px_0px_#000] text-black"
                 >
                   <Avatar host={host} />
@@ -719,15 +767,21 @@ function EpisodePage({
   const publishedEpisodes = useMemo(() => {
     return [...dataset.episodes]
       .sort(compareEpisodes)
-      .filter((ep) => ep.watchStatus === "published");
+      .filter((ep) => ep.watchStatus === 'published');
   }, [dataset.episodes]);
 
   const episode = dataset.episodes.find((item) => item.id === episodeId);
-  if (!episode) return <EmptyState title="Episode not found" copy="This URL does not match the loaded dataset." />;
+  if (!episode)
+    return (
+      <EmptyState title="Episode not found" copy="This URL does not match the loaded dataset." />
+    );
 
   const currentIndex = publishedEpisodes.findIndex((item) => item.id === episodeId);
   const prevEpisode = currentIndex > 0 ? publishedEpisodes[currentIndex - 1] : null;
-  const nextEpisode = currentIndex < publishedEpisodes.length - 1 && currentIndex !== -1 ? publishedEpisodes[currentIndex + 1] : null;
+  const nextEpisode =
+    currentIndex < publishedEpisodes.length - 1 && currentIndex !== -1
+      ? publishedEpisodes[currentIndex + 1]
+      : null;
 
   const average = averageRating(episode.reviews);
 
@@ -737,7 +791,7 @@ function EpisodePage({
       <div className="flex flex-wrap items-center justify-between gap-3 border-b-4 border-black pb-3 mb-6 font-sans">
         <button
           type="button"
-          onClick={() => onNavigate({ page: "catalog" })}
+          onClick={() => onNavigate({ page: 'catalog' })}
           className="text-link hover:text-gray-700 focus:ring-2 focus:ring-black focus:outline-none"
         >
           ← Back to catalog
@@ -746,14 +800,16 @@ function EpisodePage({
           {prevEpisode ? (
             <button
               type="button"
-              onClick={() => onNavigate({ page: "episode", id: prevEpisode.id })}
+              onClick={() => onNavigate({ page: 'episode', id: prevEpisode.id })}
               className="hover:underline focus:ring-2 focus:ring-black focus:outline-none px-3.5 py-2 bg-white border-2 border-black shadow-[1.5px_1.5px_0px_0px_#000] active:translate-y-0.5 active:shadow-none min-h-[44px] inline-flex items-center justify-center"
               aria-label={`Previous episode: ${formatEpisodeCode(prevEpisode)}, ${prevEpisode.title}`}
             >
               &larr; {formatEpisodeCode(prevEpisode)}
             </button>
           ) : (
-            <span className="text-gray-400 opacity-55 px-3.5 py-2 bg-gray-100 border-2 border-black min-h-[44px] inline-flex items-center justify-center select-none">&larr; Start</span>
+            <span className="text-gray-400 opacity-55 px-3.5 py-2 bg-gray-100 border-2 border-black min-h-[44px] inline-flex items-center justify-center select-none">
+              &larr; Start
+            </span>
           )}
 
           <span className="text-black select-none">/</span>
@@ -761,14 +817,16 @@ function EpisodePage({
           {nextEpisode ? (
             <button
               type="button"
-              onClick={() => onNavigate({ page: "episode", id: nextEpisode.id })}
+              onClick={() => onNavigate({ page: 'episode', id: nextEpisode.id })}
               className="hover:underline focus:ring-2 focus:ring-black focus:outline-none px-3.5 py-2 bg-white border-2 border-black shadow-[1.5px_1.5px_0px_0px_#000] active:translate-y-0.5 active:shadow-none min-h-[44px] inline-flex items-center justify-center"
               aria-label={`Next episode: ${formatEpisodeCode(nextEpisode)}, ${nextEpisode.title}`}
             >
               {formatEpisodeCode(nextEpisode)} &rarr;
             </button>
           ) : (
-            <span className="text-gray-400 opacity-55 px-3.5 py-2 bg-gray-100 border-2 border-black min-h-[44px] inline-flex items-center justify-center select-none font-bold">End &rarr;</span>
+            <span className="text-gray-400 opacity-55 px-3.5 py-2 bg-gray-100 border-2 border-black min-h-[44px] inline-flex items-center justify-center select-none font-bold">
+              End &rarr;
+            </span>
           )}
         </div>
       </div>
@@ -795,21 +853,31 @@ function EpisodePage({
           <div className="bg-white border-2 border-black rounded-lg p-6">
             <div className="flex flex-wrap items-start justify-between gap-4 border-b-2 border-dashed border-gray-300 pb-6">
               <div>
-                <button type="button" onClick={() => onNavigate({ page: "catalog" })} className="text-link">
+                <button
+                  type="button"
+                  onClick={() => onNavigate({ page: 'catalog' })}
+                  className="text-link"
+                >
                   Back to catalog
                 </button>
                 <p className="mt-4 text-sm font-black text-gray-500 uppercase">
-                  <button type="button" onClick={() => onNavigate({ page: "season", season: episode.season })} className="hover:text-pink-600 underline">
+                  <button
+                    type="button"
+                    onClick={() => onNavigate({ page: 'season', season: episode.season })}
+                    className="hover:text-pink-600 underline"
+                  >
                     Season {episode.season}
-                  </button>{" "}
+                  </button>{' '}
                   / Episode {episode.episodeNumber}
                 </p>
                 <h2 className="mt-2 text-3xl font-black uppercase text-black">{episode.title}</h2>
               </div>
               <div className="bg-yellow-200 border-2 border-black rounded-md px-5 py-4 text-right shadow-[2px_2px_0px_0px_#000]">
-                <p className="text-xs font-black uppercase tracking-[0.2em] text-gray-600">Average</p>
+                <p className="text-xs font-black uppercase tracking-[0.2em] text-gray-600">
+                  Average
+                </p>
                 <p className="mt-1 text-3xl font-black text-black">
-                  {average === null ? "--" : average.toFixed(1)} / {dataset.ratingScale.max}
+                  {average === null ? '--' : average.toFixed(1)} / {dataset.ratingScale.max}
                 </p>
                 <p className="text-xs font-bold text-gray-500">{dataset.ratingScale.label}</p>
               </div>
@@ -823,8 +891,12 @@ function EpisodePage({
             </div>
 
             <div className="mt-6 border-t-2 border-dashed border-gray-200 pt-6">
-              <p className="mb-2 text-xs font-black uppercase tracking-[0.35em] text-gray-500">Synopsis</p>
-              <p className="max-w-3xl text-sm font-bold leading-relaxed text-gray-700">{episode.summary}</p>
+              <p className="mb-2 text-xs font-black uppercase tracking-[0.35em] text-gray-500">
+                Synopsis
+              </p>
+              <p className="max-w-3xl text-sm font-bold leading-relaxed text-gray-700">
+                {episode.summary}
+              </p>
             </div>
           </div>
 
@@ -839,7 +911,10 @@ function EpisodePage({
             <SectionBlock title="Metadata">
               <dl className="grid gap-4 sm:grid-cols-2">
                 {episode.facts.map((fact) => (
-                  <div key={`${fact.label}-${fact.value}`} className="flex justify-between gap-4 border-b border-gray-200 pb-3 font-bold text-sm">
+                  <div
+                    key={`${fact.label}-${fact.value}`}
+                    className="flex justify-between gap-4 border-b border-gray-200 pb-3 font-bold text-sm"
+                  >
                     <dt className="text-gray-500 font-black">{fact.label}</dt>
                     <dd className="text-right text-black">{fact.value}</dd>
                   </div>
@@ -851,14 +926,21 @@ function EpisodePage({
           {/* Host ratings */}
           <div>
             <div className="inline-block bg-[#F99F1B] border-2 border-black px-4 py-2 mb-6 shadow-[2px_2px_0px_0px_#000000] text-black">
-              <h3 className="text-xl font-black uppercase tracking-wide">HOST RATINGS FOR THIS EPISODE</h3>
+              <h3 className="text-xl font-black uppercase tracking-wide">
+                HOST RATINGS FOR THIS EPISODE
+              </h3>
             </div>
             <div className="space-y-6">
               {episode.reviews.map((review) => {
                 const host = dataset.cohosts.find((item) => item.id === review.cohostId);
                 if (!host) return null;
                 return (
-                  <HostReviewRow key={review.cohostId} host={host} review={review} ratingLabel={dataset.ratingScale.label} />
+                  <HostReviewRow
+                    key={review.cohostId}
+                    host={host}
+                    review={review}
+                    ratingLabel={dataset.ratingScale.label}
+                  />
                 );
               })}
             </div>
@@ -871,7 +953,7 @@ function EpisodePage({
           <div className="mt-12 pt-6 border-t-4 border-black flex flex-wrap items-center justify-between gap-4 font-sans">
             <button
               type="button"
-              onClick={() => onNavigate({ page: "catalog" })}
+              onClick={() => onNavigate({ page: 'catalog' })}
               className="text-link hover:text-gray-700 focus:ring-2 focus:ring-black focus:outline-none"
             >
               ← Back to catalog
@@ -880,23 +962,31 @@ function EpisodePage({
               {prevEpisode && (
                 <button
                   type="button"
-                  onClick={() => onNavigate({ page: "episode", id: prevEpisode.id })}
+                  onClick={() => onNavigate({ page: 'episode', id: prevEpisode.id })}
                   className="px-3.5 py-2.5 border-2 border-black hover:bg-yellow-50 bg-white shadow-[2px_2px_0px_0px_#000] active:translate-y-0.5 active:shadow-none min-h-[44px] inline-flex items-center justify-center focus:ring-2 focus:ring-black focus:outline-none max-w-full min-w-0"
                   aria-label={`Previous episode: ${formatEpisodeCode(prevEpisode)}, ${prevEpisode.title}`}
                 >
-                  <span className="flex-shrink-0">&larr;&nbsp;{formatEpisodeCode(prevEpisode)}</span>
-                  <span className="hidden sm:inline truncate max-w-[240px]">: {prevEpisode.title}</span>
+                  <span className="flex-shrink-0">
+                    &larr;&nbsp;{formatEpisodeCode(prevEpisode)}
+                  </span>
+                  <span className="hidden sm:inline truncate max-w-[240px]">
+                    : {prevEpisode.title}
+                  </span>
                 </button>
               )}
               {nextEpisode && (
                 <button
                   type="button"
-                  onClick={() => onNavigate({ page: "episode", id: nextEpisode.id })}
+                  onClick={() => onNavigate({ page: 'episode', id: nextEpisode.id })}
                   className="px-3.5 py-2.5 border-2 border-black hover:bg-yellow-50 bg-white shadow-[2px_2px_0px_0px_#000] active:translate-y-0.5 active:shadow-none min-h-[44px] inline-flex items-center justify-center focus:ring-2 focus:ring-black focus:outline-none max-w-full min-w-0"
                   aria-label={`Next episode: ${formatEpisodeCode(nextEpisode)}, ${nextEpisode.title}`}
                 >
-                  <span className="hidden sm:inline truncate max-w-[240px]">{nextEpisode.title}: </span>
-                  <span className="flex-shrink-0">{formatEpisodeCode(nextEpisode)}&nbsp;&rarr;</span>
+                  <span className="hidden sm:inline truncate max-w-[240px]">
+                    {nextEpisode.title}:{' '}
+                  </span>
+                  <span className="flex-shrink-0">
+                    {formatEpisodeCode(nextEpisode)}&nbsp;&rarr;
+                  </span>
                 </button>
               )}
             </div>
@@ -916,7 +1006,8 @@ function HostReviewRow({
   review: Review;
   ratingLabel: string;
 }) {
-  const mapped = COHOST_NAME_MAP[host.id.toLowerCase()] || COHOST_NAME_MAP[host.name?.toLowerCase()];
+  const mapped =
+    COHOST_NAME_MAP[host.id.toLowerCase()] || COHOST_NAME_MAP[host.name?.toLowerCase()];
   const name = mapped?.name ?? host.name;
   const photoUrl = mapped?.photo;
   const theme = getHostTheme(host.id);
@@ -929,7 +1020,7 @@ function HostReviewRow({
   const initials = name
     .split(/\s+/)
     .map((part) => part[0])
-    .join("")
+    .join('')
     .slice(0, 2)
     .toUpperCase();
 
@@ -952,15 +1043,19 @@ function HostReviewRow({
               {initials}
             </span>
             <div className="absolute bottom-0 inset-x-0 bg-black text-white text-[8px] font-black uppercase text-center py-0.5 tracking-wider leading-none z-10">
-              {name.split(" ")[0].toUpperCase()}
+              {name.split(' ')[0].toUpperCase()}
             </div>
           </div>
         )}
       </div>
 
       <div className="flex-grow w-full text-black">
-        <div className={`border-2 border-black p-2 mb-2.5 flex flex-wrap items-center justify-between rounded-md ${theme.bgClass}`}>
-          <span className="font-black text-xs uppercase tracking-wider">{name.split(" ")[0]}'S METRIC</span>
+        <div
+          className={`border-2 border-black p-2 mb-2.5 flex flex-wrap items-center justify-between rounded-md ${theme.bgClass}`}
+        >
+          <span className="font-black text-xs uppercase tracking-wider">
+            {name.split(' ')[0]}'S METRIC
+          </span>
           <div className="flex items-center gap-1">
             {ratingVal === null ? (
               <span className="bg-black text-white font-black text-[10px] px-1.5 py-0.5 border border-white leading-none">
@@ -969,7 +1064,10 @@ function HostReviewRow({
             ) : scaleMax === 100 ? (
               <div className="flex items-center gap-1.5">
                 <div className="w-16 bg-white border border-black h-2.5 relative overflow-hidden">
-                  <div className="bg-pink-500 h-full border-r border-black" style={{ width: `${ratingVal}%` }} />
+                  <div
+                    className="bg-pink-500 h-full border-r border-black"
+                    style={{ width: `${ratingVal}%` }}
+                  />
                 </div>
                 <span className="bg-black text-white font-black text-[10px] px-1.5 py-0.5 border border-white leading-none">
                   {ratingVal.toFixed(0)}/100 {terminology}
@@ -993,10 +1091,12 @@ function HostReviewRow({
           </div>
         </div>
         {review.pullQuote && (
-          <p className="mb-1 text-xs font-black text-pink-600 leading-normal">"{review.pullQuote}"</p>
+          <p className="mb-1 text-xs font-black text-pink-600 leading-normal">
+            "{review.pullQuote}"
+          </p>
         )}
         <p className="font-bold text-xs md:text-sm leading-relaxed text-gray-800 whitespace-pre-wrap">
-          {review.review || "No review yet."}
+          {review.review || 'No review yet.'}
         </p>
       </div>
     </div>
@@ -1027,7 +1127,7 @@ function VisitorReviewsSection({ episodeId }: { episodeId: string }) {
           return;
         }
       }
-      throw new Error("No supabase client");
+      throw new Error('No supabase client');
     } catch (err) {
       const stored = localStorage.getItem(`visitor_reviews_${episodeId}`);
       setReviews(stored ? JSON.parse(stored) : []);
@@ -1060,18 +1160,15 @@ function VisitorReviewsSection({ episodeId }: { episodeId: string }) {
       scale: formScale,
       terminology: formTerminology.trim() || (formScale === 'stars' ? 'Stars' : 'Points'),
       content: formContent.trim(),
-      likes: 0
+      likes: 0,
     };
 
     try {
       if (supabase) {
-        const { data, error } = await supabase
-          .from('visitor_reviews')
-          .insert([payload])
-          .select();
+        const { data, error } = await supabase.from('visitor_reviews').insert([payload]).select();
         if (error) throw error;
         if (data && data[0]) {
-          setReviews(prev => [data[0], ...prev]);
+          setReviews((prev) => [data[0], ...prev]);
         } else {
           await loadReviews();
         }
@@ -1079,11 +1176,11 @@ function VisitorReviewsSection({ episodeId }: { episodeId: string }) {
         throw new Error();
       }
     } catch (err) {
-      console.warn("Falling back to local storage");
+      console.warn('Falling back to local storage');
       const localItem: VisitorReview = {
         id: 'local-' + Date.now(),
         created_at: new Date().toISOString(),
-        ...payload
+        ...payload,
       };
       const updated = [localItem, ...reviews];
       setReviews(updated);
@@ -1095,14 +1192,14 @@ function VisitorReviewsSection({ episodeId }: { episodeId: string }) {
   };
 
   const handleToggleLike = async (id: string) => {
-    const target = reviews.find(r => r.id === id);
+    const target = reviews.find((r) => r.id === id);
     if (!target) return;
 
     const likedKey = `liked_${id}`;
     const isLiked = localStorage.getItem(likedKey) === 'true';
     const nextLikes = isLiked ? target.likes - 1 : target.likes + 1;
 
-    setReviews(prev => prev.map(r => r.id === id ? { ...r, likes: nextLikes } : r));
+    setReviews((prev) => prev.map((r) => (r.id === id ? { ...r, likes: nextLikes } : r)));
     if (isLiked) {
       localStorage.removeItem(likedKey);
     } else {
@@ -1111,21 +1208,19 @@ function VisitorReviewsSection({ episodeId }: { episodeId: string }) {
 
     try {
       if (supabase && !id.startsWith('local-')) {
-        await supabase
-          .from('visitor_reviews')
-          .update({ likes: nextLikes })
-          .eq('id', id);
+        await supabase.from('visitor_reviews').update({ likes: nextLikes }).eq('id', id);
       } else {
         const stored = localStorage.getItem(`visitor_reviews_${episodeId}`);
         if (stored) {
           const parsed: VisitorReview[] = JSON.parse(stored);
-          localStorage.setItem(`visitor_reviews_${episodeId}`, JSON.stringify(
-            parsed.map(r => r.id === id ? { ...r, likes: nextLikes } : r)
-          ));
+          localStorage.setItem(
+            `visitor_reviews_${episodeId}`,
+            JSON.stringify(parsed.map((r) => (r.id === id ? { ...r, likes: nextLikes } : r)))
+          );
         }
       }
     } catch (err) {
-      console.warn("Failed to sync like count:", err);
+      console.warn('Failed to sync like count:', err);
     }
   };
 
@@ -1140,7 +1235,9 @@ function VisitorReviewsSection({ episodeId }: { episodeId: string }) {
           <div className="p-4 text-center font-bold">Loading comments...</div>
         ) : reviews.length === 0 ? (
           <div className="bg-white border-2 border-black rounded-lg p-6 text-center">
-            <p className="font-black text-sm">No reviews posted yet! Use the composer on the right to post yours.</p>
+            <p className="font-black text-sm">
+              No reviews posted yet! Use the composer on the right to post yours.
+            </p>
           </div>
         ) : (
           <div className="space-y-4">
@@ -1148,7 +1245,7 @@ function VisitorReviewsSection({ episodeId }: { episodeId: string }) {
               const dateStr = new Date(review.created_at).toLocaleDateString(undefined, {
                 year: 'numeric',
                 month: 'short',
-                day: 'numeric'
+                day: 'numeric',
               });
               const likedKey = `liked_${review.id}`;
               const isLiked = localStorage.getItem(likedKey) === 'true';
@@ -1160,7 +1257,7 @@ function VisitorReviewsSection({ episodeId }: { episodeId: string }) {
                 >
                   <div className="flex-shrink-0">
                     <div className="w-10 h-10 border-2 border-black rounded-md bg-pink-300 flex items-center justify-center font-black text-sm uppercase">
-                      {review.author[0] || "?"}
+                      {review.author[0] || '?'}
                     </div>
                   </div>
 
@@ -1183,7 +1280,7 @@ function VisitorReviewsSection({ episodeId }: { episodeId: string }) {
                               <Star
                                 key={s}
                                 size={10}
-                                fill={s <= review.rating ? "#F59E0B" : "transparent"}
+                                fill={s <= review.rating ? '#F59E0B' : 'transparent'}
                                 className="text-black"
                               />
                             ))}
@@ -1215,8 +1312,9 @@ function VisitorReviewsSection({ episodeId }: { episodeId: string }) {
                     <div className="flex items-center gap-3 border-t border-dashed border-gray-200 pt-2">
                       <button
                         onClick={() => handleToggleLike(review.id)}
-                        className={`flex items-center gap-1 text-[10px] font-bold px-1.5 py-0.5 border border-black shadow-[1.5px_1.5px_0px_0px_#000000] active:translate-x-0.5 active:translate-y-0.5 active:shadow-none transition-colors ${isLiked ? 'bg-pink-300 text-black' : 'bg-white hover:bg-gray-100'
-                          }`}
+                        className={`flex items-center gap-1 text-[10px] font-bold px-1.5 py-0.5 border border-black shadow-[1.5px_1.5px_0px_0px_#000000] active:translate-x-0.5 active:translate-y-0.5 active:shadow-none transition-colors ${
+                          isLiked ? 'bg-pink-300 text-black' : 'bg-white hover:bg-gray-100'
+                        }`}
                       >
                         <ThumbsUp size={10} />
                         <span>{review.likes} Helpful</span>
@@ -1252,21 +1350,29 @@ function VisitorReviewsSection({ episodeId }: { episodeId: string }) {
             </div>
 
             <div>
-              <label className="block text-[10px] font-black uppercase mb-1">Choose Score System</label>
+              <label className="block text-[10px] font-black uppercase mb-1">
+                Choose Score System
+              </label>
               <div className="grid grid-cols-2 gap-1.5">
                 <button
                   type="button"
                   onClick={() => handleScaleToggle('stars')}
-                  className={`py-1.5 px-2 border-2 border-black font-black text-[10px] uppercase tracking-wider transition-colors ${formScale === 'stars' ? 'bg-yellow-300 text-black shadow-[1.5px_1.5px_0px_0px_#000000]' : 'bg-white hover:bg-gray-100'
-                    }`}
+                  className={`py-1.5 px-2 border-2 border-black font-black text-[10px] uppercase tracking-wider transition-colors ${
+                    formScale === 'stars'
+                      ? 'bg-yellow-300 text-black shadow-[1.5px_1.5px_0px_0px_#000000]'
+                      : 'bg-white hover:bg-gray-100'
+                  }`}
                 >
                   5-Star Scale
                 </button>
                 <button
                   type="button"
                   onClick={() => handleScaleToggle('points')}
-                  className={`py-1.5 px-2 border-2 border-black font-black text-[10px] uppercase tracking-wider transition-colors ${formScale === 'points' ? 'bg-yellow-300 text-black shadow-[1.5px_1.5px_0px_0px_#000000]' : 'bg-white hover:bg-gray-100'
-                    }`}
+                  className={`py-1.5 px-2 border-2 border-black font-black text-[10px] uppercase tracking-wider transition-colors ${
+                    formScale === 'points'
+                      ? 'bg-yellow-300 text-black shadow-[1.5px_1.5px_0px_0px_#000000]'
+                      : 'bg-white hover:bg-gray-100'
+                  }`}
                 >
                   100-Point Scale
                 </button>
@@ -1274,7 +1380,9 @@ function VisitorReviewsSection({ episodeId }: { episodeId: string }) {
             </div>
 
             <div>
-              <label className="block text-[10px] font-black uppercase mb-1">Scale Terminology</label>
+              <label className="block text-[10px] font-black uppercase mb-1">
+                Scale Terminology
+              </label>
               <input
                 type="text"
                 required
@@ -1304,7 +1412,7 @@ function VisitorReviewsSection({ episodeId }: { episodeId: string }) {
                     >
                       <Star
                         size={22}
-                        fill={num <= formRating ? "#F59E0B" : "transparent"}
+                        fill={num <= formRating ? '#F59E0B' : 'transparent'}
                         className="stroke-[2] text-black"
                       />
                     </button>
@@ -1354,7 +1462,6 @@ function VisitorReviewsSection({ episodeId }: { episodeId: string }) {
   );
 }
 
-
 function SeasonPage({
   dataset,
   season,
@@ -1366,21 +1473,21 @@ function SeasonPage({
 }) {
   const episodes = dataset.episodes
     .filter((episode) => episode.season === season)
-    .filter((episode) => episode.watchStatus === "published")
+    .filter((episode) => episode.watchStatus === 'published')
     .sort(compareEpisodes);
   const average = averageRating(episodes.flatMap((episode) => episode.reviews));
 
   return (
     <div className="animate-rise mt-4">
       <div className="mb-4">
-        <button type="button" onClick={() => onNavigate({ page: "catalog" })} className="text-link">
+        <button type="button" onClick={() => onNavigate({ page: 'catalog' })} className="text-link">
           &larr; Back to catalog
         </button>
       </div>
       <header className="mb-6 border-b-4 border-black pb-4">
         <h1
           className="text-4xl md:text-6xl font-black uppercase tracking-tight select-none font-sans leading-none cursor-pointer hover:text-gray-700"
-          onClick={() => onNavigate({ page: "catalog" })}
+          onClick={() => onNavigate({ page: 'catalog' })}
         >
           REVIEWS
         </h1>
@@ -1390,7 +1497,11 @@ function SeasonPage({
       </header>
       <div className="mt-6 grid gap-4 sm:grid-cols-4">
         {STATUS_ORDER.map((status) => (
-          <Info key={status} label={STATUS_LABEL[status]} value={String(episodes.filter((episode) => episode.watchStatus === status).length)} />
+          <Info
+            key={status}
+            label={STATUS_LABEL[status]}
+            value={String(episodes.filter((episode) => episode.watchStatus === status).length)}
+          />
         ))}
       </div>
       <div className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
@@ -1399,12 +1510,17 @@ function SeasonPage({
             key={episode.id}
             episode={episode}
             ratingLabel={dataset.ratingScale.label}
-            onOpen={() => onNavigate({ page: "episode", id: episode.id })}
-          // onStatus retired
+            onOpen={() => onNavigate({ page: 'episode', id: episode.id })}
+            // onStatus retired
           />
         ))}
       </div>
-      {!episodes.length ? <EmptyState title="Season not found" copy="No episodes are published for this season yet." /> : null}
+      {!episodes.length ? (
+        <EmptyState
+          title="Season not found"
+          copy="No episodes are published for this season yet."
+        />
+      ) : null}
     </div>
   );
 }
@@ -1419,23 +1535,37 @@ function HostPage({
   onNavigate: (route: Route) => void;
 }) {
   const host = dataset.cohosts.find((item) => item.id === hostId);
-  if (!host) return <EmptyState title="Host not found" copy="This profile does not exist in the loaded dataset." />;
+  if (!host)
+    return (
+      <EmptyState
+        title="Host not found"
+        copy="This profile does not exist in the loaded dataset."
+      />
+    );
 
   const hostReviews = dataset.episodes
-    .map((episode) => ({ episode, review: episode.reviews.find((review) => review.cohostId === host.id) }))
+    .map((episode) => ({
+      episode,
+      review: episode.reviews.find((review) => review.cohostId === host.id),
+    }))
     .filter((item): item is { episode: Episode; review: Review } => Boolean(item.review))
-    .filter((item) => item.episode.watchStatus === "published");
-  const ratings = hostReviews.map((item) => item.review.rating).filter((rating): rating is number => rating !== null);
-  const average = ratings.length ? ratings.reduce((sum, rating) => sum + rating, 0) / ratings.length : null;
+    .filter((item) => item.episode.watchStatus === 'published');
+  const ratings = hostReviews
+    .map((item) => item.review.rating)
+    .filter((rating): rating is number => rating !== null);
+  const average = ratings.length
+    ? ratings.reduce((sum, rating) => sum + rating, 0) / ratings.length
+    : null;
 
-  const mapped = COHOST_NAME_MAP[host.id.toLowerCase()] || COHOST_NAME_MAP[host.name?.toLowerCase()];
+  const mapped =
+    COHOST_NAME_MAP[host.id.toLowerCase()] || COHOST_NAME_MAP[host.name?.toLowerCase()];
   const name = mapped?.name ?? host.name;
   const role = mapped?.role ?? host.role;
 
   return (
     <div className="animate-rise mt-4">
       <div className="mb-4">
-        <button type="button" onClick={() => onNavigate({ page: "catalog" })} className="text-link">
+        <button type="button" onClick={() => onNavigate({ page: 'catalog' })} className="text-link">
           &larr; Back to catalog
         </button>
       </div>
@@ -1445,12 +1575,16 @@ function HostPage({
             <div className="flex justify-center mb-5">
               <Avatar host={host} large />
             </div>
-            <h2 className="text-3xl font-black uppercase text-black leading-tight text-center">{name}</h2>
-            <p className="mt-1 font-bold text-pink-600 uppercase text-sm leading-none text-center">{role}</p>
+            <h2 className="text-3xl font-black uppercase text-black leading-tight text-center">
+              {name}
+            </h2>
+            <p className="mt-1 font-bold text-pink-600 uppercase text-sm leading-none text-center">
+              {role}
+            </p>
             <p className="mt-4 text-xs font-bold leading-relaxed text-gray-700">{host.bio}</p>
             <div className="mt-6 grid grid-cols-2 gap-3">
               <Info label="Reviews" value={String(hostReviews.length)} />
-              <Info label="Average" value={average === null ? "--" : average.toFixed(1)} />
+              <Info label="Average" value={average === null ? '--' : average.toFixed(1)} />
             </div>
           </div>
         </aside>
@@ -1458,12 +1592,12 @@ function HostPage({
           <header className="mb-6 border-b-4 border-black pb-4">
             <h1
               className="text-4xl md:text-6xl font-black uppercase tracking-tight select-none font-sans leading-none cursor-pointer hover:text-gray-700"
-              onClick={() => onNavigate({ page: "catalog" })}
+              onClick={() => onNavigate({ page: 'catalog' })}
             >
               REVIEWS
             </h1>
             <p className="mt-2 text-md md:text-lg font-bold bg-white inline-block border-2 border-black px-3 py-1 shadow-[3px_3px_0px_0px_#000000] uppercase font-sans">
-              {name.split(" ")[0]}'s Reviews
+              {name.split(' ')[0]}'s Reviews
             </p>
           </header>
           <div className="mt-6 divide-y-2 divide-dashed divide-gray-300 border-y-2 border-dashed border-gray-300">
@@ -1471,18 +1605,32 @@ function HostPage({
               <button
                 key={episode.id}
                 type="button"
-                onClick={() => onNavigate({ page: "episode", id: episode.id })}
+                onClick={() => onNavigate({ page: 'episode', id: episode.id })}
                 className="grid w-full gap-4 py-5 text-left transition hover:bg-white/50 px-2 sm:grid-cols-[120px_minmax(0,1fr)_90px] text-black"
               >
-                <EpisodePoster episode={episode} ratingScale={dataset.ratingScale.label} size="mini" />
+                <EpisodePoster
+                  episode={episode}
+                  ratingScale={dataset.ratingScale.label}
+                  size="mini"
+                />
                 <div>
-                  <p className="text-xs font-black uppercase tracking-[0.32em] text-gray-500">{formatEpisodeCode(episode)}</p>
-                  <h3 className="mt-1 text-lg font-black text-black uppercase leading-tight">{episode.title}</h3>
-                  <p className="mt-2 line-clamp-2 text-xs font-bold leading-relaxed text-gray-600">{review.pullQuote || review.review || "No review yet."}</p>
+                  <p className="text-xs font-black uppercase tracking-[0.32em] text-gray-500">
+                    {formatEpisodeCode(episode)}
+                  </p>
+                  <h3 className="mt-1 text-lg font-black text-black uppercase leading-tight">
+                    {episode.title}
+                  </h3>
+                  <p className="mt-2 line-clamp-2 text-xs font-bold leading-relaxed text-gray-600">
+                    {review.pullQuote || review.review || 'No review yet.'}
+                  </p>
                 </div>
                 <div className="text-right">
-                  <p className="text-2xl font-black text-black leading-none">{review.rating == null ? "--" : review.rating.toFixed(1)}</p>
-                  <p className="text-xs font-bold text-gray-500 uppercase mt-1">{dataset.ratingScale.label}</p>
+                  <p className="text-2xl font-black text-black leading-none">
+                    {review.rating == null ? '--' : review.rating.toFixed(1)}
+                  </p>
+                  <p className="text-xs font-bold text-gray-500 uppercase mt-1">
+                    {dataset.ratingScale.label}
+                  </p>
                 </div>
               </button>
             ))}
@@ -1498,11 +1646,11 @@ function HostPage({
 function EpisodePoster({
   episode,
   ratingScale,
-  size = "card",
+  size = 'card',
 }: {
   episode: Episode;
   ratingScale: string;
-  size?: "card" | "hero" | "detail" | "mini";
+  size?: 'card' | 'hero' | 'detail' | 'mini';
 }) {
   const colors = posterColors(episode.id);
   const average = averageRating(episode.reviews);
@@ -1514,20 +1662,24 @@ function EpisodePoster({
     let isMounted = true;
     const fetchPoster = async () => {
       try {
-        const res = await fetch(`https://www.omdbapi.com/?t=Family+Guy&Season=${episode.season}&Episode=${episode.episodeNumber}&apikey=${apiKey}`);
+        const res = await fetch(
+          `https://www.omdbapi.com/?t=Family+Guy&Season=${episode.season}&Episode=${episode.episodeNumber}&apikey=${apiKey}`
+        );
         const data = await res.json();
-        if (isMounted && data.Response === "True" && data.Poster && data.Poster !== "N/A") {
+        if (isMounted && data.Response === 'True' && data.Poster && data.Poster !== 'N/A') {
           setPosterUrl(data.Poster);
         }
       } catch (err) {
-        console.warn("Failed to fetch poster from OMDB", err);
+        console.warn('Failed to fetch poster from OMDB', err);
       }
     };
     fetchPoster();
-    return () => { isMounted = false; };
+    return () => {
+      isMounted = false;
+    };
   }, [episode.season, episode.episodeNumber]);
 
-  if (size === "mini") {
+  if (size === 'mini') {
     return (
       <div
         className="relative overflow-hidden border-2 border-black p-2 bg-white w-[90px] h-[120px] flex flex-col justify-between text-black rounded-md shrink-0"
@@ -1547,22 +1699,34 @@ function EpisodePoster({
               onError={() => setPosterUrl(null)}
             />
           ) : (
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="w-4 h-4 text-black/30" aria-hidden="true">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.5"
+              className="w-4 h-4 text-black/30"
+              aria-hidden="true"
+            >
               <rect x="2" y="7" width="20" height="15" rx="2" ry="2" />
               <polyline points="17 2 12 7 7 2" />
             </svg>
           )}
         </div>
-        <h3 className="text-[9px] font-black leading-tight text-black uppercase truncate w-full">{episode.title}</h3>
+        <h3 className="text-[9px] font-black leading-tight text-black uppercase truncate w-full">
+          {episode.title}
+        </h3>
         <div className="border-t border-black/15 pt-0.5 text-[8px] text-black/75 font-bold flex justify-between items-center leading-none">
-          <span>{average === null ? "--" : average.toFixed(1)} {ratingScale.slice(0, 3)}</span>
+          <span>
+            {average === null ? '--' : average.toFixed(1)} {ratingScale.slice(0, 3)}
+          </span>
         </div>
       </div>
     );
   }
 
-  const sizeClass = size === "hero" ? "aspect-[4/5]" : size === "detail" ? "aspect-[4/5]" : "aspect-[4/5]";
-  const titleClass = size === "hero" || size === "detail" ? "text-3xl" : "text-2xl";
+  const sizeClass =
+    size === 'hero' ? 'aspect-[4/5]' : size === 'detail' ? 'aspect-[4/5]' : 'aspect-[4/5]';
+  const titleClass = size === 'hero' || size === 'detail' ? 'text-3xl' : 'text-2xl';
 
   return (
     <div
@@ -1573,7 +1737,9 @@ function EpisodePoster({
     >
       <div className="absolute inset-x-3.5 top-3.5 flex items-center justify-between text-xs font-extrabold uppercase tracking-[0.28em] text-black/60">
         <span>{formatEpisodeCode(episode)}</span>
-        <span className="bg-black text-white px-1.5 py-0.5 border border-black font-black rounded">{STATUS_LABEL[episode.watchStatus]}</span>
+        <span className="bg-black text-white px-1.5 py-0.5 border border-black font-black rounded">
+          {STATUS_LABEL[episode.watchStatus]}
+        </span>
       </div>
       <div className="absolute inset-x-3.5 bottom-3.5 text-black">
         <div className="mb-3 aspect-[16/9] w-full border-2 border-black bg-[#f5f4f0] overflow-hidden relative flex items-center justify-center rounded">
@@ -1585,18 +1751,33 @@ function EpisodePoster({
               onError={() => setPosterUrl(null)}
             />
           ) : (
-            <div className="flex items-center justify-center h-full w-full bg-[#f5f4f0]" aria-hidden="true">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="w-10 h-10 text-black/30">
+            <div
+              className="flex items-center justify-center h-full w-full bg-[#f5f4f0]"
+              aria-hidden="true"
+            >
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.5"
+                className="w-10 h-10 text-black/30"
+              >
                 <rect x="2" y="7" width="20" height="15" rx="2" ry="2" />
                 <polyline points="17 2 12 7 7 2" />
               </svg>
             </div>
           )}
         </div>
-        <h3 className={`${titleClass} max-w-[92%] font-black leading-[0.95] tracking-[-0.05em] text-black uppercase`}>{episode.title}</h3>
+        <h3
+          className={`${titleClass} max-w-[92%] font-black leading-[0.95] tracking-[-0.05em] text-black uppercase`}
+        >
+          {episode.title}
+        </h3>
         <div className="mt-4 flex items-center justify-between gap-4 border-t-2 border-black/15 pt-4 text-sm text-black/75 font-bold">
           <span>{episode.airDate}</span>
-          <span>{average === null ? "--" : average.toFixed(1)} {ratingScale}</span>
+          <span>
+            {average === null ? '--' : average.toFixed(1)} {ratingScale}
+          </span>
         </div>
       </div>
     </div>
@@ -1620,7 +1801,9 @@ function SectionIntro({ eyebrow, title, copy }: { eyebrow: string; title: string
   return (
     <div className="text-black">
       <p className="text-xs font-black uppercase tracking-[0.42em] text-pink-600">{eyebrow}</p>
-      <h2 className="mt-3 text-3xl font-black tracking-tight text-black sm:text-4xl uppercase">{title}</h2>
+      <h2 className="mt-3 text-3xl font-black tracking-tight text-black sm:text-4xl uppercase">
+        {title}
+      </h2>
       <p className="mt-3 max-w-2xl text-sm font-bold text-gray-600 leading-relaxed">{copy}</p>
     </div>
   );
@@ -1649,7 +1832,11 @@ function DetailList({ title, items }: { title: string; items: string[] }) {
     <div className="bg-white border-2 border-black rounded-md p-4 text-black">
       <p className="text-xs font-black uppercase tracking-[0.35em] text-gray-500">{title}</p>
       <ul className="mt-2 space-y-1 text-sm font-bold text-gray-700 leading-6">
-        {items.length ? items.map((item) => <li key={item}>{item}</li>) : <li className="text-gray-400">Unknown</li>}
+        {items.length ? (
+          items.map((item) => <li key={item}>{item}</li>)
+        ) : (
+          <li className="text-gray-400">Unknown</li>
+        )}
       </ul>
     </div>
   );
@@ -1666,23 +1853,37 @@ function ReviewRow({
   ratingLabel: string;
   onHost: (route: Route) => void;
 }) {
-  const mapped = host ? (COHOST_NAME_MAP[host.id.toLowerCase()] || COHOST_NAME_MAP[host.name?.toLowerCase()]) : null;
+  const mapped = host
+    ? COHOST_NAME_MAP[host.id.toLowerCase()] || COHOST_NAME_MAP[host.name?.toLowerCase()]
+    : null;
   const name = mapped?.name ?? host?.name ?? review.cohostId;
   return (
     <div className="grid gap-4 py-5 sm:grid-cols-[220px_minmax(0,1fr)_90px] text-black">
-      <button type="button" onClick={() => host && onHost({ page: "host", id: host.id })} className="flex items-center gap-3 text-left">
+      <button
+        type="button"
+        onClick={() => host && onHost({ page: 'host', id: host.id })}
+        className="flex items-center gap-3 text-left"
+      >
         {host ? <Avatar host={host} /> : null}
         <div>
           <p className="font-black text-black">{name}</p>
-          <p className="text-xs font-bold text-gray-500">{review.draftSource === "transcript" ? "Transcript draft" : "Manual edit"}</p>
+          <p className="text-xs font-bold text-gray-500">
+            {review.draftSource === 'transcript' ? 'Transcript draft' : 'Manual edit'}
+          </p>
         </div>
       </button>
       <div>
-        {review.pullQuote ? <p className="mb-2 text-sm font-black text-pink-600">"{review.pullQuote}"</p> : null}
-        <p className="whitespace-pre-wrap text-sm font-bold text-gray-700 leading-relaxed">{review.review || "No review yet."}</p>
+        {review.pullQuote ? (
+          <p className="mb-2 text-sm font-black text-pink-600">"{review.pullQuote}"</p>
+        ) : null}
+        <p className="whitespace-pre-wrap text-sm font-bold text-gray-700 leading-relaxed">
+          {review.review || 'No review yet.'}
+        </p>
       </div>
       <div className="text-right">
-        <p className="text-2xl font-black text-black">{review.rating == null ? "--" : review.rating.toFixed(1)}</p>
+        <p className="text-2xl font-black text-black">
+          {review.rating == null ? '--' : review.rating.toFixed(1)}
+        </p>
         <p className="text-xs font-bold text-gray-500 uppercase">{ratingLabel}</p>
       </div>
     </div>
@@ -1690,13 +1891,14 @@ function ReviewRow({
 }
 
 function Avatar({ host, large = false }: { host: Cohost; large?: boolean }) {
-  const mapped = COHOST_NAME_MAP[host.id.toLowerCase()] || COHOST_NAME_MAP[host.name?.toLowerCase()];
+  const mapped =
+    COHOST_NAME_MAP[host.id.toLowerCase()] || COHOST_NAME_MAP[host.name?.toLowerCase()];
   const photoUrl = mapped?.photo;
   const name = mapped?.name ?? host.name;
   const initials = name
     .split(/\s+/)
     .map((part) => part[0])
-    .join("")
+    .join('')
     .slice(0, 2)
     .toUpperCase();
   const [imageError, setImageError] = useState(false);
@@ -1706,7 +1908,7 @@ function Avatar({ host, large = false }: { host: Cohost; large?: boolean }) {
       <img
         src={photoUrl}
         alt={name}
-        className={`object-contain filter contrast-125 shrink-0 ${large ? "h-24 w-24" : "h-11 w-11"}`}
+        className={`object-contain filter contrast-125 shrink-0 ${large ? 'h-24 w-24' : 'h-11 w-11'}`}
         onError={() => setImageError(true)}
       />
     );
@@ -1715,7 +1917,7 @@ function Avatar({ host, large = false }: { host: Cohost; large?: boolean }) {
   const theme = getHostTheme(host.id);
   return (
     <div
-      className={`grid shrink-0 place-items-center border-2 border-black font-black overflow-hidden relative ${theme.textClass} ${large ? "h-24 w-24 text-3xl" : "h-11 w-11 text-sm"}`}
+      className={`grid shrink-0 place-items-center border-2 border-black font-black overflow-hidden relative ${theme.textClass} ${large ? 'h-24 w-24 text-3xl' : 'h-11 w-11 text-sm'}`}
       style={{ backgroundColor: theme.fallbackBg }}
     >
       <span className="absolute inset-0 flex items-center justify-center bg-transparent z-0">
@@ -1746,29 +1948,139 @@ function EmptyState({ title, copy }: { title: string; copy: string }) {
 
 function createDemoDataset(): PodcastDataset {
   const cohosts: Cohost[] = [
-    { id: "collin", name: "Collin Brown", role: "Host", bio: "Longtime improv comedian, lifelong Family Guy apologist, and the guy who didn't see the pilot until middle school.", accent: PALETTE[0] },
-    { id: "tyler", name: "Tyler Simpson", role: "Host", bio: "Watched the original broadcast as an 8-year-old and loved it. This is either his origin story or his origin tragedy.", accent: PALETTE[1] },
-    { id: "jason", name: "Jason Hackett", role: "Host", bio: "Played the theme song entirely too loud on episode one. Sets the tone. Cranks the hogs. Asks the hard questions nobody asked.", accent: PALETTE[2] },
+    {
+      id: 'collin',
+      name: 'Collin Brown',
+      role: 'Host',
+      bio: "Longtime improv comedian, lifelong Family Guy apologist, and the guy who didn't see the pilot until middle school.",
+      accent: PALETTE[0],
+    },
+    {
+      id: 'tyler',
+      name: 'Tyler Simpson',
+      role: 'Host',
+      bio: 'Watched the original broadcast as an 8-year-old and loved it. This is either his origin story or his origin tragedy.',
+      accent: PALETTE[1],
+    },
+    {
+      id: 'jason',
+      name: 'Jason Hackett',
+      role: 'Host',
+      bio: 'Played the theme song entirely too loud on episode one. Sets the tone. Cranks the hogs. Asks the hard questions nobody asked.',
+      accent: PALETTE[2],
+    },
   ];
 
-  const baseEpisodes: Omit<Episode, "reviews">[] = [
-    episodeBase("s01e01-death-has-a-shadow", 1, 1, "Death Has a Shadow", "Jan 31, 1999", "published", "Peter loses his job after a company party and the Griffin family dynamic arrives almost fully formed.", "Peter Shin", ["Seth MacFarlane", "David Zuckerman"], "1ACX01"),
-    episodeBase("s01e02-i-never-met-the-dead-man", 1, 2, "I Never Met the Dead Man", "Apr 11, 1999", "published", "Peter is banned from television, so he finds increasingly desperate ways to get his favorite distraction back.", "Michael Dante DiMartino", ["Danny Smith"], "1ACX02"),
-    episodeBase("s01e03-chitty-chitty-death-bang", 1, 3, "Chitty Chitty Death Bang", "Apr 18, 1999", "recorded", "A birthday party spirals into a cult standoff and shows how quickly the series can escalate a simple premise.", "Dominic Polcino", ["Mikey Day", "Matt Weitzman"], "1ACX03"),
-    episodeBase("s01e04-mind-over-murder", 1, 4, "Mind Over Murder", "Apr 25, 1999", "watched", "Peter turns the basement into a bar while the episode tests how much story can be built around a single bad decision.", "Roy Allen Smith", ["Neil Goldman", "Garrett Donovan"], "1ACX04"),
-    episodeBase("s01e05-peter-peter-caviar-eater", 1, 5, "Peter, Peter, Caviar Eater", "May 2, 1999", "backlog", "The Griffins brush up against wealth, which gives Peter a larger room to be the least elegant person alive.", "Jeff Myers", ["Chris Sheridan"], "1ACX05"),
-    episodeBase("s01e06-the-son-also-draws", 1, 6, "The Son Also Draws", "May 9, 1999", "backlog", "A family road trip gives the show space to turn parenting anxiety into roaming nonsense.", "Neil Affleck", ["Ricky Blitt"], "1ACX06"),
-    episodeBase("s02e01-peter-peter-caviar-eater", 2, 1, "Peter, Peter, Caviar Eater", "Sep 23, 1999", "backlog", "A new season shelf sample for testing chronological runs and season pages.", "Dan Povenmire", ["Chris Sheridan"], "2ACX01"),
-    episodeBase("s02e02-holy-crap", 2, 2, "Holy Crap", "Sep 30, 1999", "backlog", "Peter's father visits and turns the house into a pressure cooker of generational tension and dumb rebellion.", "Neil Affleck", ["Danny Smith"], "2ACX02"),
+  const baseEpisodes: Omit<Episode, 'reviews'>[] = [
+    episodeBase(
+      's01e01-death-has-a-shadow',
+      1,
+      1,
+      'Death Has a Shadow',
+      'Jan 31, 1999',
+      'published',
+      'Peter loses his job after a company party and the Griffin family dynamic arrives almost fully formed.',
+      'Peter Shin',
+      ['Seth MacFarlane', 'David Zuckerman'],
+      '1ACX01'
+    ),
+    episodeBase(
+      's01e02-i-never-met-the-dead-man',
+      1,
+      2,
+      'I Never Met the Dead Man',
+      'Apr 11, 1999',
+      'published',
+      'Peter is banned from television, so he finds increasingly desperate ways to get his favorite distraction back.',
+      'Michael Dante DiMartino',
+      ['Danny Smith'],
+      '1ACX02'
+    ),
+    episodeBase(
+      's01e03-chitty-chitty-death-bang',
+      1,
+      3,
+      'Chitty Chitty Death Bang',
+      'Apr 18, 1999',
+      'recorded',
+      'A birthday party spirals into a cult standoff and shows how quickly the series can escalate a simple premise.',
+      'Dominic Polcino',
+      ['Mikey Day', 'Matt Weitzman'],
+      '1ACX03'
+    ),
+    episodeBase(
+      's01e04-mind-over-murder',
+      1,
+      4,
+      'Mind Over Murder',
+      'Apr 25, 1999',
+      'watched',
+      'Peter turns the basement into a bar while the episode tests how much story can be built around a single bad decision.',
+      'Roy Allen Smith',
+      ['Neil Goldman', 'Garrett Donovan'],
+      '1ACX04'
+    ),
+    episodeBase(
+      's01e05-peter-peter-caviar-eater',
+      1,
+      5,
+      'Peter, Peter, Caviar Eater',
+      'May 2, 1999',
+      'backlog',
+      'The Griffins brush up against wealth, which gives Peter a larger room to be the least elegant person alive.',
+      'Jeff Myers',
+      ['Chris Sheridan'],
+      '1ACX05'
+    ),
+    episodeBase(
+      's01e06-the-son-also-draws',
+      1,
+      6,
+      'The Son Also Draws',
+      'May 9, 1999',
+      'backlog',
+      'A family road trip gives the show space to turn parenting anxiety into roaming nonsense.',
+      'Neil Affleck',
+      ['Ricky Blitt'],
+      '1ACX06'
+    ),
+    episodeBase(
+      's02e01-peter-peter-caviar-eater',
+      2,
+      1,
+      'Peter, Peter, Caviar Eater',
+      'Sep 23, 1999',
+      'backlog',
+      'A new season shelf sample for testing chronological runs and season pages.',
+      'Dan Povenmire',
+      ['Chris Sheridan'],
+      '2ACX01'
+    ),
+    episodeBase(
+      's02e02-holy-crap',
+      2,
+      2,
+      'Holy Crap',
+      'Sep 30, 1999',
+      'backlog',
+      "Peter's father visits and turns the house into a pressure cooker of generational tension and dumb rebellion.",
+      'Neil Affleck',
+      ['Danny Smith'],
+      '2ACX02'
+    ),
   ];
 
   return {
-    schemaVersion: "fg-letterlog-v2",
-    showName: "Family Guy Guys",
-    subtitle: "Join Collin, Tyler, and Jason as they watch and review every single episode of Family Guy in chronological order.",
-    ratingScale: { label: "Quahogs", max: 5 },
+    schemaVersion: 'fg-letterlog-v2',
+    showName: 'Family Guy Guys',
+    subtitle:
+      'Join Collin, Tyler, and Jason as they watch and review every single episode of Family Guy in chronological order.',
+    ratingScale: { label: 'Quahogs', max: 5 },
     cohosts,
-    episodes: baseEpisodes.map((episode, index) => ({ ...episode, reviews: demoReviews(cohosts, index) })),
+    episodes: baseEpisodes.map((episode, index) => ({
+      ...episode,
+      reviews: demoReviews(cohosts, index),
+    })),
   };
 }
 
@@ -1782,28 +2094,33 @@ function episodeBase(
   summary: string,
   director: string,
   writers: string[],
-  productionCode: string,
-): Omit<Episode, "reviews"> {
+  productionCode: string
+): Omit<Episode, 'reviews'> {
   return {
     id,
     season,
     episodeNumber,
     title,
     airDate,
-    runtime: "22 min",
+    runtime: '22 min',
     imdbRating: (7 + ((season + episodeNumber) % 6) / 10).toFixed(1),
     summary,
-    cast: ["Seth MacFarlane as Peter Griffin", "Alex Borstein as Lois Griffin", "Seth Green as Chris Griffin", "Mila Kunis as Meg Griffin"],
-    guestStars: ["Guest cast to be imported from your metadata source"],
+    cast: [
+      'Seth MacFarlane as Peter Griffin',
+      'Alex Borstein as Lois Griffin',
+      'Seth Green as Chris Griffin',
+      'Mila Kunis as Meg Griffin',
+    ],
+    guestStars: ['Guest cast to be imported from your metadata source'],
     writers,
     director,
     facts: [
-      { label: "Production code", value: productionCode },
-      { label: "Metadata source", value: "Demo placeholder for IMDb-style fields" },
+      { label: 'Production code', value: productionCode },
+      { label: 'Metadata source', value: 'Demo placeholder for IMDb-style fields' },
     ],
     watchStatus,
-    podcastUrl: "",
-    transcriptNotes: "",
+    podcastUrl: '',
+    transcriptNotes: '',
   };
 }
 
@@ -1814,17 +2131,14 @@ function demoReviews(cohosts: Cohost[], index: number): Review[] {
       cohostId: host.id,
       rating,
       review: `${host.name} draft review for this episode. Replace this with the summarized discussion and let the host rewrite it later.`,
-      pullQuote: rating >= 4 ? "A strong early swing." : "Still finding the formula.",
-      draftSource: "manual",
+      pullQuote: rating >= 4 ? 'A strong early swing.' : 'Still finding the formula.',
+      draftSource: 'manual',
       updatedAt: new Date().toISOString(),
     };
   });
 }
 
 // Unused normalize functions retired
-
-
-
 
 function parsePath(): Route {
   const path = window.location.pathname;
@@ -1855,41 +2169,61 @@ function routeToPath(route: Route): string {
 }
 
 function getDatasetMetrics(dataset: PodcastDataset) {
-  const ratings = dataset.episodes.flatMap((episode) => episode.reviews.map((review) => review.rating).filter((rating): rating is number => rating !== null));
+  const ratings = dataset.episodes.flatMap((episode) =>
+    episode.reviews
+      .map((review) => review.rating)
+      .filter((rating): rating is number => rating !== null)
+  );
   return {
     episodeCount: dataset.episodes.length,
-    publishedCount: dataset.episodes.filter((episode) => episode.watchStatus === "published").length,
-    average: ratings.length ? ratings.reduce((sum, rating) => sum + rating, 0) / ratings.length : null,
+    publishedCount: dataset.episodes.filter((episode) => episode.watchStatus === 'published')
+      .length,
+    average: ratings.length
+      ? ratings.reduce((sum, rating) => sum + rating, 0) / ratings.length
+      : null,
   };
 }
 
 function averageRating(reviews: Review[]): number | null {
-  const ratings = reviews.map((review) => review.rating).filter((rating): rating is number => rating !== null);
+  const ratings = reviews
+    .map((review) => review.rating)
+    .filter((rating): rating is number => rating !== null);
   return ratings.length ? ratings.reduce((sum, rating) => sum + rating, 0) / ratings.length : null;
 }
 
 function alignReviews(reviews: Review[], cohosts: Cohost[]): Review[] {
   const map = new Map(reviews.map((review) => [review.cohostId, review]));
-  return cohosts.map((host) => map.get(host.id) ?? { cohostId: host.id, rating: null, review: "", pullQuote: "", draftSource: "manual" });
+  return cohosts.map(
+    (host) =>
+      map.get(host.id) ?? {
+        cohostId: host.id,
+        rating: null,
+        review: '',
+        pullQuote: '',
+        draftSource: 'manual',
+      }
+  );
 }
 
 function searchableEpisodeText(episode: Episode): string {
   return [
     episode.title,
     episode.summary,
-    episode.cast.join(" "),
-    episode.guestStars.join(" "),
-    episode.writers.join(" "),
+    episode.cast.join(' '),
+    episode.guestStars.join(' '),
+    episode.writers.join(' '),
     episode.director,
     episode.transcriptNotes,
-    episode.reviews.map((review) => `${review.review} ${review.pullQuote ?? ""}`).join(" "),
+    episode.reviews.map((review) => `${review.review} ${review.pullQuote ?? ''}`).join(' '),
   ]
-    .join(" ")
+    .join(' ')
     .toLowerCase();
 }
 
 function getSeasons(episodes: Episode[]): number[] {
-  return Array.from(new Set(episodes.map((episode) => episode.season))).sort((left, right) => left - right);
+  return Array.from(new Set(episodes.map((episode) => episode.season))).sort(
+    (left, right) => left - right
+  );
 }
 
 function compareEpisodes(left: Episode, right: Episode): number {
@@ -1899,22 +2233,32 @@ function compareEpisodes(left: Episode, right: Episode): number {
 
 function seasonProgress(episodes: Episode[]): number {
   if (!episodes.length) return 0;
-  const weights: Record<WatchStatus, number> = { backlog: 0, watched: 33, recorded: 66, published: 100 };
+  const weights: Record<WatchStatus, number> = {
+    backlog: 0,
+    watched: 33,
+    recorded: 66,
+    published: 100,
+  };
   return episodes.reduce((sum, episode) => sum + weights[episode.watchStatus], 0) / episodes.length;
 }
 
-function formatEpisodeCode(episode: Pick<Episode, "season" | "episodeNumber">): string {
-  return `S${String(episode.season).padStart(2, "0")}E${String(episode.episodeNumber).padStart(2, "0")}`;
+function formatEpisodeCode(episode: Pick<Episode, 'season' | 'episodeNumber'>): string {
+  return `S${String(episode.season).padStart(2, '0')}E${String(episode.episodeNumber).padStart(2, '0')}`;
 }
 
 function posterColors(seed: string): string[] {
   let hash = 0;
-  for (let index = 0; index < seed.length; index += 1) hash = seed.charCodeAt(index) + ((hash << 5) - hash);
-  return [PALETTE[Math.abs(hash) % PALETTE.length], PALETTE[Math.abs(hash + 2) % PALETTE.length], PALETTE[Math.abs(hash + 4) % PALETTE.length]];
+  for (let index = 0; index < seed.length; index += 1)
+    hash = seed.charCodeAt(index) + ((hash << 5) - hash);
+  return [
+    PALETTE[Math.abs(hash) % PALETTE.length],
+    PALETTE[Math.abs(hash + 2) % PALETTE.length],
+    PALETTE[Math.abs(hash + 4) % PALETTE.length],
+  ];
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
 // Helper to hash string to SHA-256 hex string using standard SubtleCrypto

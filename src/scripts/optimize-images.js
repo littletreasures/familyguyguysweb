@@ -22,12 +22,12 @@ if (fs.existsSync(ASSETS_DIR)) {
     const match = file.match(/^(ep\d+-thumb)\.(jpg|jpeg|png)$/i);
     if (match) {
       const name = match[1];
-      if (!IMAGES_TO_OPTIMIZE.some(img => img.file === file)) {
+      if (!IMAGES_TO_OPTIMIZE.some((img) => img.file === file)) {
         IMAGES_TO_OPTIMIZE.push({
           file: file,
           path: ASSETS_DIR,
           widths: [180, 360],
-          name: name
+          name: name,
         });
       }
     }
@@ -46,28 +46,22 @@ async function optimizeImage(img, sharp) {
   for (const width of img.widths) {
     const isSingleWidth = img.widths.length === 1;
     const suffix = isSingleWidth ? '' : `-${width}w`;
-    
+
     // Determine output paths (keep in the same directory as source)
     const outName = isSingleWidth ? path.basename(img.name) : `${path.basename(img.name)}${suffix}`;
     const outDir = path.dirname(path.join(img.path, img.name));
-    
+
     const webpPath = path.join(outDir, `${outName}.webp`);
     const avifPath = path.join(outDir, `${outName}.avif`);
 
     const transformer = sharp(inputPath).resize(width);
 
     // Write WebP
-    await transformer
-      .clone()
-      .webp({ quality: 80 })
-      .toFile(webpPath);
+    await transformer.clone().webp({ quality: 80 }).toFile(webpPath);
     console.log(`  -> Generated WebP: ${path.relative('.', webpPath)}`);
 
     // Write AVIF
-    await transformer
-      .clone()
-      .avif({ quality: 65 })
-      .toFile(avifPath);
+    await transformer.clone().avif({ quality: 65 }).toFile(avifPath);
     console.log(`  -> Generated AVIF: ${path.relative('.', avifPath)}`);
   }
 }
@@ -78,7 +72,10 @@ async function main() {
     const sharpModule = await import('sharp');
     sharp = sharpModule.default;
   } catch (err) {
-    console.warn('Skipping image optimization: sharp module could not be loaded (native binary support might be missing in this environment). Error:', err.message);
+    console.warn(
+      'Skipping image optimization: sharp module could not be loaded (native binary support might be missing in this environment). Error:',
+      err.message
+    );
     return;
   }
 

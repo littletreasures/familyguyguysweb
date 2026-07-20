@@ -13,7 +13,10 @@ function loadEnv() {
         const key = match[1];
         let val = match[2].trim();
         // Remove surrounding quotes if present
-        if ((val.startsWith('"') && val.endsWith('"')) || (val.startsWith("'") && val.endsWith("'"))) {
+        if (
+          (val.startsWith('"') && val.endsWith('"')) ||
+          (val.startsWith("'") && val.endsWith("'"))
+        ) {
           val = val.slice(1, -1);
         }
         process.env[key] = val;
@@ -22,16 +25,20 @@ function loadEnv() {
   }
 }
 
-
 function escapeXml(unsafe) {
   if (typeof unsafe !== 'string') return unsafe;
   return unsafe.replace(/[<>&'"]/g, function (c) {
     switch (c) {
-      case '<': return '&lt;';
-      case '>': return '&gt;';
-      case '&': return '&amp;';
-      case '\'': return '&apos;';
-      case '"': return '&quot;';
+      case '<':
+        return '&lt;';
+      case '>':
+        return '&gt;';
+      case '&':
+        return '&amp;';
+      case "'":
+        return '&apos;';
+      case '"':
+        return '&quot;';
     }
   });
 }
@@ -64,9 +71,9 @@ async function generateFeed() {
 
   console.log(`Found ${episodes?.length || 0} published episodes.`);
 
-  const feedUrl = 'https://familyguyguys.com/feed.xml';
+  const _feedUrl = 'https://familyguyguys.com/feed.xml';
   const siteUrl = 'https://familyguyguys.com';
-  
+
   let xml = `<?xml version="1.0" encoding="UTF-8"?>
 <rss version="2.0" 
   xmlns:itunes="http://www.itunes.com/dtds/podcast-1.0.dtd" 
@@ -93,7 +100,9 @@ async function generateFeed() {
 
   if (episodes && episodes.length > 0) {
     for (const ep of episodes) {
-      const pubDate = ep.air_date ? new Date(ep.air_date).toUTCString() : new Date(ep.created_at).toUTCString();
+      const pubDate = ep.air_date
+        ? new Date(ep.air_date).toUTCString()
+        : new Date(ep.created_at).toUTCString();
       const episodeUrl = `${siteUrl}/reviews/${escapeXml(encodeURIComponent(ep.id))}`;
       const mediaUrl = escapeXml(ep.podcast_url) || 'https://familyguyguys.com/placeholder.mp3'; // fallback placeholder
 
