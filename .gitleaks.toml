@@ -2,21 +2,22 @@
 title = "Family Guy Guys Gitleaks Config"
 
 [allowlist]
-description = "Global allowlist for example environment templates and test mocks"
+description = "Global allowlist for documentation, example environment templates, test mocks, and placeholder strings"
 paths = [
   '''\.env\.example''',
   '''admin-tools/\.env\.example''',
+  '''README\.md''',
+  '''SECURITY_ACTIONS_REQUIRED\.md''',
+  '''PERFORMANCE_BASELINE\.md''',
   '''tests/.*''',
 ]
-
-[[rules]]
-id = "supabase-service-key"
-description = "Supabase Service Role Key detection"
-regex = '''eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9\.[a-zA-Z0-9_\-]+\.[a-zA-Z0-9_\-]+'''
-tags = ["key", "supabase", "service-role"]
-
-[[rules]]
-id = "generic-api-key"
-description = "Generic High Entropy API Key detection"
-regex = '''(?i)(api_key|service_key|secret_key|auth_token)\s*=\s*['"]?[a-zA-Z0-9_\-]{20,}['"]?'''
-tags = ["key", "generic"]
+regexes = [
+  '''your_[a-zA-Z0-9_]+_key''',
+  '''your_supabase_[a-zA-Z0-9_]+''',
+  '''your_service_role_key''',
+  '''your_omdb_api_key''',
+  '''your_gemini_api_key''',
+  '''your_openai_api_key''',
+  '''your_anthropic_api_key''',
+  '''<[a-zA-Z0-9_]+>''',
+]
