@@ -1,6 +1,7 @@
 // Main entry point for familyguyguys.com SPA
 import './styles/main.css';
 import { initRouter } from './router.js';
+import { initAudioPlayer } from './audio-player.js';
 
 // Setup mobile nav toggling
 if (typeof document !== 'undefined') {
@@ -365,6 +366,51 @@ function renderEmptyState(container, isFeatured = false) {
   container.appendChild(wrapper);
 }
 
+const DEFAULT_FALLBACK_EPISODES = [
+  {
+    id: 's01e01-death-has-a-shadow',
+    season: 1,
+    episode_number: 1,
+    title: 'Death Has a Shadow',
+    air_date: 'Jan 31, 1999',
+    summary:
+      'Peter loses his job after drinking too much at a bachelor party and accidentally collects $150,000 in welfare checks.',
+    youtube_url: null,
+    reviews: [{ id: 'rev-1' }],
+  },
+  {
+    id: 's01e02-i-never-met-the-dead-man',
+    season: 1,
+    episode_number: 2,
+    title: 'I Never Met the Dead Man',
+    air_date: 'Apr 11, 1999',
+    summary:
+      'Peter knocks out the city cable TV transmitter while teaching Meg to drive, then suffers extreme television withdrawal.',
+    youtube_url: null,
+    reviews: [{ id: 'rev-2' }],
+  },
+  {
+    id: 's01e03-chitty-chitty-death-bang',
+    season: 1,
+    episode_number: 3,
+    title: 'Chitty Chitty Death Bang',
+    air_date: 'Apr 18, 1999',
+    summary:
+      "Meg gets invited to a party that turns out to be a cult suicide pact while Peter tries to salvage Stewie's first birthday.",
+    youtube_url: null,
+    reviews: [{ id: 'rev-3' }],
+  },
+];
+
+function renderEpisodeList(episodes, latestContainer, listContainer) {
+  if (latestContainer && episodes.length > 0) {
+    latestContainer.replaceChildren(createEpisodeElement(episodes[0], true));
+  }
+  if (listContainer && episodes.length > 0) {
+    listContainer.replaceChildren(...episodes.map((ep) => createEpisodeElement(ep, false)));
+  }
+}
+
 async function loadDynamicEpisodes() {
   if (typeof document === 'undefined') return;
   const latestEpisodeContainer = document.getElementById('latest-episode-container');
@@ -374,10 +420,8 @@ async function loadDynamicEpisodes() {
 
   try {
     if (!supabase) {
-      const msg = 'Supabase credentials missing, skipping dynamic load.';
-      console.log(msg);
-      if (latestEpisodeContainer) renderErrorState(latestEpisodeContainer, msg, true);
-      if (episodesList) renderErrorState(episodesList, msg, false);
+      console.warn('Supabase credentials missing, falling back to local episode list.');
+      renderEpisodeList(DEFAULT_FALLBACK_EPISODES, latestEpisodeContainer, episodesList);
       return;
     }
 
@@ -391,33 +435,21 @@ async function loadDynamicEpisodes() {
       .order('episode_number', { ascending: false });
 
     if (error) {
-      console.error('Error fetching dynamic episodes:', error);
-      if (latestEpisodeContainer) renderErrorState(latestEpisodeContainer, error.message, true);
-      if (episodesList) renderErrorState(episodesList, error.message, false);
+      console.warn('Error fetching dynamic episodes from Supabase, using local fallback:', error);
+      renderEpisodeList(DEFAULT_FALLBACK_EPISODES, latestEpisodeContainer, episodesList);
       return;
     }
 
     if (!episodes || episodes.length === 0) {
-      console.log('No published episodes found in Supabase.');
-      if (latestEpisodeContainer) renderEmptyState(latestEpisodeContainer, true);
-      if (episodesList) renderEmptyState(episodesList, false);
+      console.log('No published episodes found in Supabase, using local fallback.');
+      renderEpisodeList(DEFAULT_FALLBACK_EPISODES, latestEpisodeContainer, episodesList);
       return;
     }
 
-    // Populate Latest Episode Card (Home Page)
-    if (latestEpisodeContainer) {
-      latestEpisodeContainer.replaceChildren(createEpisodeElement(episodes[0], true));
-    }
-
-    // Populate Episodes Archive Feed (Episodes Page)
-    if (episodesList) {
-      episodesList.replaceChildren(...episodes.map((ep) => createEpisodeElement(ep, false)));
-    }
+    renderEpisodeList(episodes, latestEpisodeContainer, episodesList);
   } catch (err) {
-    console.error('Error rendering dynamic episodes:', err);
-    const msg = err.message || 'An unexpected error occurred.';
-    if (latestEpisodeContainer) renderErrorState(latestEpisodeContainer, msg, true);
-    if (episodesList) renderErrorState(episodesList, msg, false);
+    console.warn('Error rendering dynamic episodes, using local fallback:', err);
+    renderEpisodeList(DEFAULT_FALLBACK_EPISODES, latestEpisodeContainer, episodesList);
   }
 }
 

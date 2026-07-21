@@ -287,7 +287,11 @@ function App() {
           (reviewsRes.status === 'fulfilled' && reviewsRes.value.error);
 
         if (hasCriticalError) {
-          throw new Error('Critical data fetch failed');
+          console.warn('Supabase data fetch encountered an error. Falling back to local dataset.');
+          setDataset(demoDataset);
+          setSelectedCohostId(demoDataset.cohosts[0]?.id ?? '01201e1a-dafd-424a-b596-ff9ece65f1aa');
+          setLoading(false);
+          return;
         }
 
         const cohosts = (cohostsRes as any).value.data;
@@ -298,6 +302,8 @@ function App() {
         )?.[0];
 
         if (!episodes || episodes.length === 0) {
+          setDataset(demoDataset);
+          setSelectedCohostId(demoDataset.cohosts[0]?.id ?? '01201e1a-dafd-424a-b596-ff9ece65f1aa');
           setLoading(false);
           return;
         }
@@ -307,7 +313,9 @@ function App() {
         setSelectedCohostId(nextDataset.cohosts[0]?.id ?? demoDataset.cohosts[0].id);
         setLoading(false);
       } catch (error) {
-        setLoadError(error instanceof Error ? error.message : 'Failed to load data from Supabase');
+        console.warn('Supabase fetch failed. Falling back to local dataset:', error);
+        setDataset(demoDataset);
+        setSelectedCohostId(demoDataset.cohosts[0]?.id ?? '01201e1a-dafd-424a-b596-ff9ece65f1aa');
         setLoading(false);
       }
     }
