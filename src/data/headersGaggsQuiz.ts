@@ -72,21 +72,21 @@ export const HEADERS_GAGGS_QUESTIONS: QuizQuestion[] = [
   {
     id: "q3",
     category: "The Podcast Convertible Detour",
-    prompt: "43 minutes into a 45-minute episode, no score has been assigned, and Collin has reopened a convertible argument that started before recording.",
+    prompt: "43 minutes into the podcast, we have discussed the first two minutes of the actual Family Guy episode, and Collin just reopened an argument about whether convertibles are fun that started before recording.",
     options: [
       {
         id: "q3-a",
-        text: "We finish the convertible thing. If it eats the whole episode, that IS the episode.",
+        text: "We finish the convertible thing. Maybe Anthony Kiedis and Flea are in the backseat. Who knows, just spitballin' here.  If it eats the whole episode, that IS the episode.",
         scores: { gag: 3, hat: 2 }
       },
       {
         id: "q3-b",
-        text: "Let him cook, but I want the bit to end on the single best convertible fact available. Then we move.",
+        text: "Let him cook, but I want it to end on the single best convertible bit you've got. Only then do we move.",
         scores: { gag: 1, cherry: 2 }
       },
       {
         id: "q3-c",
-        text: "I let it run because I genuinely want to see if this is the week Collin finally short-circuits on-mic.",
+        text: "I let it run because I genuinely want to see if this is the week Jason finally short-circuits on-mic.",
         scores: { struct: 1, hat: 2 }
       },
       {
