@@ -39,5 +39,8 @@
     "vite": "^7.3.6",
     "vitest": "^4.1.10",
     "wrangler": "^4.110.0"
+  },
+  "overrides": {
+    "sharp": "$sharp"
   }
 }

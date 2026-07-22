@@ -11,7 +11,7 @@
   },
   "assets": {
     "directory": "./dist",
-    "not_found_handling": "single-page-app"
+    "not_found_handling": "single-page-application"
   },
   "compatibility_flags": [
     "nodejs_compat"
