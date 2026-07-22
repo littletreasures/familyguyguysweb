@@ -5,6 +5,7 @@ function getPages() {
     episodes: document.getElementById('page-episodes'),
     contact: document.getElementById('page-contact'),
     reviews: document.getElementById('page-reviews'),
+    headersGaggs: document.getElementById('page-headers-gaggs'),
   };
 }
 
@@ -13,6 +14,7 @@ const ROUTE_TITLES = {
   episodes: 'Episode Feed — Family Guy Guys',
   contact: 'Contact Us — Family Guy Guys',
   reviews: 'Episode Reviews — Family Guy Guys',
+  headersGaggs: 'The Headers-Gaggs Test — Family Guy Guys',
   notFound: '404 Page Not Found — Family Guy Guys',
 };
 
@@ -69,6 +71,8 @@ function handleLocation() {
     activePage = 'episodes';
   } else if (path === '/contact') {
     activePage = 'contact';
+  } else if (path === '/headers-gaggs') {
+    activePage = 'headersGaggs';
   } else if (path.startsWith('/reviews')) {
     activePage = 'reviews';
     const subpath = path.slice('/reviews'.length);

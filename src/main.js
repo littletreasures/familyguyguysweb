@@ -80,6 +80,33 @@ if (typeof window !== 'undefined' && typeof document !== 'undefined') {
     }
   });
 
+  // Mount Headers-Gaggs Test app & homepage CTA
+  let headersGaggsAppMounted = false;
+  let headersGaggsCtaMounted = false;
+
+  const initHeadersGaggs = async () => {
+    const appContainer = document.getElementById('headers-gaggs-app');
+    const ctaContainer = document.getElementById('headers-gaggs-cta-container');
+
+    if ((appContainer || ctaContainer) && (!headersGaggsAppMounted || !headersGaggsCtaMounted)) {
+      try {
+        const { mountHeadersGaggsApp, mountHeadersGaggsCta } = await import('./headers-gaggs/mount.tsx');
+        if (appContainer && !headersGaggsAppMounted) {
+          mountHeadersGaggsApp(appContainer);
+          headersGaggsAppMounted = true;
+        }
+        if (ctaContainer && !headersGaggsCtaMounted) {
+          mountHeadersGaggsCta(ctaContainer);
+          headersGaggsCtaMounted = true;
+        }
+      } catch (err) {
+        console.error('Failed to mount Headers-Gaggs module:', err);
+      }
+    }
+  };
+
+  initHeadersGaggs();
+
   // Setup active link highlight and route handling - MUST run after registering event listeners
   initRouter();
 
