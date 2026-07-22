@@ -52,7 +52,7 @@ describe("Headers-Gaggs Quiz Scoring", () => {
 
     expect(score.code).toBe("G-C");
     expect(score.result.name).toBe("The Cherry Choker");
-    expect(score.result.hostMatch).toBe("Tyler Simpson (Gagger with landing instincts)");
+    expect(score.result.hostMatch).toBe("Tyler Simpson");
     expect(score.gagTotal).toBeGreaterThan(score.structTotal);
     expect(score.cherryTotal).toBeGreaterThan(score.hatTotal);
   });
@@ -94,7 +94,7 @@ describe("Headers-Gaggs Quiz Scoring", () => {
 
     expect(score.code).toBe("S-C");
     expect(score.result.name).toBe("The Bow-Tier");
-    expect(score.result.hostMatch).toBe("Jason Hackett (The Nolan Fundamentalist)");
+    expect(score.result.hostMatch).toBe("Jason Hackett");
     expect(score.structTotal).toBeGreaterThan(score.gagTotal);
     expect(score.cherryTotal).toBeGreaterThan(score.hatTotal);
   });
