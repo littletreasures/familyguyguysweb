@@ -21,7 +21,7 @@ export const HeadersGaggsHomeCta: React.FC = () => {
           A highly legitimate Myers-Briggs-style evaluation for people who have opinions about how long a chicken fight should last.
         </p>
         <a href="/headers-gaggs" onClick={handleClick} className="btn-orange headers-gaggs-cta-btn">
-          BEGIN THE EVALUATION &rarr;
+          Begin the Evaluation &rarr;
         </a>
       </div>
     </div>

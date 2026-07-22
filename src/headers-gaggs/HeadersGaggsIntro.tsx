@@ -35,7 +35,7 @@ export const HeadersGaggsIntro: React.FC<HeadersGaggsIntroProps> = ({ onStart })
 
       <div className="headers-gaggs-cta-wrapper">
         <button onClick={onStart} className="btn-orange headers-gaggs-start-btn">
-          BEGIN THE EVALUATION &rarr;
+          Begin the Evaluation &rarr;
         </button>
       </div>
     </div>
