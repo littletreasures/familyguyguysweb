@@ -17,217 +17,217 @@ export type QuizQuestion = {
 export const HEADERS_GAGGS_QUESTIONS: QuizQuestion[] = [
   {
     id: "q1",
-    category: "Cutaway Pacing",
-    prompt: "You are watching a dramatic historical film, and a character suddenly breaks into an unprompted 3-minute song-and-dance about 1920s cereal brands. What is your reaction?",
+    category: "The Exploding Horse",
+    prompt: "An Amish man's horse explodes for no stated reason. Nobody in the scene reacts. The show moves on immediately to something even less explainable.",
     options: [
       {
         id: "q1-a",
-        text: "Brilliant! Put three more pop culture tangents in this movie immediately.",
-        scores: { gag: 3, hat: 2 }
+        text: "Good. Now do it again, but somehow worse.",
+        scores: { gag: 2, hat: 2 }
       },
       {
         id: "q1-b",
-        text: "Funny bit, but only if it cleanly caps off the scene and gets back to the plot.",
-        scores: { gag: 2, cherry: 3 }
+        text: "I don't need a reason. I need to know this was the funniest possible version of a horse exploding.",
+        scores: { gag: 2, cherry: 2 }
       },
       {
         id: "q1-c",
-        text: "Mildly amusing, but it severely disrupts the narrative pacing.",
-        scores: { struct: 2, cherry: 2 }
+        text: "Fine, but I want to watch this exact bit happen four more times until it stops being a joke and starts being a threat.",
+        scores: { struct: 1, hat: 3 }
       },
       {
         id: "q1-d",
-        text: "Unacceptable. Christopher Nolan would never tolerate this breach of screenwriting discipline.",
-        scores: { struct: 3, hat: 1 }
+        text: "There's no way this connects to anything later, and that's the whole problem.",
+        scores: { struct: 3, cherry: 1 }
       }
     ]
   },
   {
     id: "q2",
-    category: "The Chicken Fight Principle",
-    prompt: "Peter Griffin has been fighting a giant yellow chicken through three states for seven continuous minutes. How should this scene resolve?",
+    category: "The Whale Forklift",
+    prompt: "Peter has spent eleven straight minutes trying to move a dead whale with a forklift. The B-story hasn't been mentioned since the whale showed up.",
     options: [
       {
         id: "q2-a",
-        text: "They crash into an oil refinery, which explodes into a second fight with a giant duck.",
-        scores: { gag: 3, hat: 3 }
+        text: "This has stopped being a bit and started being a lifestyle. I respect it.",
+        scores: { gag: 2, hat: 3 }
       },
       {
         id: "q2-b",
-        text: "Peter delivers a decisive punch, pants, adjusts his glasses, and walks home satisfied.",
-        scores: { gag: 2, cherry: 3 }
+        text: "Eleven minutes is a lot. But if the last ten seconds land, I'll forgive the previous ten minutes and thirty.",
+        scores: { gag: 1, cherry: 3 }
       },
       {
         id: "q2-c",
-        text: "The fight must end within 90 seconds so Lois can finish her Act 2 character arc.",
-        scores: { struct: 3, cherry: 2 }
+        text: "Let it keep going. I want to see the exact second the joke runs out of road and drives off it.",
+        scores: { struct: 1, hat: 2 }
       },
       {
         id: "q2-d",
-        text: "A meteor strikes both of them, followed by an unrelated 1980s sitcom commercial break.",
-        scores: { gag: 3, hat: 2 }
+        text: "Somebody at Fuzzy Nation Studios owes Lois's arc an apology.",
+        scores: { struct: 3, cherry: 1 }
       }
     ]
   },
   {
     id: "q3",
-    category: "Bit Stacking",
-    prompt: "A comedian does a hilarious impression of a 1950s radio announcer. What should they do next?",
+    category: "The Podcast Convertible Detour",
+    prompt: "43 minutes into a 45-minute episode, no score has been assigned, and Collin has reopened a convertible argument that started before recording.",
     options: [
       {
         id: "q3-a",
-        text: "Stack a second impression of a 1950s radio announcer listening to the first radio announcer.",
-        scores: { gag: 3, hat: 3 }
+        text: "We finish the convertible thing. If it eats the whole episode, that IS the episode.",
+        scores: { gag: 3, hat: 2 }
       },
       {
         id: "q3-b",
-        text: "Deliver one killer button line and transition smoothly to the next scene.",
-        scores: { struct: 2, cherry: 3 }
+        text: "Let him cook, but I want the bit to end on the single best convertible fact available. Then we move.",
+        scores: { gag: 1, cherry: 2 }
       },
       {
         id: "q3-c",
-        text: "Land the joke, hit a crisp button, and return to the primary narrative conflict.",
-        scores: { struct: 3, cherry: 3 }
+        text: "I let it run because I genuinely want to see if this is the week Collin finally short-circuits on-mic.",
+        scores: { struct: 1, hat: 2 }
       },
       {
         id: "q3-d",
-        text: "Do the impression for 10 minutes straight until the audience questions their reality.",
-        scores: { gag: 3, hat: 2 }
+        text: "I write the timecode down, let him land it, and bring us home like a man parking a plane he was never licensed to fly.",
+        scores: { struct: 3, cherry: 1 }
       }
     ]
   },
   {
     id: "q4",
-    category: "Cheesecake Factory Philosophy",
-    prompt: "You open a Cheesecake Factory menu and see 85 pages of unrelated global cuisine. What is your spiritual assessment?",
+    category: "Cheesecake Factory, Page Three",
+    prompt: "An 80-page menu lists avocado eggrolls directly above shepherd's pie. Nothing about this menu apologizes for itself.",
     options: [
       {
         id: "q4-a",
-        text: "Pure bliss. Order avocado egg rolls AND a brisket quesadilla ON TOP of a pizza.",
-        scores: { gag: 3, hat: 3 }
+        text: "This menu is the only honest document in America.",
+        scores: { gag: 2, hat: 2 }
       },
       {
         id: "q4-b",
-        text: "I order one specific entree, enjoy the meal, and savor the cheesecake finish.",
-        scores: { struct: 2, cherry: 3 }
+        text: "I want to know who built this menu and whether they'd let me watch them work.",
+        scores: { gag: 1, cherry: 2 }
       },
       {
         id: "q4-c",
-        text: "Deep distress. Why are thai lettuce wraps next to shepherd's pie? Where is the culinary architecture?!",
-        scores: { struct: 3, hat: 1 }
+        text: "I keep reading specifically to find the exact page where this stops making sense.",
+        scores: { struct: 1, hat: 2 }
       },
       {
         id: "q4-d",
-        text: "I bring myself down to its level so I can be happy, dumb, and content for two hours.",
-        scores: { gag: 2, cherry: 2 }
+        text: "Page three should not exist next to page four. Someone had one job.",
+        scores: { struct: 3, cherry: 1 }
       }
     ]
   },
   {
     id: "q5",
-    category: "Narrative Payoff",
-    prompt: "When watching a TV comedy finale, what frustrates you the most?",
+    category: "The Chicken Fight Edit",
+    prompt: "You've been asked to cut a chicken fight down to 90 seconds. The first 30 seconds are great. The next 60 get worse in a way that starts to feel intentional.",
     options: [
       {
         id: "q5-a",
-        text: "When a great bit gets cut short to make room for sentimental character growth.",
-        scores: { gag: 3, hat: 2 }
+        text: "Deliver the whole fight, plus six extra seconds of the chicken catching its breath. The client can fire me.",
+        scores: { gag: 3, hat: 3 }
       },
       {
         id: "q5-b",
-        text: "When a joke builds up perfectly but misses its final punchline punch.",
+        text: "Ninety seconds exactly, and every one of them has to earn its spot. That's not a request, that's math.",
         scores: { gag: 1, cherry: 3 }
       },
       {
         id: "q5-c",
-        text: "When the plot setup from Act 1 is completely forgotten by Act 3 because of random gags.",
-        scores: { struct: 3, cherry: 2 }
+        text: "I keep the worst sixty seconds specifically because watching it get bad on purpose is the actual joke.",
+        scores: { struct: 1, hat: 3 }
       },
       {
         id: "q5-d",
-        text: "When they try to resolve everything neatly instead of throwing in 12 more chaotic bits.",
-        scores: { gag: 2, hat: 3 }
+        text: "I deliver 90 seconds with a note saying the assignment misunderstood the material.",
+        scores: { struct: 3, cherry: 1 }
       }
     ]
   },
   {
     id: "q6",
-    category: "Cinematic Mentorship",
-    prompt: "Which approach to filmmaking speaks to your inner soul?",
+    category: "The Group Chat Clip",
+    prompt: "Someone sends a 14-second joke followed by 40 seconds of a character slowly realizing the joke happened.",
     options: [
       {
         id: "q6-a",
-        text: "2004 Seth MacFarlane — 40% plot, 60% cutaways, Conway Twitty, and big band showtunes.",
-        scores: { gag: 3, hat: 2 }
+        text: "The 40 seconds ARE the clip. The joke was just the appetizer.",
+        scores: { gag: 2, hat: 3 }
       },
       {
         id: "q6-b",
-        text: "Topher Grace — meticulous recuts that trim every frame of fat for maximum narrative punch.",
-        scores: { struct: 2, cherry: 3 }
+        text: "14 great seconds. If the other 40 don't pay it off, this is a rough cut, not a bit.",
+        scores: { gag: 1, cherry: 3 }
       },
       {
         id: "q6-c",
-        text: "Christopher Nolan — complex timeline architecture, zero cutaway gags, IMAX precision.",
-        scores: { struct: 3, cherry: 1 }
+        text: "Send it to me every day until the realization stops being funny. I need to know when that day comes.",
+        scores: { struct: 1, hat: 2 }
       },
       {
         id: "q6-d",
-        text: "Bit Maximalism — layering gag upon gag until the original joke is completely unrecognizable.",
-        scores: { gag: 3, hat: 3 }
+        text: "40 seconds is generous. Somebody in the edit bay should've made a decision.",
+        scores: { struct: 3, cherry: 1 }
       }
     ]
   },
   {
     id: "q7",
-    category: "Podcast Recording Ethics",
-    prompt: "You are hosting a 45-minute podcast episode reviewing a 20-minute cartoon. How do you handle the agenda?",
+    category: "The Prestige Drama Interruption",
+    prompt: "A prestige drama halts its emotional climax so a character can perform an unprompted 3-minute song about discontinued cereal.",
     options: [
       {
         id: "q7-a",
-        text: "Ditch the agenda in minute two to argue about convertible cars and Red Hot Chili Peppers for 90 minutes.",
-        scores: { gag: 3, hat: 3 }
+        text: "Finally, a show brave enough to interrupt itself before it got good.",
+        scores: { gag: 3, hat: 2 }
       },
       {
         id: "q7-b",
-        text: "Follow the episode scene-by-scene, capping each section with a definitive final verdict.",
-        scores: { struct: 2, cherry: 3 }
+        text: "The song has to be objectively great, or this was just vandalism with a melody.",
+        scores: { gag: 1, cherry: 3 }
       },
       {
         id: "q7-c",
-        text: "Strict schedule, explicit timestamps, structured scoring, and zero off-topic tangents.",
-        scores: { struct: 3, cherry: 2 }
+        text: "I want them to keep singing well past the point the scene can recover from it.",
+        scores: { struct: 1, hat: 2 }
       },
       {
         id: "q7-d",
-        text: "Start with an outline, immediately embrace chaos, and stack three meta-jokes about recording a podcast.",
-        scores: { gag: 2, hat: 2 }
+        text: "This is why television needs adults in the room, Nolan among them.",
+        scores: { struct: 3, cherry: 1 }
       }
     ]
   },
   {
     id: "q8",
-    category: "The Ultimate Comedy Verdict",
-    prompt: "At the end of a hilarious 22-minute episode, what makes you say 'That was a classic'?",
+    category: "Peter's Sign-Off",
+    prompt: "Peter looks directly at the camera, says \"Well, I guess that was our show,\" and the credits roll with zero setups resolved.",
     options: [
       {
         id: "q8-a",
-        text: "It had seven absurd cutaway gags stacked on top of each other with zero explanation.",
-        scores: { gag: 3, hat: 3 }
+        text: "Correct. Nothing else needed to happen and I resent that you'd ask.",
+        scores: { gag: 3, hat: 1 }
       },
       {
         id: "q8-b",
-        text: "Every joke landed, the main story was satisfying, and the final line was a perfect cherry on top.",
-        scores: { gag: 1, struct: 2, cherry: 3 }
+        text: "Bold ending. It only works if literally everything before it was firing on all cylinders.",
+        scores: { gag: 1, cherry: 2 }
       },
       {
         id: "q8-c",
-        text: "The three-act structure was tight, the character motivations were logical, and the climax resolved cleanly.",
-        scores: { struct: 3, cherry: 2 }
+        text: "I want him to say that line, then have the credits get interrupted by one more thing collapsing.",
+        scores: { struct: 1, hat: 3 }
       },
       {
         id: "q8-d",
-        text: "It started as a vacation episode, turned into a mob movie spoof, and ended with a 4th-wall break bit.",
-        scores: { gag: 3, hat: 2 }
+        text: "There were at least two emotional obligations outstanding, and Peter knows it.",
+        scores: { struct: 3, cherry: 2 }
       }
     ]
   }

@@ -58,26 +58,7 @@ describe("Headers-Gaggs Quiz Scoring", () => {
   });
 
   it("correctly classifies S-H (The Skyscraper Enthusiast)", () => {
-    const score = calculateQuizScore({
-      q1: 3, // struct: 3, hat: 1
-      q2: 0, // gag: 3, hat: 3
-      q3: 0, // gag: 3, hat: 3
-      q4: 2, // struct: 3, hat: 1
-      q5: 3, // gag: 2, hat: 3
-      q6: 2, // struct: 3, cherry: 1
-      q7: 2, // struct: 3, cherry: 2
-      q8: 3, // gag: 3, hat: 2
-    });
-
-    expect(score.code).toBe("S-H");
-    expect(score.result.name).toBe("The Skyscraper Enthusiast");
-    expect(score.result.hostMatch).toBe("The Topher Grace Fan-Editor");
-    expect(score.structTotal).toBeGreaterThan(score.gagTotal);
-    expect(score.hatTotal).toBeGreaterThan(score.cherryTotal);
-  });
-
-  it("correctly classifies S-C (The Bow-Tier)", () => {
-    // Option 2 across questions (struct + cherry biased)
+    // Option 2 (index 2) across all questions (struct + hat biased)
     const answers = {
       q1: 2,
       q2: 2,
@@ -87,6 +68,27 @@ describe("Headers-Gaggs Quiz Scoring", () => {
       q6: 2,
       q7: 2,
       q8: 2,
+    };
+    const score = calculateQuizScore(answers);
+
+    expect(score.code).toBe("S-H");
+    expect(score.result.name).toBe("The Skyscraper Enthusiast");
+    expect(score.result.hostMatch).toBe("The Topher Grace Fan-Editor");
+    expect(score.structTotal).toBeGreaterThan(score.gagTotal);
+    expect(score.hatTotal).toBeGreaterThan(score.cherryTotal);
+  });
+
+  it("correctly classifies S-C (The Bow-Tier)", () => {
+    // Option 3 (index 3) across all questions (struct + cherry biased)
+    const answers = {
+      q1: 3,
+      q2: 3,
+      q3: 3,
+      q4: 3,
+      q5: 3,
+      q6: 3,
+      q7: 3,
+      q8: 3,
     };
     const score = calculateQuizScore(answers);
 
