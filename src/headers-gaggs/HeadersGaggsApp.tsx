@@ -1,9 +1,9 @@
-import React from "react";
-import { HEADERS_GAGGS_QUESTIONS } from "../data/headersGaggsQuiz";
-import { useHeadersGaggsQuiz } from "./useHeadersGaggsQuiz";
-import { HeadersGaggsIntro } from "./HeadersGaggsIntro";
-import { HeadersGaggsQuestion } from "./HeadersGaggsQuestion";
-import { HeadersGaggsResult } from "./HeadersGaggsResult";
+import React from 'react';
+import { HEADERS_GAGGS_QUESTIONS } from '../data/headersGaggsQuiz';
+import { useHeadersGaggsQuiz } from './useHeadersGaggsQuiz';
+import { HeadersGaggsIntro } from './HeadersGaggsIntro';
+import { HeadersGaggsQuestion } from './HeadersGaggsQuestion';
+import { HeadersGaggsResult } from './HeadersGaggsResult';
 
 export const HeadersGaggsApp: React.FC = () => {
   const {

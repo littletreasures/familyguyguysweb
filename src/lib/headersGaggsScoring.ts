@@ -1,5 +1,5 @@
-import { HEADERS_GAGGS_QUESTIONS, ResultCode } from "../data/headersGaggsQuiz";
-import { HEADERS_GAGGS_RESULTS } from "../data/headersGaggsResults";
+import { HEADERS_GAGGS_QUESTIONS, ResultCode } from '../data/headersGaggsQuiz';
+import { HEADERS_GAGGS_RESULTS } from '../data/headersGaggsResults';
 
 export interface ScoreSummary {
   gagTotal: number;
@@ -11,7 +11,7 @@ export interface ScoreSummary {
   structPct: number;
   hatPct: number;
   cherryPct: number;
-  result: typeof HEADERS_GAGGS_RESULTS[ResultCode];
+  result: (typeof HEADERS_GAGGS_RESULTS)[ResultCode];
 }
 
 export function calculateQuizScore(userAnswers: Record<string, number>): ScoreSummary {
@@ -34,8 +34,8 @@ export function calculateQuizScore(userAnswers: Record<string, number>): ScoreSu
   // Raw total tie policy:
   // Gagger vs Structurehead tie -> Structurehead ("S")
   // Hat on a Hat vs Cherry on Top tie -> Cherry on Top ("C")
-  const taste = gagTotal > structTotal ? "G" : "S";
-  const resolution = hatTotal > cherryTotal ? "H" : "C";
+  const taste = gagTotal > structTotal ? 'G' : 'S';
+  const resolution = hatTotal > cherryTotal ? 'H' : 'C';
   const code = `${taste}-${resolution}` as ResultCode;
 
   // Independent display percentages (calculated post-classification)
@@ -58,10 +58,10 @@ export function calculateQuizScore(userAnswers: Record<string, number>): ScoreSu
     structPct,
     hatPct,
     cherryPct,
-    result: HEADERS_GAGGS_RESULTS[code] || HEADERS_GAGGS_RESULTS["S-C"]
+    result: HEADERS_GAGGS_RESULTS[code] || HEADERS_GAGGS_RESULTS['S-C'],
   };
 }
 
 export function isValidResultCode(code: string | null): code is ResultCode {
-  return code === "G-H" || code === "G-C" || code === "S-H" || code === "S-C";
+  return code === 'G-H' || code === 'G-C' || code === 'S-H' || code === 'S-C';
 }

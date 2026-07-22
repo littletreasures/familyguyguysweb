@@ -1,7 +1,7 @@
-import React from "react";
-import { QuizResult } from "../data/headersGaggsQuiz";
-import { ScoreSummary } from "../lib/headersGaggsScoring";
-import { HeadersGaggsShare } from "./HeadersGaggsShare";
+import React from 'react';
+import { QuizResult } from '../data/headersGaggsQuiz';
+import { ScoreSummary } from '../lib/headersGaggsScoring';
+import { HeadersGaggsShare } from './HeadersGaggsShare';
 
 interface HeadersGaggsResultProps {
   result: QuizResult;
@@ -19,9 +19,7 @@ export const HeadersGaggsResult: React.FC<HeadersGaggsResultProps> = ({
   return (
     <div className="headers-gaggs-result-card">
       <div className="headers-gaggs-result-header">
-        <div className="headers-gaggs-result-code-pill">
-          RESULT: {result.code}
-        </div>
+        <div className="headers-gaggs-result-code-pill">RESULT: {result.code}</div>
         {result.hostMatch && (
           <div className="headers-gaggs-host-match">
             Host Alignment: <strong>{result.hostMatch}</strong>
@@ -41,7 +39,14 @@ export const HeadersGaggsResult: React.FC<HeadersGaggsResultProps> = ({
               <span className="meter-label-left">GAGGER ({scoreSummary.gagPct}%)</span>
               <span className="meter-label-right">STRUCTUREHEAD ({scoreSummary.structPct}%)</span>
             </div>
-            <div className="headers-gaggs-meter-bar" role="progressbar" aria-valuenow={scoreSummary.gagPct} aria-valuemin={0} aria-valuemax={100} aria-label="Gagger vs Structurehead percentage">
+            <div
+              className="headers-gaggs-meter-bar"
+              role="progressbar"
+              aria-valuenow={scoreSummary.gagPct}
+              aria-valuemin={0}
+              aria-valuemax={100}
+              aria-label="Gagger vs Structurehead percentage"
+            >
               <div className="meter-fill-left" style={{ width: `${scoreSummary.gagPct}%` }} />
               <div className="meter-fill-right" style={{ width: `${scoreSummary.structPct}%` }} />
             </div>
@@ -52,7 +57,14 @@ export const HeadersGaggsResult: React.FC<HeadersGaggsResultProps> = ({
               <span className="meter-label-left">HAT ON A HAT ({scoreSummary.hatPct}%)</span>
               <span className="meter-label-right">CHERRY ON TOP ({scoreSummary.cherryPct}%)</span>
             </div>
-            <div className="headers-gaggs-meter-bar" role="progressbar" aria-valuenow={scoreSummary.hatPct} aria-valuemin={0} aria-valuemax={100} aria-label="Hat on a Hat vs Cherry on Top percentage">
+            <div
+              className="headers-gaggs-meter-bar"
+              role="progressbar"
+              aria-valuenow={scoreSummary.hatPct}
+              aria-valuemin={0}
+              aria-valuemax={100}
+              aria-label="Hat on a Hat vs Cherry on Top percentage"
+            >
               <div className="meter-fill-left" style={{ width: `${scoreSummary.hatPct}%` }} />
               <div className="meter-fill-right" style={{ width: `${scoreSummary.cherryPct}%` }} />
             </div>
@@ -63,9 +75,13 @@ export const HeadersGaggsResult: React.FC<HeadersGaggsResultProps> = ({
       {/* Direct result fallback axes label */}
       {isDirectResult && (
         <div className="headers-gaggs-direct-axes-badge">
-          <span>Taste: <strong>{result.axes.taste}</strong></span>
+          <span>
+            Taste: <strong>{result.axes.taste}</strong>
+          </span>
           <span className="divider">&bull;</span>
-          <span>Resolution: <strong>{result.axes.resolution}</strong></span>
+          <span>
+            Resolution: <strong>{result.axes.resolution}</strong>
+          </span>
         </div>
       )}
 
@@ -82,7 +98,7 @@ export const HeadersGaggsResult: React.FC<HeadersGaggsResultProps> = ({
       <div className="headers-gaggs-result-actions">
         <HeadersGaggsShare result={result} />
         <button onClick={onRetake} className="btn-teal headers-gaggs-retake-btn">
-          {isDirectResult ? "TAKE THE TEST YOURSELF" : "RETAKE THE EVALUATION"}
+          {isDirectResult ? 'TAKE THE TEST YOURSELF' : 'RETAKE THE EVALUATION'}
         </button>
       </div>
     </div>

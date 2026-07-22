@@ -1,7 +1,7 @@
-import React from "react";
-import { createRoot, Root } from "react-dom/client";
-import { HeadersGaggsApp } from "./HeadersGaggsApp";
-import { HeadersGaggsHomeCta } from "./HeadersGaggsHomeCta";
+import React from 'react';
+import { createRoot, Root } from 'react-dom/client';
+import { HeadersGaggsApp } from './HeadersGaggsApp';
+import { HeadersGaggsHomeCta } from './HeadersGaggsHomeCta';
 
 let appRoot: Root | null = null;
 let ctaRoot: Root | null = null;

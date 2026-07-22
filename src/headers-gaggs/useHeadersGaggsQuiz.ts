@@ -1,8 +1,8 @@
-import { useState, useEffect, useCallback } from "react";
-import { HEADERS_GAGGS_QUESTIONS, ResultCode } from "../data/headersGaggsQuiz";
-import { HEADERS_GAGGS_RESULTS } from "../data/headersGaggsResults";
-import { calculateQuizScore, isValidResultCode, ScoreSummary } from "../lib/headersGaggsScoring";
-import { trackHeadersGaggsEvent } from "../lib/headersGaggsAnalytics";
+import { useState, useEffect, useCallback } from 'react';
+import { HEADERS_GAGGS_QUESTIONS, ResultCode } from '../data/headersGaggsQuiz';
+import { HEADERS_GAGGS_RESULTS } from '../data/headersGaggsResults';
+import { calculateQuizScore, isValidResultCode, ScoreSummary } from '../lib/headersGaggsScoring';
+import { trackHeadersGaggsEvent } from '../lib/headersGaggsAnalytics';
 
 export function useHeadersGaggsQuiz() {
   const [currentStep, setCurrentStep] = useState<number>(0);
@@ -11,9 +11,9 @@ export function useHeadersGaggsQuiz() {
 
   // Check URL query parameters for direct result link on load/route change
   const checkUrlResult = useCallback(() => {
-    if (typeof window === "undefined") return;
+    if (typeof window === 'undefined') return;
     const urlParams = new URLSearchParams(window.location.search);
-    const resultParam = urlParams.get("result");
+    const resultParam = urlParams.get('result');
 
     if (resultParam && isValidResultCode(resultParam)) {
       setDirectResultCode(resultParam);
@@ -25,14 +25,14 @@ export function useHeadersGaggsQuiz() {
 
   useEffect(() => {
     checkUrlResult();
-    trackHeadersGaggsEvent("headers_gaggs_viewed");
+    trackHeadersGaggsEvent('headers_gaggs_viewed');
 
     const handlePopState = () => {
       checkUrlResult();
     };
 
-    window.addEventListener("popstate", handlePopState);
-    return () => window.removeEventListener("popstate", handlePopState);
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
   }, [checkUrlResult]);
 
   const startQuiz = useCallback(() => {
@@ -40,9 +40,9 @@ export function useHeadersGaggsQuiz() {
     setUserAnswers({});
     setDirectResultCode(null);
     if (window.location.search) {
-      window.history.pushState({}, "", window.location.pathname);
+      window.history.pushState({}, '', window.location.pathname);
     }
-    trackHeadersGaggsEvent("headers_gaggs_started");
+    trackHeadersGaggsEvent('headers_gaggs_started');
   }, []);
 
   const selectOption = useCallback((questionId: string, optionIndex: number) => {
@@ -58,8 +58,8 @@ export function useHeadersGaggsQuiz() {
       if (next > HEADERS_GAGGS_QUESTIONS.length) {
         const score = calculateQuizScore(userAnswers);
         const newUrl = `${window.location.pathname}?result=${score.code}`;
-        window.history.pushState({}, "", newUrl);
-        trackHeadersGaggsEvent("headers_gaggs_completed", { result_code: score.code });
+        window.history.pushState({}, '', newUrl);
+        trackHeadersGaggsEvent('headers_gaggs_completed', { result_code: score.code });
       }
       return next;
     });
@@ -74,19 +74,19 @@ export function useHeadersGaggsQuiz() {
     setDirectResultCode(null);
     setCurrentStep(0);
     if (window.location.search) {
-      window.history.pushState({}, "", window.location.pathname);
+      window.history.pushState({}, '', window.location.pathname);
     }
   }, []);
 
   const isDirectResult = directResultCode !== null;
 
-  const scoreSummary: ScoreSummary | null = currentStep > HEADERS_GAGGS_QUESTIONS.length
-    ? calculateQuizScore(userAnswers)
-    : null;
+  const scoreSummary: ScoreSummary | null =
+    currentStep > HEADERS_GAGGS_QUESTIONS.length ? calculateQuizScore(userAnswers) : null;
 
-  const activeResult = isDirectResult && directResultCode
-    ? HEADERS_GAGGS_RESULTS[directResultCode]
-    : scoreSummary?.result || null;
+  const activeResult =
+    isDirectResult && directResultCode
+      ? HEADERS_GAGGS_RESULTS[directResultCode]
+      : scoreSummary?.result || null;
 
   return {
     currentStep,

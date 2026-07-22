@@ -1,4 +1,4 @@
-import React from "react";
+import React from 'react';
 
 interface HeadersGaggsProgressProps {
   currentStep: number;
@@ -28,10 +28,7 @@ export const HeadersGaggsProgress: React.FC<HeadersGaggsProgressProps> = ({
         aria-valuemax={totalSteps}
         aria-label={`Question ${currentStep} of ${totalSteps}`}
       >
-        <div
-          className="headers-gaggs-progress-bar-fill"
-          style={{ width: `${percentage}%` }}
-        />
+        <div className="headers-gaggs-progress-bar-fill" style={{ width: `${percentage}%` }} />
       </div>
     </div>
   );

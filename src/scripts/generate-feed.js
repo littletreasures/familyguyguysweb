@@ -65,7 +65,10 @@ async function generateFeed() {
     .order('episode_number', { ascending: false });
 
   if (error) {
-    console.warn('Warning: Unable to fetch episodes from Supabase for RSS feed generation:', error.message || error);
+    console.warn(
+      'Warning: Unable to fetch episodes from Supabase for RSS feed generation:',
+      error.message || error
+    );
     console.warn('Skipping RSS feed update without failing build.');
     process.exit(0);
   }

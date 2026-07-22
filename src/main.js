@@ -90,7 +90,8 @@ if (typeof window !== 'undefined' && typeof document !== 'undefined') {
 
     if ((appContainer || ctaContainer) && (!headersGaggsAppMounted || !headersGaggsCtaMounted)) {
       try {
-        const { mountHeadersGaggsApp, mountHeadersGaggsCta } = await import('./headers-gaggs/mount.tsx');
+        const { mountHeadersGaggsApp, mountHeadersGaggsCta } =
+          await import('./headers-gaggs/mount.tsx');
         if (appContainer && !headersGaggsAppMounted) {
           mountHeadersGaggsApp(appContainer);
           headersGaggsAppMounted = true;
