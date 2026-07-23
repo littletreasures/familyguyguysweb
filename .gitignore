@@ -6,6 +6,8 @@ dist/*
 # Environment and Secrets (Never commit secrets)
 .env
 .env.*
+.env.local
+.env.*.local
 !.env.example
 admin-tools/.env
 !admin-tools/.env.example
@@ -23,4 +25,4 @@ originalfamilyguyguys-site/
 family-guy-guys.html
 .agents/
 .wrangler/
-
+thumbnail-import-results.json

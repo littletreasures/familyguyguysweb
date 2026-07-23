@@ -45,7 +45,11 @@ type Episode = {
   facts: EpisodeFact[];
   watchStatus: WatchStatus;
   podcastUrl: string;
-  transcriptNotes: string;
+  transcriptNotes: string;  
+  thumbnailPublicId: string | null;
+  thumbnailUrl: string | null;
+  thumbnailStatus: "pending" | "uploaded" | "failed" | "manual";
+  thumbnailError: string | null;
   reviews: Review[];
 };
 
@@ -174,8 +178,12 @@ function episodeFromRow(row: any): Episode {
     director: row.director,
     facts: Array.isArray(row.facts) ? row.facts : [],
     watchStatus: row.watch_status,
-    podcastUrl: row.podcast_url,
-    transcriptNotes: row.transcript_notes,
+    podcastUrl: row.podcasturl,
+    transcriptNotes: row.transcriptnotes,
+    thumbnailPublicId: row.thumbnail_public_id ?? null,
+    thumbnailUrl: row.thumbnail_url ?? null,
+    thumbnailStatus: row.thumbnail_status ?? 'pending',
+    thumbnailError: row.thumbnail_error ?? null,
     reviews: [],
   };
 }
@@ -268,7 +276,7 @@ function App() {
           client
             .from('episodes')
             .select(
-              'id, season, episode_number, title, air_date, runtime, imdb_rating, summary, cast, guest_stars, writers, director, facts, watch_status, podcast_url, transcript_notes'
+              'id, season, episode_number, title, air_date, runtime, imdb_rating, summary, cast, guest_stars, writers, director, facts, watch_status, podcast_url, transcript_notes, thumbnail_public_id, thumbnail_url, thumbnail_status, thumbnail_error'
             ),
           fetchReviews(),
           client.from('config').select('rating_label, rating_max, show_name, subtitle'),
@@ -384,7 +392,7 @@ function App() {
           client
             .from('episodes')
             .select(
-              'id, season, episode_number, title, air_date, runtime, imdb_rating, summary, cast, guest_stars, writers, director, facts, watch_status, podcast_url, transcript_notes'
+              'id, season, episode_number, title, air_date, runtime, imdb_rating, summary, cast, guest_stars, writers, director, facts, watch_status, podcast_url, transcript_notes, thumbnail_public_id, thumbnail_url, thumbnail_status, thumbnail_error'
             ),
           fetchReviews(),
           client.from('config').select('rating_label, rating_max, show_name, subtitle'),
@@ -1662,30 +1670,15 @@ function EpisodePoster({
 }) {
   const colors = posterColors(episode.id);
   const average = averageRating(episode.reviews);
-  const [posterUrl, setPosterUrl] = useState<string | null>(null);
+  const [imageFailed, setImageFailed] = useState(false);
 
-  useEffect(() => {
-    const apiKey = import.meta.env.VITE_OMDB_API_KEY?.trim();
-    if (!apiKey) return;
-    let isMounted = true;
-    const fetchPoster = async () => {
-      try {
-        const res = await fetch(
-          `https://www.omdbapi.com/?t=Family+Guy&Season=${episode.season}&Episode=${episode.episodeNumber}&apikey=${apiKey}`
-        );
-        const data = await res.json();
-        if (isMounted && data.Response === 'True' && data.Poster && data.Poster !== 'N/A') {
-          setPosterUrl(data.Poster);
-        }
-      } catch (err) {
-        console.warn('Failed to fetch poster from OMDB', err);
-      }
-    };
-    fetchPoster();
-    return () => {
-      isMounted = false;
-    };
-  }, [episode.season, episode.episodeNumber]);
+  const thumbnailUrl =
+    (episode.thumbnailStatus === 'uploaded' ||
+      episode.thumbnailStatus === 'manual') &&
+    episode.thumbnailUrl &&
+    !imageFailed
+      ? episode.thumbnailUrl
+      : null;
 
   if (size === 'mini') {
     return (
@@ -1698,13 +1691,14 @@ function EpisodePoster({
         <div className="text-[8px] font-black uppercase text-black/60 leading-none">
           {formatEpisodeCode(episode)}
         </div>
+
         <div className="h-10 w-full border border-black/35 bg-[#f5f4f0] overflow-hidden relative my-0.5 flex items-center justify-center rounded">
-          {posterUrl ? (
+          {thumbnailUrl ? (
             <img
-              src={posterUrl}
-              alt=""
+              src={thumbnailUrl}
+              alt={`Family Guy — ${episode.title}`}
               className="w-full h-full object-cover"
-              onError={() => setPosterUrl(null)}
+              onError={() => setImageFailed(true)}
             />
           ) : (
             <svg
@@ -1720,9 +1714,11 @@ function EpisodePoster({
             </svg>
           )}
         </div>
+
         <h3 className="text-[9px] font-black leading-tight text-black uppercase truncate w-full">
           {episode.title}
         </h3>
+
         <div className="border-t border-black/15 pt-0.5 text-[8px] text-black/75 font-bold flex justify-between items-center leading-none">
           <span>
             {average === null ? '--' : average.toFixed(1)} {ratingScale.slice(0, 3)}
@@ -1734,6 +1730,7 @@ function EpisodePoster({
 
   const sizeClass =
     size === 'hero' ? 'aspect-[4/5]' : size === 'detail' ? 'aspect-[4/5]' : 'aspect-[4/5]';
+
   const titleClass = size === 'hero' || size === 'detail' ? 'text-3xl' : 'text-2xl';
 
   return (
@@ -1745,18 +1742,21 @@ function EpisodePoster({
     >
       <div className="absolute inset-x-3.5 top-3.5 flex items-center justify-between text-xs font-extrabold uppercase tracking-[0.28em] text-black/60">
         <span>{formatEpisodeCode(episode)}</span>
+
         <span className="bg-black text-white px-1.5 py-0.5 border border-black font-black rounded">
           {STATUS_LABEL[episode.watchStatus]}
         </span>
       </div>
+
       <div className="absolute inset-x-3.5 bottom-3.5 text-black">
         <div className="mb-3 aspect-[16/9] w-full border-2 border-black bg-[#f5f4f0] overflow-hidden relative flex items-center justify-center rounded">
-          {posterUrl ? (
+          {thumbnailUrl ? (
             <img
-              src={posterUrl}
-              alt=""
+              src={thumbnailUrl}
+              alt={`Family Guy — ${episode.title}`}
               className="w-full h-full object-cover"
-              onError={() => setPosterUrl(null)}
+              loading={size === 'detail' ? 'eager' : 'lazy'}
+              onError={() => setImageFailed(true)}
             />
           ) : (
             <div
@@ -1776,13 +1776,16 @@ function EpisodePoster({
             </div>
           )}
         </div>
+
         <h3
           className={`${titleClass} max-w-[92%] font-black leading-[0.95] tracking-[-0.05em] text-black uppercase`}
         >
           {episode.title}
         </h3>
+
         <div className="mt-4 flex items-center justify-between gap-4 border-t-2 border-black/15 pt-4 text-sm text-black/75 font-bold">
           <span>{episode.airDate}</span>
+
           <span>
             {average === null ? '--' : average.toFixed(1)} {ratingScale}
           </span>
@@ -2129,6 +2132,10 @@ function episodeBase(
     watchStatus,
     podcastUrl: '',
     transcriptNotes: '',
+    thumbnailPublicId: null,
+    thumbnailUrl: null,
+    thumbnailStatus: 'pending',
+    thumbnailError: null,
   };
 }
 
