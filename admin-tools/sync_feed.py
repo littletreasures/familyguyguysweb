@@ -1,6 +1,6 @@
 """
-sync_feed.py — Sync Riverside RSS feed episodes to Supabase database.
-Fetches the Riverside XML feed, parses the audio enclosure URLs, and updates
+sync_feed.py — Sync podcast RSS feed episodes to Supabase database.
+Fetches the podcast XML feed, parses the audio enclosure URLs, and updates
 the `podcast_url` column in your Supabase `episodes` table based on matching season and episode numbers.
 
 Usage:
@@ -20,7 +20,8 @@ NAMESPACES = {
     "content": "http://purl.org/rss/1.0/modules/content/",
 }
 
-RIVERSIDE_FEED_URL = "https://api.riverside.com/hosting/ybzPu9xT.rss"
+PODCAST_FEED_URL = "https://media.rss.com/family-guy-guys/feed.xml"
+RIVERSIDE_FEED_URL = PODCAST_FEED_URL
 
 
 def fetch_and_parse_feed(url: str) -> list:

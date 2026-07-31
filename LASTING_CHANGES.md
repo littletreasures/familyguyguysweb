@@ -38,9 +38,9 @@ We created and verified SQL migration scripts inside `src/scripts/` to align the
 
 ---
 
-## 5. Riverside RSS Feed & Pipeline Automation
-* **Subscribe Buttons**: Added feed links to your new Riverside RSS feed (`https://api.riverside.com/hosting/ybzPu9xT.rss`) on the homepage hero, mobile navigation drawer, and contact listening sections.
-* **Sync Script ([sync_feed.py](file:///Volumes/RetroSSD/SSD-Family-Guy-Guys-Storage/FamilyGuyWebsite/admin-tools/sync_feed.py))**: Created a Python script inside `admin-tools/` that parses the Riverside feed XML, extracts episode audio enclosures (`enclosure url`), and updates matching database records' `podcast_url` dynamically.
+## 5. RSS Feed & Pipeline Automation
+* **Subscribe Buttons**: Added feed links to your RSS feed (`https://media.rss.com/family-guy-guys/feed.xml`) on the homepage hero, mobile navigation drawer, and contact listening sections.
+* **Sync Script ([sync_feed.py](file:///Volumes/RetroSSD/SSD-Family-Guy-Guys-Storage/FamilyGuyWebsite/admin-tools/sync_feed.py))**: Created a Python script inside `admin-tools/` that parses the podcast feed XML, extracts episode audio enclosures (`enclosure url`), and updates matching database records' `podcast_url` dynamically.
 
 ---
 
