@@ -3,7 +3,7 @@ CREATE TABLE IF NOT EXISTS public.visitor_reviews (
   id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
   episode_id text NOT NULL,
   author text NOT NULL,
-  rating numeric NOT NULL,
+  rating numeric NOT NULL CHECK (rating >= 0 AND rating <= 100),
   scale text NOT NULL,
   terminology text NOT NULL,
   content text NOT NULL,
