@@ -221,6 +221,51 @@ export function sanitizeURL(rawUrl) {
   return null;
 }
 
+/**
+ * Safely derives primary and fallback YouTube video thumbnail URLs from a YouTube URL.
+ * Returns null for blank, malformed, or unsupported URLs without throwing.
+ */
+export function getYouTubeThumbnailUrls(youtubeUrl) {
+  if (!youtubeUrl || typeof youtubeUrl !== 'string') return null;
+  const trimmed = youtubeUrl.trim();
+  if (!trimmed) return null;
+
+  try {
+    const url = new URL(trimmed);
+    const hostname = url.hostname.replace(/^(www\.|m\.)/, '').toLowerCase();
+    let videoId = null;
+
+    if (hostname === 'youtu.be') {
+      const pathname = url.pathname.slice(1);
+      videoId = pathname.split('/')[0] || null;
+    } else if (hostname === 'youtube.com') {
+      if (url.pathname === '/watch') {
+        videoId = url.searchParams.get('v');
+      } else if (url.pathname.startsWith('/shorts/')) {
+        const parts = url.pathname.split('/');
+        videoId = parts[2] || null;
+      } else if (url.pathname.startsWith('/embed/')) {
+        const parts = url.pathname.split('/');
+        videoId = parts[2] || null;
+      }
+    }
+
+    if (!videoId) return null;
+
+    const cleanId = videoId.trim();
+    if (!/^[a-zA-Z0-9_-]{11}$/.test(cleanId)) {
+      return null;
+    }
+
+    return {
+      primary: `https://i.ytimg.com/vi/${cleanId}/maxresdefault.jpg`,
+      fallback: `https://i.ytimg.com/vi/${cleanId}/hqdefault.jpg`,
+    };
+  } catch (_e) {
+    return null;
+  }
+}
+
 // DOM API-based safe episode card element builder
 function createEpisodeElement(ep, isFeatured = false) {
   const safeYtUrl = sanitizeURL(ep.youtube_url);
@@ -251,42 +296,38 @@ function createEpisodeElement(ep, isFeatured = false) {
   }
 
   const epNumStr = ep.episode_number.toString().padStart(3, '0');
-  const thumbPrefix = `/assets/ep${epNumStr}-thumb`;
+  const DEFAULT_THUMBNAIL = '/assets/default-podcast-episode-thumbnail.webp';
+  const ytThumbs = getYouTubeThumbnailUrls(ep.youtube_url);
 
-  // Thumb container with Picture element
+  // Thumb container
   const thumbContainer = document.createElement('div');
   if (isFeatured) thumbContainer.className = 'episode-thumb-featured';
 
-  const picture = document.createElement('picture');
-
-  const sourceAvif = document.createElement('source');
-  sourceAvif.srcset = `${thumbPrefix}-180w.avif 180w, ${thumbPrefix}-360w.avif 360w`;
-  sourceAvif.type = 'image/avif';
-  sourceAvif.sizes = isFeatured ? '160px' : '180px';
-
-  const sourceWebp = document.createElement('source');
-  sourceWebp.srcset = `${thumbPrefix}-180w.webp 180w, ${thumbPrefix}-360w.webp 360w`;
-  sourceWebp.type = 'image/webp';
-  sourceWebp.sizes = isFeatured ? '160px' : '180px';
-
   const img = document.createElement('img');
-  img.src = `${thumbPrefix}-360w.webp`;
-  img.alt = `Episode ${epNumStr} thumbnail`;
+  img.alt = `Family Guy Guys YouTube thumbnail — Episode #${epNumStr}: ${ep.title || ''}`;
   if (!isFeatured) img.className = 'ep-thumb';
   img.setAttribute('width', isFeatured ? '160' : '180');
   img.setAttribute('height', isFeatured ? '90' : '101');
   img.setAttribute('loading', 'lazy');
   img.setAttribute('decoding', 'async');
-  img.onerror = () => {
-    img.onerror = null;
-    img.src = '/tv-watching-480w.webp';
-    img.alt = 'Family Guy Guys default thumbnail';
-  };
 
-  picture.appendChild(sourceAvif);
-  picture.appendChild(sourceWebp);
-  picture.appendChild(img);
-  thumbContainer.appendChild(picture);
+  if (ytThumbs) {
+    img.src = ytThumbs.primary;
+    let step = 0;
+    img.onerror = () => {
+      if (step === 0) {
+        step = 1;
+        img.src = ytThumbs.fallback;
+      } else {
+        img.onerror = null;
+        img.src = DEFAULT_THUMBNAIL;
+      }
+    };
+  } else {
+    img.src = DEFAULT_THUMBNAIL;
+  }
+
+  thumbContainer.appendChild(img);
 
   // Meta container
   const metaContainer = document.createElement('div');
@@ -403,7 +444,7 @@ const DEFAULT_FALLBACK_EPISODES = [
     air_date: 'Jan 31, 1999',
     summary:
       'Peter loses his job after drinking too much at a bachelor party and accidentally collects $150,000 in welfare checks.',
-    youtube_url: null,
+    youtube_url: 'https://youtu.be/-NQAqWC2BK0',
     reviews: [{ id: 'rev-1' }],
   },
   {
@@ -414,7 +455,7 @@ const DEFAULT_FALLBACK_EPISODES = [
     air_date: 'Apr 11, 1999',
     summary:
       'Peter knocks out the city cable TV transmitter while teaching Meg to drive, then suffers extreme television withdrawal.',
-    youtube_url: null,
+    youtube_url: 'https://youtu.be/a9Y_LX9c8Bk',
     reviews: [{ id: 'rev-2' }],
   },
   {
@@ -425,7 +466,7 @@ const DEFAULT_FALLBACK_EPISODES = [
     air_date: 'Apr 18, 1999',
     summary:
       "Meg gets invited to a party that turns out to be a cult suicide pact while Peter tries to salvage Stewie's first birthday.",
-    youtube_url: null,
+    youtube_url: 'https://youtu.be/BcrVPdWeCZ4',
     reviews: [{ id: 'rev-3' }],
   },
 ];
