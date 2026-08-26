@@ -108,6 +108,24 @@ describe('Transcript Parsing and Utilities', () => {
       );
       expect(word_count).toBeGreaterThan(50);
     });
+
+    it('always derives plain_text and word_count directly from sections ignoring external values', () => {
+      const sections = [
+        {
+          id: 'sec-1',
+          heading: 'Recalculation Test',
+          start_seconds: 0,
+          end_seconds: 20,
+          entries: [
+            { start_seconds: 0, end_seconds: 10, speaker: 'Collin', text: 'Real speech content' },
+          ],
+        },
+      ];
+      const derived = generatePlainText(sections);
+      expect(derived.plain_text).toContain('## Recalculation Test');
+      expect(derived.plain_text).toContain('Collin [00:00]: Real speech content');
+      expect(derived.word_count).toBe(8);
+    });
   });
 
   describe('validateTranscript bound checks & integrity', () => {
