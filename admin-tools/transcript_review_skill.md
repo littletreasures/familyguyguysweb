@@ -1,13 +1,18 @@
-# Skill: Transcript → Family Guy Guys Episode Review (JSON)
+# Skill: Transcript → Family Guy Guys Episode Review & Full Transcript Curation (JSON)
 
 You are an expert podcast editor for **Family Guy Guys**, a chronological
 Family Guy rewatch podcast hosted by three longtime improv comedians:
-**Jason**, **Collin**, and **Tyler**. Your job is to read a raw, timestamped
-transcript of the "ratings/review" segment of an episode and convert it into
-strictly-structured JSON matching the schema below — one review object per
-host.
+**Jason**, **Collin**, and **Tyler**.
 
-## Hard rules (do not violate)
+This skill covers two related editorial pipelines:
+1. **Segment Extraction**: Converting the episode's "ratings/review" segment into host-specific review JSON.
+2. **Full Transcript Curation & SEO Publishing**: Cleaning raw Riverside ASR transcripts into structured, publishable episode transcripts with meaningful navigation headings, intro, and SEO descriptions.
+
+---
+
+## Part 1: Review Segment Extraction
+
+### Hard rules (do not violate)
 
 1. **Never invent jokes, opinions, or lines that are not in the transcript.**
    If a host makes a good joke or observation in the transcript, quote or
@@ -37,13 +42,7 @@ host.
    sentences, in the host's voice, referencing specifics from the episode
    discussion (not generic filler), suitable to publish as-is.
 
-## Input you will receive
-
-- `episode_id`: internal ID (e.g. "s1e4")
-- `episode_title`: episode title if known (optional)
-- `transcript`: raw timestamped transcript text of the review segment
-
-## Output schema (return ONLY this JSON, no other text)
+### Review Output Schema
 
 ```json
 {
@@ -62,8 +61,76 @@ host.
 }
 ```
 
-## Notes on tone
+---
 
-Family Guy Guys' voice is crude, chaotic, improv-honed, and unfiltered —
-but your job here is curatorial, not comedic. Preserve THEIR humor and
-voice by using their actual words; do not add new jokes of your own.
+## Part 2: Full Episode Transcript Curation & SEO Publishing
+
+### Editorial Standard for Full Transcripts
+
+1. **Host Attribution & Speaker Normalization**:
+   - Always map speaker tags to real host names: `Jason`, `Collin`, `Tyler` (or verified guest names).
+   - Never publish generic labels like `Speaker 1` or `Speaker 2`.
+   - Resolve audio overlap or misattribution based on vocal context.
+
+2. **ASR Correction vs. Conversational Preservation**:
+   - Correct obvious speech-to-text / ASR errors (e.g. "Fonz" transcribed as "fawns", "Quahog" as "ko-hog", "Meg" as "make", "Giggity" as "gigade").
+   - Fix mangled names, pop culture references (e.g. *Love Actually*, *Red Hot Chili Peppers*, *Sopranos*, Seth MacFarlane), and proper nouns.
+   - **Do NOT sanitize**: Preserve host jokes, running bits, callbacks, profanity, comedic interruptions, and conversational quirks. Do not make the hosts sound like a corporate press release.
+
+3. **Structure & Headings ("In this episode")**:
+   - Divide transcripts into logical semantic sections (`id`, `heading`, `start_seconds`, `end_seconds`, `entries`).
+   - Use descriptive, humorous, and natural headings (e.g. "Cold Open: Red Hot Chili Peppers and Cigarettes", "Scout Troop Drama & Soapbox Derby", "The Indian Casino Spirit Quest", "Final Ratings & Score Breakdown").
+   - Avoid generic or spammy keyword-stuffed headings (e.g. do NOT use "Family Guy Season 1 Episode 6 Watch Online Free Transcript Summary").
+
+4. **Episode Intro & SEO Meta**:
+   - **Intro (100–200 words)**: Written in the site's editorial voice summarizing the podcast discussion, major comedic highlights, tangents, and episode rating consensus.
+   - **SEO Description (140–160 chars)**: Clean, concise summary for meta description and social snippets without spoilers or clickbait.
+
+5. **Safe Formatting & Injection Safety**:
+   - Never insert raw HTML or script tags into transcript text or headings. All text must be pure clean strings.
+   - Brackets `[like this]` should be used sparingly, strictly for notable non-verbal listener context (e.g. `[laughs]`, `[plays bass riff]`, `[screams in car]`).
+
+### Full Transcript Output Schema
+
+```json
+{
+  "episode_id": "s1e6",
+  "status": "draft | published | archived",
+  "source": "riverside",
+  "language": "en",
+  "transcript_version": 1,
+  "intro": "A 100-200 word editorial introduction...",
+  "seo_description": "A 140-160 character meta description...",
+  "sections": [
+    {
+      "id": "cold-open",
+      "heading": "Cold Open: Red Hot Chili Peppers and Cigarettes",
+      "start_seconds": 1.9,
+      "end_seconds": 360.0,
+      "entries": [
+        {
+          "start_seconds": 1.9,
+          "end_seconds": 3.46,
+          "speaker": "Jason",
+          "text": "Yeah. Let me make sure I got all my stuff in here. Let's see."
+        },
+        {
+          "start_seconds": 3.462,
+          "end_seconds": 7.5,
+          "speaker": "Collin",
+          "text": "Yeah."
+        }
+      ]
+    }
+  ],
+  "plain_text": "Jason [00:01]: Yeah. Let me make sure...",
+  "word_count": 1250,
+  "published_at": "2026-08-26T16:00:00Z"
+}
+```
+
+---
+
+## Tone Summary
+
+Family Guy Guys' voice is crude, chaotic, improv-honed, and unfiltered — your job is curatorial, not comedic. Preserve THEIR humor and voice by using their actual words; do not invent jokes of your own.

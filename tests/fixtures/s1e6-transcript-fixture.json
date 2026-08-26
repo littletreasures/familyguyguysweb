@@ -1,0 +1,88 @@
+{
+  "_comment": "Synthetic test data — never upsert to production.",
+  "is_synthetic": true,
+  "episode_id": "s1e6",
+  "status": "published",
+  "source": "riverside",
+  "language": "en",
+  "transcript_version": 1,
+  "intro": "Collin, Tyler, and Jason dissect Season 1 Episode 6 'The Sun Also Draws', navigating a marathon discussion covering Red Hot Chili Peppers, Peter's questionable casino vision quest, and Tyler's inability to calculate a 0-5 rating scale.",
+  "seo_description": "Family Guy Guys review 'The Sun Also Draws' (S1E6). Full timestamped transcript, host ratings, and scene-by-scene analysis.",
+  "sections": [
+    {
+      "id": "cold-open",
+      "heading": "Cold Open: Red Hot Chili Peppers and Cigarettes",
+      "start_seconds": 1.9,
+      "end_seconds": 3600.0,
+      "entries": [
+        {
+          "start_seconds": 1.9,
+          "end_seconds": 3.462,
+          "speaker": "Jason",
+          "text": "Yeah. let me make sure I got all my stuff in here. Let's see."
+        },
+        {
+          "start_seconds": 3.462,
+          "end_seconds": 7.506,
+          "speaker": "Collin",
+          "text": "Yeah."
+        },
+        {
+          "start_seconds": 7.506,
+          "end_seconds": 9.991,
+          "speaker": "Tyler",
+          "text": "No, too, too."
+        },
+        {
+          "start_seconds": 9.991,
+          "end_seconds": 12.393,
+          "speaker": "Collin",
+          "text": "Yeah, to just smoke a cigarette."
+        },
+        {
+          "start_seconds": 12.393,
+          "end_seconds": 60.0,
+          "speaker": "Tyler",
+          "text": "Yeah. Honestly, yes. That's what I was the reason I bought cigarettes was I don't know why I bought like a Zen pack a few days ago."
+        }
+      ]
+    },
+    {
+      "id": "road-trip",
+      "heading": "Road Trip to New York & The Casino",
+      "start_seconds": 3600.0,
+      "end_seconds": 6876.176,
+      "entries": [
+        {
+          "start_seconds": 3607.372,
+          "end_seconds": 3654.247,
+          "speaker": "Jason",
+          "text": "Wow, it's such a good name, too. So the Griffins are going to New York."
+        },
+        {
+          "start_seconds": 3654.247,
+          "end_seconds": 6876.176,
+          "speaker": "Collin",
+          "text": "So far, nothing problematic about this."
+        }
+      ]
+    },
+    {
+      "id": "ratings-wrapup",
+      "heading": "Final Host Ratings & Math Chaos",
+      "start_seconds": 6876.176,
+      "end_seconds": 7200.0,
+      "entries": [
+        {
+          "start_seconds": 6876.176,
+          "end_seconds": 7155.0,
+          "speaker": "Tyler",
+          "text": "Yeah, so I gave it a 40 out of 100 because of math."
+        }
+      ]
+    }
+  ],
+  "plain_text": "## Cold Open: Red Hot Chili Peppers and Cigarettes\n\nJason [00:01]: Yeah. let me make sure I got all my stuff in here. Let's see.\n\nCollin [00:03]: Yeah.\n\nTyler [00:07]: No, too, too.\n\nCollin [00:09]: Yeah, to just smoke a cigarette.\n\nTyler [00:12]: Yeah. Honestly, yes. That's what I was the reason I bought cigarettes was I don't know why I bought like a Zen pack a few days ago.\n\n## Road Trip to New York & The Casino\n\nJason [01:00:07]: Wow, it's such a good name, too. So the Griffins are going to New York.\n\nCollin [01:00:54]: So far, nothing problematic about this.\n\n## Final Host Ratings & Math Chaos\n\nTyler [01:54:36]: Yeah, so I gave it a 40 out of 100 because of math.",
+  "word_count": 128,
+  "published_at": "2020-01-01T00:00:00Z"
+}

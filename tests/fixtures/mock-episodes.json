@@ -1,0 +1,38 @@
+[
+  {
+    "id": "s1e1",
+    "season": 1,
+    "episode_number": 1,
+    "title": "Death Has a Shadow",
+    "air_date": "31 Jan 1999",
+    "runtime": "30 min",
+    "imdb_rating": "7.6",
+    "summary": "The format is introduced and immediately derailed.",
+    "podcast_url": "https://media.rss.com/family-guy-guys/2026_01_31_s1e1.mp3",
+    "watch_status": "published"
+  },
+  {
+    "id": "s1e4",
+    "season": 1,
+    "episode_number": 4,
+    "title": "Mind Over Murder",
+    "air_date": "25 Apr 1999",
+    "runtime": "23 min",
+    "imdb_rating": "7.7",
+    "summary": "Peter gets put under house arrest and builds a basement bar.",
+    "podcast_url": "https://media.rss.com/family-guy-guys/2026_02_20_s1e4.mp3",
+    "watch_status": "published"
+  },
+  {
+    "id": "s1e6",
+    "season": 1,
+    "episode_number": 6,
+    "title": "The Sun Also Draws",
+    "air_date": "9 May 1999",
+    "runtime": "23 min",
+    "imdb_rating": "7.6",
+    "summary": "Peter and the family head to an Indian casino in New York after Chris gets kicked out of the scouts.",
+    "podcast_url": "https://media.rss.com/family-guy-guys/2026_03_05_s1e6.mp3",
+    "watch_status": "published"
+  }
+]
