@@ -1,5 +1,5 @@
 """
-transcript_ingest.py — Ingest and structure Riverside transcript exports into structured JSON.
+transcript_ingest.py — Ingest and structure Riverside transcript exports into structured draft JSON.
 
 Usage:
     python transcript_ingest.py --transcript raw_riverside.txt --episode-id s1e6 --out s1e6_transcript.json
@@ -115,21 +115,22 @@ def ingest_transcript_file(
     file_path: str,
     episode_id: str,
     intro: str = "",
-    seo_description: str = "",
-    status: str = "draft"
+    seo_description: str = ""
 ) -> Dict[str, Any]:
+    """
+    Ingests a Riverside transcript export file into a validated draft transcript document.
+    Ingestion strictly produces draft records (status='draft', published_at=None).
+    Publishing is an explicit admin action handled via the upsert/publishing workflow.
+    """
     with open(file_path, "r", encoding="utf-8") as f:
         content = f.read()
 
     sections = parse_riverside_text(content)
-    if not sections:
-        raise ValueError(f"No valid transcript entries could be parsed from '{file_path}'")
-
     plain_text, word_count = calculate_plain_text(sections)
 
     raw_doc = {
         "episode_id": episode_id.lower().strip(),
-        "status": status,
+        "status": "draft",
         "source": "riverside",
         "language": "en",
         "transcript_version": 1,
@@ -145,12 +146,11 @@ def ingest_transcript_file(
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Ingest Riverside transcript text into structured JSON")
+    parser = argparse.ArgumentParser(description="Ingest Riverside transcript text into structured draft JSON")
     parser.add_argument("--transcript", required=True, help="Path to Riverside .txt export file")
     parser.add_argument("--episode-id", required=True, help="Episode ID (e.g. s1e6)")
     parser.add_argument("--intro", default="", help="Optional episode introduction text")
     parser.add_argument("--seo-description", default="", help="Optional SEO description meta text")
-    parser.add_argument("--status", default="draft", choices=["draft", "published", "archived"], help="Transcript status")
     parser.add_argument("--out", default=None, help="Output JSON file path (default: stdout)")
     args = parser.parse_args()
 
@@ -159,15 +159,14 @@ def main():
             file_path=args.transcript,
             episode_id=args.episode_id,
             intro=args.intro,
-            seo_description=args.seo_description,
-            status=args.status
+            seo_description=args.seo_description
         )
 
         formatted_json = json.dumps(doc, indent=2)
         if args.out:
             with open(args.out, "w", encoding="utf-8") as f:
                 f.write(formatted_json)
-            print(f"Successfully wrote structured transcript to {args.out}")
+            print(f"Successfully wrote draft transcript to {args.out}")
         else:
             print(formatted_json)
     except Exception as e:
