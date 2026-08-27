@@ -45,10 +45,10 @@ type Episode = {
   facts: EpisodeFact[];
   watchStatus: WatchStatus;
   podcastUrl: string;
-  transcriptNotes: string;  
+  transcriptNotes: string;
   thumbnailPublicId: string | null;
   thumbnailUrl: string | null;
-  thumbnailStatus: "pending" | "uploaded" | "failed" | "manual";
+  thumbnailStatus: 'pending' | 'uploaded' | 'failed' | 'manual';
   thumbnailError: string | null;
   reviews: Review[];
 };
@@ -1673,8 +1673,7 @@ function EpisodePoster({
   const [imageFailed, setImageFailed] = useState(false);
 
   const thumbnailUrl =
-    (episode.thumbnailStatus === 'uploaded' ||
-      episode.thumbnailStatus === 'manual') &&
+    (episode.thumbnailStatus === 'uploaded' || episode.thumbnailStatus === 'manual') &&
     episode.thumbnailUrl &&
     !imageFailed
       ? episode.thumbnailUrl
