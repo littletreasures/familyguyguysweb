@@ -26,3 +26,7 @@ family-guy-guys.html
 .agents/
 .wrangler/
 thumbnail-import-results.json
+
+# Private transcript sources and drafts (Never commit raw audio transcripts or working drafts)
+admin-tools/sources/
+admin-tools/drafts/

@@ -460,6 +460,10 @@ function App() {
   const metrics = useMemo(() => getDatasetMetrics(dataset), [dataset]);
 
   function navigate(nextRoute: Route) {
+    if (nextRoute.page === 'episode') {
+      window.location.href = routeToPath(nextRoute);
+      return;
+    }
     navigateTo(routeToPath(nextRoute));
   }
 

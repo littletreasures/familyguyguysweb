@@ -4,7 +4,9 @@ import { sanitizeURL, escapeHTML } from '../src/main.js';
 describe('Security Utilities: sanitizeURL', () => {
   it('permits valid https external URLs', () => {
     expect(sanitizeURL('https://youtube.com/watch?v=123')).toBe('https://youtube.com/watch?v=123');
-    expect(sanitizeURL('https://open.spotify.com/show/abc')).toBe('https://open.spotify.com/show/abc');
+    expect(sanitizeURL('https://open.spotify.com/show/abc')).toBe(
+      'https://open.spotify.com/show/abc'
+    );
   });
 
   it('permits valid internal relative paths', () => {
@@ -30,8 +32,12 @@ describe('Security Utilities: sanitizeURL', () => {
 
 describe('Security Utilities: escapeHTML', () => {
   it('escapes dangerous HTML characters', () => {
-    expect(escapeHTML('<script>alert("xss")</script>')).toBe('&lt;script&gt;alert(&quot;xss&quot;)&lt;&#47;script&gt;');
-    expect(escapeHTML("Tom & Jerry's `test` = 1")).toBe('Tom &amp; Jerry&#39;s &#96;test&#96; &#61; 1');
+    expect(escapeHTML('<script>alert("xss")</script>')).toBe(
+      '&lt;script&gt;alert(&quot;xss&quot;)&lt;&#47;script&gt;'
+    );
+    expect(escapeHTML("Tom & Jerry's `test` = 1")).toBe(
+      'Tom &amp; Jerry&#39;s &#96;test&#96; &#61; 1'
+    );
   });
 
   it('returns empty string for falsy input', () => {
