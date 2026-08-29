@@ -89,6 +89,24 @@ export async function runPrerender({ mode = process.env.PRERENDER_DATA_MODE } = 
 
 // Direct execution entrypoint
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
+  if (process.env.PRERENDER_DATA_MODE === 'production') {
+    if (
+      !process.env.SUPABASE_URL ||
+      (!process.env.SUPABASE_SECRET_KEY && !process.env.SUPABASE_SERVICE_KEY)
+    ) {
+      try {
+        const dotenv = await import('dotenv');
+        const rootDir = path.resolve(__dirname, '../..');
+        const localEnv = path.resolve(rootDir, '.env.local');
+        const adminEnv = path.resolve(rootDir, 'admin-tools/.env');
+        if (fs.existsSync(localEnv)) dotenv.config({ path: localEnv });
+        if (fs.existsSync(adminEnv)) dotenv.config({ path: adminEnv });
+      } catch {
+        // ignore
+      }
+    }
+  }
+
   runPrerender().catch((err) => {
     console.error('[prerender] ✗ Fatal error during prerendering:', err.message);
     process.exit(1);
