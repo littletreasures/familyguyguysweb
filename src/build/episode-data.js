@@ -23,9 +23,9 @@ export async function loadEpisodeData({ mode = process.env.PRERENDER_DATA_MODE }
 
   if (mode === 'fixture') {
     const mockEpisodesPath = path.resolve(__dirname, '../../tests/fixtures/mock-episodes.json');
-    const s1e6FixturePath = path.resolve(
+    const mockFixturePath = path.resolve(
       __dirname,
-      '../../tests/fixtures/s1e6-transcript-fixture.json'
+      '../../tests/fixtures/mock-transcript-fixture.json'
     );
 
     if (!fs.existsSync(mockEpisodesPath)) {
@@ -35,9 +35,9 @@ export async function loadEpisodeData({ mode = process.env.PRERENDER_DATA_MODE }
     const episodes = JSON.parse(fs.readFileSync(mockEpisodesPath, 'utf8'));
     const transcripts = {};
 
-    if (fs.existsSync(s1e6FixturePath)) {
-      const s1e6Transcript = JSON.parse(fs.readFileSync(s1e6FixturePath, 'utf8'));
-      transcripts[s1e6Transcript.episode_id] = s1e6Transcript;
+    if (fs.existsSync(mockFixturePath)) {
+      const mockTranscript = JSON.parse(fs.readFileSync(mockFixturePath, 'utf8'));
+      transcripts[mockTranscript.episode_id] = mockTranscript;
     }
 
     return { episodes, transcripts, mode: 'fixture' };

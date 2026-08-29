@@ -36,13 +36,17 @@ describe('Phase 2 Prerendering Modules & Safety Gates', () => {
       );
     });
 
-    it('loads mock fixture data in explicit fixture mode', async () => {
+    it('loads mock fixture data in explicit fixture mode with synthetic episode only', async () => {
       process.env.PRERENDER_DATA_MODE = 'fixture';
       const { episodes, transcripts, mode } = await loadEpisodeData({ mode: 'fixture' });
       expect(mode).toBe('fixture');
       expect(episodes.length).toBeGreaterThan(0);
-      expect(transcripts['s1e6']).toBeDefined();
-      expect(transcripts['s1e6'].sections.length).toBeGreaterThan(0);
+      // Real episodes must NOT have fake synthetic transcripts
+      expect(transcripts['s1e6']).toBeUndefined();
+      expect(transcripts['s1e1']).toBeUndefined();
+      // Dedicated mock test episode holds synthetic test transcript
+      expect(transcripts['s99e99']).toBeDefined();
+      expect(transcripts['s99e99'].sections.length).toBeGreaterThan(0);
     });
 
     it('fails loudly in production mode when build-only secrets are missing', async () => {
@@ -236,7 +240,7 @@ describe('Phase 2 Prerendering Modules & Safety Gates', () => {
   });
 
   describe('5. Prerender Execution & Emitted Artifact Verification', () => {
-    it('prerender script in explicit fixture mode generates dist/reviews/s1e6/index.html with full transcript', async () => {
+    it('prerender script in fixture mode generates clean static pages without fake transcripts on real episodes', async () => {
       // Ensure dist/index.html exists for testing
       const distDir = path.resolve(__dirname, '../dist');
       fs.mkdirSync(distDir, { recursive: true });
@@ -244,25 +248,32 @@ describe('Phase 2 Prerendering Modules & Safety Gates', () => {
       fs.writeFileSync(path.resolve(distDir, 'index.html'), mockBaseHtml, 'utf8');
 
       const result = await runPrerender({ mode: 'fixture' });
-      expect(result.generatedCount).toBeGreaterThanOrEqual(3);
-      expect(result.withTranscriptCount).toBeGreaterThanOrEqual(1);
+      expect(result.generatedCount).toBeGreaterThanOrEqual(4);
+      expect(result.withTranscriptCount).toBe(1); // Only mock-test-ep
 
+      // Real S1E6 static page must show curation fallback, NOT synthetic dialogue
       const s1e6HtmlPath = path.resolve(distDir, 'reviews/s1e6/index.html');
       expect(fs.existsSync(s1e6HtmlPath)).toBe(true);
-
-      const html = fs.readFileSync(s1e6HtmlPath, 'utf8');
-      expect(html).toContain(
+      const s1e6Html = fs.readFileSync(s1e6HtmlPath, 'utf8');
+      expect(s1e6Html).toContain(
         '<link rel="canonical" href="https://familyguyguys.com/reviews/s1e6">'
       );
-      expect(html).toContain('The Sun Also Draws');
-      expect(html).toContain('application/ld+json');
-      expect(html).toContain('PodcastEpisode');
-      expect(html).toContain('id="prerendered-episode-content"');
-      expect(html).toContain('id="prerendered-transcript"');
-      expect(html).toContain('Cold Open: Red Hot Chili Peppers and Cigarettes');
-      expect(html).toContain('Jason');
-      expect(html).toContain('Collin');
-      expect(html).toContain('Tyler');
+      expect(s1e6Html).toContain('The Sun Also Draws');
+      expect(s1e6Html).toContain('no-transcript-fallback');
+      expect(s1e6Html).toContain(
+        'The full transcribed conversation for this episode is currently being curated.'
+      );
+      expect(s1e6Html).not.toContain('Cold Open: Red Hot Chili Peppers and Cigarettes');
+
+      // Mock test episode page contains the synthetic fixture
+      const mockEpPath = path.resolve(distDir, 'reviews/s99e99/index.html');
+      expect(fs.existsSync(mockEpPath)).toBe(true);
+      const mockEpHtml = fs.readFileSync(mockEpPath, 'utf8');
+      expect(mockEpHtml).toContain('id="prerendered-transcript"');
+      expect(mockEpHtml).toContain('Cold Open: Red Hot Chili Peppers and Cigarettes');
+      expect(mockEpHtml).toContain('Jason');
+      expect(mockEpHtml).toContain('Collin');
+      expect(mockEpHtml).toContain('Tyler');
     });
 
     it('fails non-zero when executed with mode=production without credentials', async () => {

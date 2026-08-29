@@ -34,5 +34,17 @@
     "summary": "Peter and the family head to an Indian casino in New York after Chris gets kicked out of the scouts.",
     "podcast_url": "https://media.rss.com/family-guy-guys/2026_03_05_s1e6.mp3",
     "watch_status": "published"
+  },
+  {
+    "id": "s99e99",
+    "season": 99,
+    "episode_number": 99,
+    "title": "Mock Test Episode",
+    "air_date": "1 Jan 2026",
+    "runtime": "25 min",
+    "imdb_rating": "8.0",
+    "summary": "Synthetic test episode for unit test suites.",
+    "podcast_url": "https://media.rss.com/family-guy-guys/mock_test.mp3",
+    "watch_status": "published"
   }
 ]

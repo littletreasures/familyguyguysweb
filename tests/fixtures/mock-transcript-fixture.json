@@ -1,13 +1,14 @@
 {
   "_comment": "Synthetic test data — never upsert to production.",
   "is_synthetic": true,
-  "episode_id": "s1e6",
+  "episode_id": "s99e99",
   "status": "published",
+  "published_at": "2026-08-26T20:00:00Z",
   "source": "riverside",
   "language": "en",
   "transcript_version": 1,
-  "intro": "Collin, Tyler, and Jason dissect Season 1 Episode 6 'The Sun Also Draws', navigating a marathon discussion covering Red Hot Chili Peppers, Peter's questionable casino vision quest, and Tyler's inability to calculate a 0-5 rating scale.",
-  "seo_description": "Family Guy Guys review 'The Sun Also Draws' (S1E6). Full timestamped transcript, host ratings, and scene-by-scene analysis.",
+  "intro": "Collin, Tyler, and Jason dissect a synthetic test episode.",
+  "seo_description": "Family Guy Guys review mock episode. Full timestamped transcript, host ratings, and scene-by-scene analysis.",
   "sections": [
     {
       "id": "cold-open",
@@ -61,7 +62,7 @@
         },
         {
           "start_seconds": 3654.247,
-          "end_seconds": 6876.176,
+          "end_seconds": 3700.0,
           "speaker": "Collin",
           "text": "So far, nothing problematic about this."
         }
@@ -75,7 +76,7 @@
       "entries": [
         {
           "start_seconds": 6876.176,
-          "end_seconds": 7155.0,
+          "end_seconds": 6920.0,
           "speaker": "Tyler",
           "text": "Yeah, so I gave it a 40 out of 100 because of math."
         }
@@ -83,6 +84,5 @@
     }
   ],
   "plain_text": "## Cold Open: Red Hot Chili Peppers and Cigarettes\n\nJason [00:01]: Yeah. let me make sure I got all my stuff in here. Let's see.\n\nCollin [00:03]: Yeah.\n\nTyler [00:07]: No, too, too.\n\nCollin [00:09]: Yeah, to just smoke a cigarette.\n\nTyler [00:12]: Yeah. Honestly, yes. That's what I was the reason I bought cigarettes was I don't know why I bought like a Zen pack a few days ago.\n\n## Road Trip to New York & The Casino\n\nJason [01:00:07]: Wow, it's such a good name, too. So the Griffins are going to New York.\n\nCollin [01:00:54]: So far, nothing problematic about this.\n\n## Final Host Ratings & Math Chaos\n\nTyler [01:54:36]: Yeah, so I gave it a 40 out of 100 because of math.",
-  "word_count": 128,
-  "published_at": "2020-01-01T00:00:00Z"
+  "word_count": 128
 }

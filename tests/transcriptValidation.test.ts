@@ -98,7 +98,7 @@ describe('Transcript Parsing and Utilities', () => {
 
   describe('generatePlainText and word_count', () => {
     it('calculates continuous plain text and positive word count', () => {
-      const fixturePath = path.resolve(__dirname, 'fixtures/s1e6-transcript-fixture.json');
+      const fixturePath = path.resolve(__dirname, 'fixtures/mock-transcript-fixture.json');
       const data: EpisodeTranscript = JSON.parse(fs.readFileSync(fixturePath, 'utf8'));
 
       const { plain_text, word_count } = generatePlainText(data.sections);
@@ -130,7 +130,7 @@ describe('Transcript Parsing and Utilities', () => {
 
   describe('validateTranscript bound checks & integrity', () => {
     it('accepts a valid published episode transcript fixture with proper bounds and published_at', () => {
-      const fixturePath = path.resolve(__dirname, 'fixtures/s1e6-transcript-fixture.json');
+      const fixturePath = path.resolve(__dirname, 'fixtures/mock-transcript-fixture.json');
       const data = JSON.parse(fs.readFileSync(fixturePath, 'utf8'));
 
       const result = validateTranscript(data);
@@ -336,7 +336,7 @@ describe('Transcript Parsing and Utilities', () => {
       const episodeIds = episodes.map((e: any) => e.id);
 
       const orphanTranscript: EpisodeTranscript = {
-        episode_id: 's99e99',
+        episode_id: 's999e999',
         status: 'published',
         published_at: '2020-01-01T00:00:00Z',
         sections: [],
