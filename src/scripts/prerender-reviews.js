@@ -15,9 +15,17 @@ import { buildEpisodePageMetadata } from '../build/build-page-metadata.js';
 import { buildEpisodeJsonLd } from '../build/build-jsonld.js';
 import { RenderEpisodeReviewPage } from '../build/render-transcript-component.js';
 import { assemblePrerenderedHtml } from '../build/html-shell.js';
+import { validateAudioUrlShape } from '../build/validate-audio.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+
+const SYNTHETIC_FIXTURE_MARKERS = [
+  'Red Hot Chili Peppers and Cigarettes',
+  'is_synthetic',
+  's99e99',
+  'Mock Test Episode',
+];
 
 export async function runPrerender({ mode = process.env.PRERENDER_DATA_MODE } = {}) {
   if (!mode) {
@@ -39,15 +47,30 @@ export async function runPrerender({ mode = process.env.PRERENDER_DATA_MODE } = 
   const templateHtml = fs.readFileSync(baseHtmlPath, 'utf8');
   console.log(`[prerender] Starting static review prerender (mode=${mode})...`);
 
-  const { episodes, transcripts } = await loadEpisodeData({ mode });
+  const { episodes, transcripts, cohosts } = await loadEpisodeData({ mode });
   console.log(
-    `[prerender] Loaded ${episodes.length} episodes and ${Object.keys(transcripts).length} transcripts.`
+    `[prerender] Loaded ${episodes.length} episodes, ${Object.keys(transcripts).length} transcripts, and ${cohosts.length} cohosts.`
   );
 
   let generatedCount = 0;
   let withTranscriptCount = 0;
 
   for (const episode of episodes) {
+    // Validate audio URL if present
+    const rawAudioUrl = episode.podcast_url || episode.podcastUrl;
+    if (rawAudioUrl) {
+      const audioCheck = validateAudioUrlShape(rawAudioUrl);
+      if (!audioCheck.valid) {
+        if (mode === 'production') {
+          throw new Error(
+            `[prerender] Production build failed on episode "${episode.id}": ${audioCheck.reason}`
+          );
+        } else {
+          console.warn(`[prerender] Audio URL warning on "${episode.id}": ${audioCheck.reason}`);
+        }
+      }
+    }
+
     const transcript = transcripts[episode.id] || null;
     const hasTranscript = Boolean(
       transcript && transcript.sections && transcript.sections.length > 0
@@ -61,7 +84,7 @@ export async function runPrerender({ mode = process.env.PRERENDER_DATA_MODE } = 
     const jsonLd = buildEpisodeJsonLd(episode, transcript);
 
     const bodyMarkup = renderToStaticMarkup(
-      React.createElement(RenderEpisodeReviewPage, { episode, transcript })
+      React.createElement(RenderEpisodeReviewPage, { episode, transcript, cohosts })
     );
 
     const finalHtml = assemblePrerenderedHtml({
@@ -71,6 +94,17 @@ export async function runPrerender({ mode = process.env.PRERENDER_DATA_MODE } = 
       bodyMarkup,
       _episodeId: episode.id,
     });
+
+    // Production Safety Guard: Ensure no synthetic fixture phrases leak into production HTML
+    if (mode === 'production') {
+      for (const marker of SYNTHETIC_FIXTURE_MARKERS) {
+        if (finalHtml.includes(marker)) {
+          throw new Error(
+            `[prerender] FATAL: Production artifact for "${episode.id}" contains synthetic fixture marker "${marker}". Aborting production build.`
+          );
+        }
+      }
+    }
 
     const episodeOutDir = path.resolve(distDir, 'reviews', episode.id);
     fs.mkdirSync(episodeOutDir, { recursive: true });

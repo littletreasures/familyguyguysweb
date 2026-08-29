@@ -4,47 +4,227 @@
     "season": 1,
     "episode_number": 1,
     "title": "Death Has a Shadow",
-    "air_date": "31 Jan 1999",
-    "runtime": "30 min",
+    "air_date": "1999-01-31",
+    "runtime": "23 min",
     "imdb_rating": "7.6",
-    "summary": "The format is introduced and immediately derailed.",
+    "summary": "After drinking too much at a stag party and falling asleep at work, Peter loses his job, signs up for welfare, and gets more money than expected.",
     "podcast_url": "https://media.rss.com/family-guy-guys/2026_01_31_s1e1.mp3",
-    "watch_status": "published"
+    "watch_status": "published",
+    "reviews": [
+      {
+        "cohost_id": "01201e1a-dafd-424a-b596-ff9ece65f1aa",
+        "rating": 4,
+        "review": "The pilot that started it all. Raw energy, unhinged early cutaways, and the beginning of a 400+ episode journey.",
+        "pullQuote": "We cranked our hogs pretty hard.",
+        "rating_terminology": "Quahogs",
+        "rating_scale_max": 5
+      },
+      {
+        "cohost_id": "e08c8c4b-ecf5-427e-8890-fe9cef0a2c9a",
+        "rating": 4.5,
+        "review": "Watched the original 1999 broadcast after the Super Bowl at age eight and loved it immediately. Pure nostalgia.",
+        "pullQuote": "A legendary kickoff.",
+        "rating_terminology": "Quahogs",
+        "rating_scale_max": 5
+      },
+      {
+        "cohost_id": "0a3dfd13-90b2-47db-b0af-2e0c0df21cff",
+        "rating": 3.5,
+        "review": "Didn't see it until middle school, but the rhythm of the jokes holds up better than I expected.",
+        "pullQuote": "Still finding the formula.",
+        "rating_terminology": "Quahogs",
+        "rating_scale_max": 5
+      }
+    ]
+  },
+  {
+    "id": "s1e2",
+    "season": 1,
+    "episode_number": 2,
+    "title": "I Never Met the Dead Man",
+    "air_date": "1999-04-11",
+    "runtime": "23 min",
+    "imdb_rating": "7.5",
+    "summary": "Peter goes into shock after he disables the entire Quahog cable system while giving Meg driving lessons; Stewie plots to rid the world of broccoli.",
+    "podcast_url": "https://media.rss.com/family-guy-guys/2026_04_11_s1e2.mp3",
+    "watch_status": "published",
+    "reviews": [
+      {
+        "cohost_id": "01201e1a-dafd-424a-b596-ff9ece65f1aa",
+        "rating": 4,
+        "review": "Peter walking around with a cardboard TV cutout frame is peak season one idiocy.",
+        "pullQuote": "Classic early television satire.",
+        "rating_terminology": "Quahogs",
+        "rating_scale_max": 5
+      },
+      {
+        "cohost_id": "e08c8c4b-ecf5-427e-8890-fe9cef0a2c9a",
+        "rating": 4,
+        "review": "The TV withdrawal bits and Tom Tucker's broadcast are fantastic.",
+        "pullQuote": "80 out of 100 Quahogs after the math recalculation.",
+        "rating_terminology": "Quahogs",
+        "rating_scale_max": 5
+      },
+      {
+        "cohost_id": "0a3dfd13-90b2-47db-b0af-2e0c0df21cff",
+        "rating": 4,
+        "review": "The Amish driving-test gag and character bits are great.",
+        "pullQuote": "Four out of five from me.",
+        "rating_terminology": "Quahogs",
+        "rating_scale_max": 5
+      }
+    ]
+  },
+  {
+    "id": "s1e3",
+    "season": 1,
+    "episode_number": 3,
+    "title": "Chitty Chitty Death Bang",
+    "air_date": "1999-04-18",
+    "runtime": "23 min",
+    "imdb_rating": "7.7",
+    "summary": "Peter tries to make the best of a bad situation after he ruins Lois's plans for Stewie's birthday party; Meg's new friend tries to recruit her into a cult.",
+    "podcast_url": "https://media.rss.com/family-guy-guys/2026_04_18_s1e3.mp3",
+    "watch_status": "published",
+    "reviews": [
+      {
+        "cohost_id": "01201e1a-dafd-424a-b596-ff9ece65f1aa",
+        "rating": 2,
+        "review": "Dark cult storyline and bizarre early joke logic, but Stewie meeting the man in white is iconic.",
+        "pullQuote": "A weird detour with high death tolls.",
+        "rating_terminology": "Quahogs",
+        "rating_scale_max": 5
+      },
+      {
+        "cohost_id": "e08c8c4b-ecf5-427e-8890-fe9cef0a2c9a",
+        "rating": 4,
+        "review": "Defending the Cheesecake Factory and Cheesy Charlie's chaos.",
+        "pullQuote": "Four out of five.",
+        "rating_terminology": "Quahogs",
+        "rating_scale_max": 5
+      },
+      {
+        "cohost_id": "0a3dfd13-90b2-47db-b0af-2e0c0df21cff",
+        "rating": 2,
+        "review": "Loose logic and early character friction, but fun to break down.",
+        "pullQuote": "Two out of five.",
+        "rating_terminology": "Quahogs",
+        "rating_scale_max": 5
+      }
+    ]
   },
   {
     "id": "s1e4",
     "season": 1,
     "episode_number": 4,
     "title": "Mind Over Murder",
-    "air_date": "25 Apr 1999",
+    "air_date": "1999-04-25",
     "runtime": "23 min",
     "imdb_rating": "7.7",
     "summary": "Peter gets put under house arrest and builds a basement bar.",
-    "podcast_url": "https://media.rss.com/family-guy-guys/2026_02_20_s1e4.mp3",
-    "watch_status": "published"
+    "podcast_url": "https://media.rss.com/family-guy-guys/2026_04_25_s1e4.mp3",
+    "watch_status": "published",
+    "reviews": [
+      {
+        "cohost_id": "01201e1a-dafd-424a-b596-ff9ece65f1aa",
+        "rating": 3.5,
+        "review": "Ye Olde Pube in the basement and Hot Lois piano superstar status.",
+        "pullQuote": "Weaponized incompetence at its finest.",
+        "rating_terminology": "Quahogs",
+        "rating_scale_max": 5
+      },
+      {
+        "cohost_id": "e08c8c4b-ecf5-427e-8890-fe9cef0a2c9a",
+        "rating": 3,
+        "review": "A divisive one for the boys, but the Mentos cold open is unforgettable.",
+        "pullQuote": "Steam heat in the basement.",
+        "rating_terminology": "Quahogs",
+        "rating_scale_max": 5
+      },
+      {
+        "cohost_id": "0a3dfd13-90b2-47db-b0af-2e0c0df21cff",
+        "rating": 3.5,
+        "review": "The time machine subplot and Quahog neighborhood dynamics make this a fun watch.",
+        "pullQuote": "A strong premise.",
+        "rating_terminology": "Quahogs",
+        "rating_scale_max": 5
+      }
+    ]
+  },
+  {
+    "id": "s1e5",
+    "season": 1,
+    "episode_number": 5,
+    "title": "A Hero Sits Next Door",
+    "air_date": "1999-05-02",
+    "runtime": "23 min",
+    "imdb_rating": "7.8",
+    "summary": "Peter becomes jealous of his new neighbor Joe Swanson after Joe saves the day and becomes the town hero.",
+    "podcast_url": "https://media.rss.com/family-guy-guys/2026_05_02_s1e5.mp3",
+    "watch_status": "published",
+    "reviews": [
+      {
+        "cohost_id": "01201e1a-dafd-424a-b596-ff9ece65f1aa",
+        "rating": 4,
+        "review": "Introducing Joe Swanson and Patrick Warburton to the universe was a monumental moment.",
+        "pullQuote": "Meet Joe Swanson.",
+        "rating_terminology": "Quahogs",
+        "rating_scale_max": 5
+      },
+      {
+        "cohost_id": "e08c8c4b-ecf5-427e-8890-fe9cef0a2c9a",
+        "rating": 4,
+        "review": "The softball game, the bank robbery, and the Grinch voice bit all hit.",
+        "pullQuote": "Gagger vs Structurehead debut.",
+        "rating_terminology": "Quahogs",
+        "rating_scale_max": 5
+      },
+      {
+        "cohost_id": "0a3dfd13-90b2-47db-b0af-2e0c0df21cff",
+        "rating": 4.5,
+        "review": "Christian Hughes guest appearance and great banter all around.",
+        "pullQuote": "One of the best early season one episodes.",
+        "rating_terminology": "Quahogs",
+        "rating_scale_max": 5
+      }
+    ]
   },
   {
     "id": "s1e6",
     "season": 1,
     "episode_number": 6,
-    "title": "The Sun Also Draws",
-    "air_date": "9 May 1999",
+    "title": "The Son Also Draws",
+    "air_date": "1999-05-09",
     "runtime": "23 min",
     "imdb_rating": "7.6",
-    "summary": "Peter and the family head to an Indian casino in New York after Chris gets kicked out of the scouts.",
-    "podcast_url": "https://media.rss.com/family-guy-guys/2026_03_05_s1e6.mp3",
-    "watch_status": "published"
-  },
-  {
-    "id": "s99e99",
-    "season": 99,
-    "episode_number": 99,
-    "title": "Mock Test Episode",
-    "air_date": "1 Jan 2026",
-    "runtime": "25 min",
-    "imdb_rating": "8.0",
-    "summary": "Synthetic test episode for unit test suites.",
-    "podcast_url": "https://media.rss.com/family-guy-guys/mock_test.mp3",
-    "watch_status": "published"
+    "summary": "Peter and the family head to a Native American casino in New York after Chris gets kicked out of the Youth Scouts.",
+    "podcast_url": "https://media.rss.com/family-guy-guys/2026_05_09_s1e6.mp3",
+    "watch_status": "published",
+    "reviews": [
+      {
+        "cohost_id": "01201e1a-dafd-424a-b596-ff9ece65f1aa",
+        "rating": 3.5,
+        "review": "Peter's vision quest and the vanishing blender continuity error are classic discussion points.",
+        "pullQuote": "The vanishing blender alert.",
+        "rating_terminology": "Quahogs",
+        "rating_scale_max": 5
+      },
+      {
+        "cohost_id": "e08c8c4b-ecf5-427e-8890-fe9cef0a2c9a",
+        "rating": 3,
+        "review": "Early cutaways hold up nicely even if the road trip logic is wacky.",
+        "pullQuote": "Tyler's math meltdown.",
+        "rating_terminology": "Quahogs",
+        "rating_scale_max": 5
+      },
+      {
+        "cohost_id": "0a3dfd13-90b2-47db-b0af-2e0c0df21cff",
+        "rating": 3.5,
+        "review": "The sign joke and Lois discovering gambling make for a solid episode recap.",
+        "pullQuote": "Solid season one entry.",
+        "rating_terminology": "Quahogs",
+        "rating_scale_max": 5
+      }
+    ]
   }
 ]

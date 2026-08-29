@@ -21,6 +21,42 @@
     </itunes:category>
     <itunes:explicit>yes</itunes:explicit>
     <item>
+      <title>The Son Also Draws</title>
+      <description>A chance encounter with a prune smoothie puts in motion a series of events that ultimately allows Peter to accept Chris&apos; artistic side.</description>
+      <link>https://familyguyguys.com/reviews/s1e6</link>
+      <guid isPermaLink="true">https://familyguyguys.com/reviews/s1e6</guid>
+      <pubDate>Sun, 09 May 1999 05:00:00 GMT</pubDate>
+      <itunes:episodeType>full</itunes:episodeType>
+      <itunes:season>1</itunes:season>
+      <itunes:episode>6</itunes:episode>
+      <itunes:explicit>yes</itunes:explicit>
+      <enclosure url="https://rss.com/podcasts/family-guy-guys/3096024" length="0" type="audio/mpeg" />
+    </item>
+    <item>
+      <title>A Hero Sits Next Door</title>
+      <description>Peter becomes very jealous, when his handi-capable new neighbor turns out to be the new star player on the toy company&apos;s softball team.</description>
+      <link>https://familyguyguys.com/reviews/s1e5</link>
+      <guid isPermaLink="true">https://familyguyguys.com/reviews/s1e5</guid>
+      <pubDate>Sun, 02 May 1999 05:00:00 GMT</pubDate>
+      <itunes:episodeType>full</itunes:episodeType>
+      <itunes:season>1</itunes:season>
+      <itunes:episode>5</itunes:episode>
+      <itunes:explicit>yes</itunes:explicit>
+      <enclosure url="https://rss.com/podcasts/family-guy-guys/3078652" length="0" type="audio/mpeg" />
+    </item>
+    <item>
+      <title>Mind Over Murder</title>
+      <description>Under house arrest, Peter transforms the basement into a bar, where Lois&apos; singing becomes the main attraction.</description>
+      <link>https://familyguyguys.com/reviews/s1e4</link>
+      <guid isPermaLink="true">https://familyguyguys.com/reviews/s1e4</guid>
+      <pubDate>Sun, 25 Apr 1999 05:00:00 GMT</pubDate>
+      <itunes:episodeType>full</itunes:episodeType>
+      <itunes:season>1</itunes:season>
+      <itunes:episode>4</itunes:episode>
+      <itunes:explicit>yes</itunes:explicit>
+      <enclosure url="https://rss.com/podcasts/family-guy-guys/3061537/" length="0" type="audio/mpeg" />
+    </item>
+    <item>
       <title>Chitty Chitty Death Bang</title>
       <description>Peter tries to make the best of a bad situation after he ruins Lois&apos;s plans for Stewie&apos;s birthday party; Meg&apos;s new friend tries to recruit her into a cult.</description>
       <link>https://familyguyguys.com/reviews/s1e3</link>
@@ -30,7 +66,7 @@
       <itunes:season>1</itunes:season>
       <itunes:episode>3</itunes:episode>
       <itunes:explicit>yes</itunes:explicit>
-      <enclosure url="https://familyguyguys.com/placeholder.mp3" length="0" type="audio/mpeg" />
+      <enclosure url="https://rss.com/podcasts/family-guy-guys/3044063/" length="0" type="audio/mpeg" />
     </item>
     <item>
       <title>I Never Met the Dead Man</title>
@@ -42,7 +78,7 @@
       <itunes:season>1</itunes:season>
       <itunes:episode>2</itunes:episode>
       <itunes:explicit>yes</itunes:explicit>
-      <enclosure url="https://familyguyguys.com/placeholder.mp3" length="0" type="audio/mpeg" />
+      <enclosure url="https://rss.com/podcasts/family-guy-guys/3043582/" length="0" type="audio/mpeg" />
     </item>
     <item>
       <title>Death Has a Shadow</title>
@@ -54,7 +90,7 @@
       <itunes:season>1</itunes:season>
       <itunes:episode>1</itunes:episode>
       <itunes:explicit>yes</itunes:explicit>
-      <enclosure url="https://familyguyguys.com/placeholder.mp3" length="0" type="audio/mpeg" />
+      <enclosure url="https://rss.com/podcasts/family-guy-guys/3038733/" length="0" type="audio/mpeg" />
     </item>
   </channel>
 </rss>
