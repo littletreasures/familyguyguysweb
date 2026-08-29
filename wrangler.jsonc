@@ -7,7 +7,7 @@
   },
 
   "build": {
-    "command": "npm run build:cf"
+    "command": "npm run build"
   },
   "assets": {
     "directory": "./dist",
