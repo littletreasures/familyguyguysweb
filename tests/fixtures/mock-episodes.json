@@ -12,7 +12,7 @@
     "watch_status": "published",
     "reviews": [
       {
-        "cohost_id": "01201e1a-dafd-424a-b596-ff9ece65f1aa",
+        "cohost_id": "mock-cohost-jason",
         "rating": 4,
         "review": "The pilot that started it all. Raw energy, unhinged early cutaways, and the beginning of a 400+ episode journey.",
         "pullQuote": "We cranked our hogs pretty hard.",
@@ -20,7 +20,7 @@
         "rating_scale_max": 5
       },
       {
-        "cohost_id": "e08c8c4b-ecf5-427e-8890-fe9cef0a2c9a",
+        "cohost_id": "mock-cohost-tyler",
         "rating": 4.5,
         "review": "Watched the original 1999 broadcast after the Super Bowl at age eight and loved it immediately. Pure nostalgia.",
         "pullQuote": "A legendary kickoff.",
@@ -28,7 +28,7 @@
         "rating_scale_max": 5
       },
       {
-        "cohost_id": "0a3dfd13-90b2-47db-b0af-2e0c0df21cff",
+        "cohost_id": "mock-cohost-collin",
         "rating": 3.5,
         "review": "Didn't see it until middle school, but the rhythm of the jokes holds up better than I expected.",
         "pullQuote": "Still finding the formula.",
@@ -50,7 +50,7 @@
     "watch_status": "published",
     "reviews": [
       {
-        "cohost_id": "01201e1a-dafd-424a-b596-ff9ece65f1aa",
+        "cohost_id": "mock-cohost-jason",
         "rating": 4,
         "review": "Peter walking around with a cardboard TV cutout frame is peak season one idiocy.",
         "pullQuote": "Classic early television satire.",
@@ -58,7 +58,7 @@
         "rating_scale_max": 5
       },
       {
-        "cohost_id": "e08c8c4b-ecf5-427e-8890-fe9cef0a2c9a",
+        "cohost_id": "mock-cohost-tyler",
         "rating": 4,
         "review": "The TV withdrawal bits and Tom Tucker's broadcast are fantastic.",
         "pullQuote": "80 out of 100 Quahogs after the math recalculation.",
@@ -66,7 +66,7 @@
         "rating_scale_max": 5
       },
       {
-        "cohost_id": "0a3dfd13-90b2-47db-b0af-2e0c0df21cff",
+        "cohost_id": "mock-cohost-collin",
         "rating": 4,
         "review": "The Amish driving-test gag and character bits are great.",
         "pullQuote": "Four out of five from me.",
@@ -88,7 +88,7 @@
     "watch_status": "published",
     "reviews": [
       {
-        "cohost_id": "01201e1a-dafd-424a-b596-ff9ece65f1aa",
+        "cohost_id": "mock-cohost-jason",
         "rating": 2,
         "review": "Dark cult storyline and bizarre early joke logic, but Stewie meeting the man in white is iconic.",
         "pullQuote": "A weird detour with high death tolls.",
@@ -96,7 +96,7 @@
         "rating_scale_max": 5
       },
       {
-        "cohost_id": "e08c8c4b-ecf5-427e-8890-fe9cef0a2c9a",
+        "cohost_id": "mock-cohost-tyler",
         "rating": 4,
         "review": "Defending the Cheesecake Factory and Cheesy Charlie's chaos.",
         "pullQuote": "Four out of five.",
@@ -104,7 +104,7 @@
         "rating_scale_max": 5
       },
       {
-        "cohost_id": "0a3dfd13-90b2-47db-b0af-2e0c0df21cff",
+        "cohost_id": "mock-cohost-collin",
         "rating": 2,
         "review": "Loose logic and early character friction, but fun to break down.",
         "pullQuote": "Two out of five.",
@@ -126,7 +126,7 @@
     "watch_status": "published",
     "reviews": [
       {
-        "cohost_id": "01201e1a-dafd-424a-b596-ff9ece65f1aa",
+        "cohost_id": "mock-cohost-jason",
         "rating": 3.5,
         "review": "Ye Olde Pube in the basement and Hot Lois piano superstar status.",
         "pullQuote": "Weaponized incompetence at its finest.",
@@ -134,7 +134,7 @@
         "rating_scale_max": 5
       },
       {
-        "cohost_id": "e08c8c4b-ecf5-427e-8890-fe9cef0a2c9a",
+        "cohost_id": "mock-cohost-tyler",
         "rating": 3,
         "review": "A divisive one for the boys, but the Mentos cold open is unforgettable.",
         "pullQuote": "Steam heat in the basement.",
@@ -142,7 +142,7 @@
         "rating_scale_max": 5
       },
       {
-        "cohost_id": "0a3dfd13-90b2-47db-b0af-2e0c0df21cff",
+        "cohost_id": "mock-cohost-collin",
         "rating": 3.5,
         "review": "The time machine subplot and Quahog neighborhood dynamics make this a fun watch.",
         "pullQuote": "A strong premise.",
@@ -164,7 +164,7 @@
     "watch_status": "published",
     "reviews": [
       {
-        "cohost_id": "01201e1a-dafd-424a-b596-ff9ece65f1aa",
+        "cohost_id": "mock-cohost-jason",
         "rating": 4,
         "review": "Introducing Joe Swanson and Patrick Warburton to the universe was a monumental moment.",
         "pullQuote": "Meet Joe Swanson.",
@@ -172,7 +172,7 @@
         "rating_scale_max": 5
       },
       {
-        "cohost_id": "e08c8c4b-ecf5-427e-8890-fe9cef0a2c9a",
+        "cohost_id": "mock-cohost-tyler",
         "rating": 4,
         "review": "The softball game, the bank robbery, and the Grinch voice bit all hit.",
         "pullQuote": "Gagger vs Structurehead debut.",
@@ -180,7 +180,7 @@
         "rating_scale_max": 5
       },
       {
-        "cohost_id": "0a3dfd13-90b2-47db-b0af-2e0c0df21cff",
+        "cohost_id": "mock-cohost-collin",
         "rating": 4.5,
         "review": "Christian Hughes guest appearance and great banter all around.",
         "pullQuote": "One of the best early season one episodes.",
@@ -202,7 +202,7 @@
     "watch_status": "published",
     "reviews": [
       {
-        "cohost_id": "01201e1a-dafd-424a-b596-ff9ece65f1aa",
+        "cohost_id": "mock-cohost-jason",
         "rating": 3.5,
         "review": "Peter's vision quest and the vanishing blender continuity error are classic discussion points.",
         "pullQuote": "The vanishing blender alert.",
@@ -210,7 +210,7 @@
         "rating_scale_max": 5
       },
       {
-        "cohost_id": "e08c8c4b-ecf5-427e-8890-fe9cef0a2c9a",
+        "cohost_id": "mock-cohost-tyler",
         "rating": 3,
         "review": "Early cutaways hold up nicely even if the road trip logic is wacky.",
         "pullQuote": "Tyler's math meltdown.",
@@ -218,7 +218,7 @@
         "rating_scale_max": 5
       },
       {
-        "cohost_id": "0a3dfd13-90b2-47db-b0af-2e0c0df21cff",
+        "cohost_id": "mock-cohost-collin",
         "rating": 3.5,
         "review": "The sign joke and Lois discovering gambling make for a solid episode recap.",
         "pullQuote": "Solid season one entry.",

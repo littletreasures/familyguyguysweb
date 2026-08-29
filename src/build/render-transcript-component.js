@@ -32,6 +32,27 @@ const COHOST_NAME_MAP = {
     themeClass: 'host-bg-collin',
     fallbackBg: '#1a6b6b',
   },
+  'mock-cohost-jason': {
+    name: 'Jason Hackett',
+    role: 'Host',
+    photo: '/hosts/jasonhost.webp',
+    themeClass: 'host-bg-jason',
+    fallbackBg: '#aa6200',
+  },
+  'mock-cohost-tyler': {
+    name: 'Tyler Simpson',
+    role: 'Host',
+    photo: '/hosts/tylerhost.webp',
+    themeClass: 'host-bg-tyler',
+    fallbackBg: '#5c1a1a',
+  },
+  'mock-cohost-collin': {
+    name: 'Collin Brown',
+    role: 'Host',
+    photo: '/hosts/collinhost.webp',
+    themeClass: 'host-bg-collin',
+    fallbackBg: '#1a6b6b',
+  },
   jason: {
     name: 'Jason Hackett',
     role: 'Host',

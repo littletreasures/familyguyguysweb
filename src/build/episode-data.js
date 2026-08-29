@@ -14,6 +14,30 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+export const MOCK_COHOSTS = [
+  {
+    id: 'mock-cohost-jason',
+    name: 'Jason Hackett',
+    role: 'Host',
+    bio: 'Played the theme song entirely too loud on episode one. Sets the tone. Cranks the hogs.',
+    accent: 'Host',
+  },
+  {
+    id: 'mock-cohost-tyler',
+    name: 'Tyler Simpson',
+    role: 'Host',
+    bio: 'Watched the original broadcast as an 8-year-old and loved it.',
+    accent: 'Host',
+  },
+  {
+    id: 'mock-cohost-collin',
+    name: 'Collin Brown',
+    role: 'Host',
+    bio: "Longtime improv comedian, lifelong Family Guy apologist, and the guy who didn't see the pilot until middle school.",
+    accent: 'Host',
+  },
+];
+
 export const DEFAULT_COHOSTS = [
   {
     id: '01201e1a-dafd-424a-b596-ff9ece65f1aa',
@@ -60,7 +84,7 @@ export async function loadEpisodeData({ mode = process.env.PRERENDER_DATA_MODE }
     return {
       episodes,
       transcripts,
-      cohosts: DEFAULT_COHOSTS,
+      cohosts: MOCK_COHOSTS,
       mode: 'fixture',
     };
   }
@@ -116,6 +140,15 @@ export async function loadEpisodeData({ mode = process.env.PRERENDER_DATA_MODE }
       );
     }
 
+    // Provenance validation: check episodes
+    for (const ep of episodesResult.data || []) {
+      if (ep.is_synthetic || ep.id === 's99e99') {
+        throw new Error(
+          `[loadEpisodeData] Provenance validation failed: Production episode "${ep.id}" contains synthetic marker (is_synthetic=true or test route).`
+        );
+      }
+    }
+
     const cohosts =
       cohostsResult.data && cohostsResult.data.length > 0 ? cohostsResult.data : DEFAULT_COHOSTS;
 
@@ -124,6 +157,12 @@ export async function loadEpisodeData({ mode = process.env.PRERENDER_DATA_MODE }
 
     for (const rev of allReviews) {
       if (!rev.episode_id) continue;
+      // Provenance validation: check review cohost IDs
+      if (typeof rev.cohost_id === 'string' && rev.cohost_id.startsWith('mock-cohost-')) {
+        throw new Error(
+          `[loadEpisodeData] Provenance validation failed: Review for episode "${rev.episode_id}" contains mock cohost ID "${rev.cohost_id}".`
+        );
+      }
       if (!reviewsByEpisode.has(rev.episode_id)) {
         reviewsByEpisode.set(rev.episode_id, []);
       }

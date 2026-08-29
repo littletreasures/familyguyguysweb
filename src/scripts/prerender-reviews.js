@@ -20,11 +20,20 @@ import { validateAudioUrlShape } from '../build/validate-audio.js';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const SYNTHETIC_FIXTURE_MARKERS = [
+export const SYNTHETIC_FIXTURE_MARKERS = [
   'Red Hot Chili Peppers and Cigarettes',
   'is_synthetic',
   's99e99',
   'Mock Test Episode',
+  'mock-cohost-',
+  'mock-cohost-jason',
+  'mock-cohost-tyler',
+  'mock-cohost-collin',
+  'The vanishing blender alert',
+  'math meltdown',
+  'We cranked our hogs pretty hard',
+  'A legendary kickoff',
+  'Still finding the formula',
 ];
 
 export async function runPrerender({ mode = process.env.PRERENDER_DATA_MODE } = {}) {

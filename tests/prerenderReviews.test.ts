@@ -69,9 +69,9 @@ describe('Phase 2 Prerendering Modules & Safety Gates', () => {
       expect(s1e1?.reviews?.length).toBe(3);
 
       const reviewCohostIds = s1e1?.reviews.map((r: any) => r.cohost_id);
-      expect(reviewCohostIds).toContain('01201e1a-dafd-424a-b596-ff9ece65f1aa'); // Jason
-      expect(reviewCohostIds).toContain('e08c8c4b-ecf5-427e-8890-fe9cef0a2c9a'); // Tyler
-      expect(reviewCohostIds).toContain('0a3dfd13-90b2-47db-b0af-2e0c0df21cff'); // Collin
+      expect(reviewCohostIds).toContain('mock-cohost-jason'); // Jason
+      expect(reviewCohostIds).toContain('mock-cohost-tyler'); // Tyler
+      expect(reviewCohostIds).toContain('mock-cohost-collin'); // Collin
     });
 
     it('fails loudly in production mode when build-only secrets are missing', async () => {
@@ -408,6 +408,16 @@ describe('Phase 2 Prerendering Modules & Safety Gates', () => {
       await expect(runPrerender({ mode: 'production' })).rejects.toThrow(
         /Production prerendering failed/i
       );
+    });
+
+    it('rejects emitted artifacts and aborts build if synthetic markers appear in production mode', async () => {
+      const { SYNTHETIC_FIXTURE_MARKERS } = await import('../src/scripts/prerender-reviews.js');
+      expect(SYNTHETIC_FIXTURE_MARKERS).toContain('The vanishing blender alert');
+      expect(SYNTHETIC_FIXTURE_MARKERS).toContain('math meltdown');
+      expect(SYNTHETIC_FIXTURE_MARKERS).toContain('mock-cohost-');
+      expect(SYNTHETIC_FIXTURE_MARKERS).toContain('is_synthetic');
+      expect(SYNTHETIC_FIXTURE_MARKERS).not.toContain('Two out of five');
+      expect(SYNTHETIC_FIXTURE_MARKERS).not.toContain('Meet Joe Swanson');
     });
   });
 

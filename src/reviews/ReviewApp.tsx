@@ -102,6 +102,21 @@ const COHOST_NAME_MAP: Record<string, { name: string; role: string; photo: strin
     role: 'Host',
     photo: '/hosts/collinhost.webp',
   },
+  'mock-cohost-jason': {
+    name: 'Jason Hackett',
+    role: 'Host',
+    photo: '/hosts/jasonhost.webp',
+  },
+  'mock-cohost-tyler': {
+    name: 'Tyler Simpson',
+    role: 'Host',
+    photo: '/hosts/tylerhost.webp',
+  },
+  'mock-cohost-collin': {
+    name: 'Collin Brown',
+    role: 'Host',
+    photo: '/hosts/collinhost.webp',
+  },
   jason: { name: 'Jason Hackett', role: 'Host', photo: '/hosts/jasonhost.webp' },
   tyler: { name: 'Tyler Simpson', role: 'Host', photo: '/hosts/tylerhost.webp' },
   collin: { name: 'Collin Brown', role: 'Host', photo: '/hosts/collinhost.webp' },
@@ -114,7 +129,7 @@ function getHostTheme(hostId: string): {
   textClass: string;
 } {
   const id = hostId.toLowerCase();
-  if (id === 'collin' || id === '0a3dfd13-90b2-47db-b0af-2e0c0df21cff') {
+  if (id === 'collin' || id === '0a3dfd13-90b2-47db-b0af-2e0c0df21cff' || id === 'mock-cohost-collin') {
     return {
       bgClass: 'host-bg-collin',
       starColor: 'var(--teal, #1a6b6b)',
@@ -122,7 +137,7 @@ function getHostTheme(hostId: string): {
       textClass: 'text-white',
     };
   }
-  if (id === 'tyler' || id === 'e08c8c4b-ecf5-427e-8890-fe9cef0a2c9a') {
+  if (id === 'tyler' || id === 'e08c8c4b-ecf5-427e-8890-fe9cef0a2c9a' || id === 'mock-cohost-tyler') {
     return {
       bgClass: 'host-bg-tyler',
       starColor: 'var(--maroon, #5c1a1a)',
