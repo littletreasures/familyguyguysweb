@@ -19,10 +19,17 @@ export function resolveEpisodeImage(episode) {
   }
 
   const publicId = episode.thumbnail_public_id || episode.thumbnailPublicId;
-  if (publicId && typeof publicId === 'string' && publicId.trim() !== '') {
-    const cloudName = process.env.CLOUDINARY_CLOUD_NAME || 'littletreasures';
+  const cloudName = process.env.CLOUDINARY_CLOUD_NAME;
+  if (
+    publicId &&
+    typeof publicId === 'string' &&
+    publicId.trim() !== '' &&
+    cloudName &&
+    typeof cloudName === 'string' &&
+    cloudName.trim() !== ''
+  ) {
     return {
-      imageUrl: `https://res.cloudinary.com/${cloudName}/image/upload/${publicId.trim()}`,
+      imageUrl: `https://res.cloudinary.com/${cloudName.trim()}/image/upload/${publicId.trim()}`,
       isFallback: false,
     };
   }

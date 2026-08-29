@@ -2,7 +2,7 @@
  * prerenderReviews.test.ts
  * Vitest tests for Phase 2 static prerender architecture:
  * - Data loaders & explicit mode enforcement
- * - Metadata generator & exact OG/Twitter image fallback chain
+ * - Metadata generator & exact OG/Twitter image fallback chain (fail-closed)
  * - Schema.org JSON-LD structured data with nested associatedMedia.transcript
  * - HTML shell assembly & prerendered DOM placement outside React root
  * - Prerender execution creating dist artifacts
@@ -11,13 +11,10 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import fs from 'fs';
 import path from 'path';
-import React from 'react';
-import { renderToStaticMarkup } from 'react-dom/server';
 import { loadEpisodeData } from '../src/build/episode-data.js';
 import { buildEpisodePageMetadata, resolveEpisodeImage } from '../src/build/build-page-metadata.js';
 import { buildEpisodeJsonLd } from '../src/build/build-jsonld.js';
 import { assemblePrerenderedHtml } from '../src/build/html-shell.js';
-import { RenderEpisodeReviewPage } from '../src/build/render-transcript-component.js';
 import { runPrerender } from '../src/scripts/prerender-reviews.js';
 
 describe('Phase 2 Prerendering Modules & Safety Gates', () => {
@@ -86,8 +83,8 @@ describe('Phase 2 Prerendering Modules & Safety Gates', () => {
       expect(metadata.canonicalUrl).toBe('https://familyguyguys.com/reviews/s1e1');
     });
 
-    it('resolves Cloudinary public_id when thumbnail_url is missing and emits summary_large_image', () => {
-      process.env.CLOUDINARY_CLOUD_NAME = 'littletreasures';
+    it('resolves Cloudinary public_id when CLOUDINARY_CLOUD_NAME is present and emits summary_large_image', () => {
+      process.env.CLOUDINARY_CLOUD_NAME = 'customcloud';
       const episode = {
         id: 's1e2',
         title: 'I Never Met the Dead Man',
@@ -97,13 +94,31 @@ describe('Phase 2 Prerendering Modules & Safety Gates', () => {
       };
       const { imageUrl, isFallback } = resolveEpisodeImage(episode);
       expect(imageUrl).toBe(
-        'https://res.cloudinary.com/littletreasures/image/upload/family-guy/episodes/s1e2_thumb'
+        'https://res.cloudinary.com/customcloud/image/upload/family-guy/episodes/s1e2_thumb'
       );
       expect(isFallback).toBe(false);
 
       const metadata = buildEpisodePageMetadata(episode);
-      expect(metadata.og.image).toContain('res.cloudinary.com');
+      expect(metadata.og.image).toContain('res.cloudinary.com/customcloud');
       expect(metadata.twitter.card).toBe('summary_large_image');
+    });
+
+    it('fails closed to 512px fallback when thumbnail_public_id exists but CLOUDINARY_CLOUD_NAME is missing', () => {
+      delete process.env.CLOUDINARY_CLOUD_NAME;
+      const episode = {
+        id: 's1e2',
+        title: 'I Never Met the Dead Man',
+        season: 1,
+        episode_number: 2,
+        thumbnail_public_id: 'family-guy/episodes/s1e2_thumb',
+      };
+      const { imageUrl, isFallback } = resolveEpisodeImage(episode);
+      expect(imageUrl).toBe('https://familyguyguys.com/og/podcast-art-512.png');
+      expect(isFallback).toBe(true);
+
+      const metadata = buildEpisodePageMetadata(episode);
+      expect(metadata.og.image).toBe('https://familyguyguys.com/og/podcast-art-512.png');
+      expect(metadata.twitter.card).toBe('summary');
     });
 
     it('falls back to /og/podcast-art-512.png with twitter:card="summary" when no thumbnail is present', () => {
@@ -129,7 +144,7 @@ describe('Phase 2 Prerendering Modules & Safety Gates', () => {
         id: 's1e6',
         season: 1,
         episode_number: 6,
-        title: 'The Son Also Draws',
+        title: 'The Sun Also Draws',
         summary: 'Peter loses the family car at a casino.',
         podcast_url: 'https://media.rss.com/family-guy-guys/s1e6.mp3',
         thumbnail_url: 'https://familyguyguys.com/assets/ep006.jpg',
@@ -151,7 +166,7 @@ describe('Phase 2 Prerendering Modules & Safety Gates', () => {
 
       const episodeNode = jsonLd['@graph'][0];
       expect(episodeNode['@type']).toBe('PodcastEpisode');
-      expect(episodeNode.name).toBe('S1E6: The Son Also Draws');
+      expect(episodeNode.name).toBe('S1E6: The Sun Also Draws');
       expect(episodeNode.episodeNumber).toBe(6);
       expect(episodeNode.url).toBe('https://familyguyguys.com/reviews/s1e6');
 
@@ -192,7 +207,7 @@ describe('Phase 2 Prerendering Modules & Safety Gates', () => {
       };
       const jsonLd = { '@context': 'https://schema.org', '@graph': [] };
       const bodyMarkup =
-        '<article id="prerendered-episode-content"><h1 class="episode-main-title">The Son Also Draws</h1></article>';
+        '<article id="prerendered-episode-content"><h1 class="episode-main-title">The Sun Also Draws</h1></article>';
 
       const finalHtml = assemblePrerenderedHtml({
         templateHtml: baseHtml,
@@ -215,7 +230,7 @@ describe('Phase 2 Prerendering Modules & Safety Gates', () => {
       );
       expect(finalHtml).toContain('id="page-home" class="page" style="display:none;"');
       expect(finalHtml).toContain(
-        '<article id="prerendered-episode-content"><h1 class="episode-main-title">The Son Also Draws</h1></article>'
+        '<article id="prerendered-episode-content"><h1 class="episode-main-title">The Sun Also Draws</h1></article>'
       );
     });
   });
