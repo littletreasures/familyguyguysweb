@@ -9,6 +9,7 @@
     "build": "vite build",
     "build:fixture": "PRERENDER_DATA_MODE=fixture npm run build",
     "build:production": "PRERENDER_DATA_MODE=production npm run build",
+    "build:cf": "PRERENDER_DATA_MODE=${PRERENDER_DATA_MODE:-fixture} npm run build",
     "postbuild": "node src/scripts/prerender-reviews.js",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
