@@ -6,6 +6,7 @@ function getPages() {
     contact: document.getElementById('page-contact'),
     reviews: document.getElementById('page-reviews'),
     headersGaggs: document.getElementById('page-headers-gaggs'),
+    prerenderedReview: document.getElementById('page-prerendered-review'),
   };
 }
 
@@ -44,6 +45,19 @@ export function initRouter() {
       return;
     }
 
+    // Do not intercept individual canonical episode review routes (/reviews/s1e6, etc.)
+    // to ensure pure static document navigation as required by the SEO rendering architecture.
+    const isEpisodeReviewRoute =
+      /^\/reviews\/[a-zA-Z0-9_-]+(?:\/)?$/i.test(trimmedHref) &&
+      !trimmedHref.startsWith('/reviews/season/') &&
+      !trimmedHref.startsWith('/reviews/host/') &&
+      trimmedHref !== '/reviews' &&
+      trimmedHref !== '/reviews/';
+
+    if (isEpisodeReviewRoute) {
+      return; // Allow native browser document navigation
+    }
+
     e.preventDefault();
     const path = trimmedHref === '' ? '/' : trimmedHref;
     navigateTo(path);
@@ -74,24 +88,35 @@ function handleLocation() {
   } else if (path === '/headers-gaggs') {
     activePage = 'headersGaggs';
   } else if (path.startsWith('/reviews')) {
-    activePage = 'reviews';
-    const subpath = path.slice('/reviews'.length);
+    const isEpisodePath =
+      /^\/reviews\/[a-zA-Z0-9_-]+$/i.test(path) &&
+      !path.startsWith('/reviews/season/') &&
+      !path.startsWith('/reviews/host/');
 
-    if (subpath === '' || subpath === '/') {
-      routeParams = null;
-    } else if (subpath.startsWith('/season/')) {
-      const seasonNum = Number(subpath.split('/')[2]);
-      routeParams = { page: 'season', season: seasonNum };
-    } else if (subpath.startsWith('/host/')) {
-      const hostId = decodeURIComponent(subpath.split('/')[2]);
-      routeParams = { page: 'host', id: hostId };
-    } else if (subpath.startsWith('/')) {
-      const episodeId = decodeURIComponent(subpath.slice(1));
-      if (episodeId) {
-        routeParams = { page: 'episode', id: episodeId };
-      }
+    const prerenderedEl =
+      typeof document !== 'undefined' && document.getElementById('page-prerendered-review');
+    if (prerenderedEl && isEpisodePath) {
+      activePage = 'prerenderedReview';
     } else {
-      isNotFound = true;
+      activePage = 'reviews';
+      const subpath = path.slice('/reviews'.length);
+
+      if (subpath === '' || subpath === '/') {
+        routeParams = null;
+      } else if (subpath.startsWith('/season/')) {
+        const seasonNum = Number(subpath.split('/')[2]);
+        routeParams = { page: 'season', season: seasonNum };
+      } else if (subpath.startsWith('/host/')) {
+        const hostId = decodeURIComponent(subpath.split('/')[2]);
+        routeParams = { page: 'host', id: hostId };
+      } else if (subpath.startsWith('/')) {
+        const episodeId = decodeURIComponent(subpath.slice(1));
+        if (episodeId) {
+          routeParams = { page: 'episode', id: episodeId };
+        }
+      } else {
+        isNotFound = true;
+      }
     }
   } else {
     isNotFound = true;

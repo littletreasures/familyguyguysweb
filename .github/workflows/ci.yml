@@ -49,3 +49,5 @@ jobs:
 
       - name: Production Build
         run: npm run build
+        env:
+          PRERENDER_DATA_MODE: fixture

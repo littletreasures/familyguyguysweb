@@ -7,12 +7,14 @@
     "dev": "vite",
     "prebuild": "node src/scripts/optimize-images.js && node src/scripts/generate-feed.js",
     "build": "vite build",
+    "build:fixture": "PRERENDER_DATA_MODE=fixture npm run build",
+    "postbuild": "node src/scripts/prerender-reviews.js",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
     "lint": "eslint src",
     "format:check": "prettier --check \"src/**/*.{js,jsx,ts,tsx,css,html}\"",
     "test": "vitest run",
-    "deploy": "npm run build && wrangler deploy"
+    "deploy": "PRERENDER_DATA_MODE=production npm run build && wrangler deploy"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.110.8",
