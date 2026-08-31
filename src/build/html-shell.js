@@ -20,6 +20,7 @@ export function assemblePrerenderedHtml({
   jsonLd,
   bodyMarkup,
   _episodeId,
+  isFixture = false,
 }) {
   let html = templateHtml;
 
@@ -77,10 +78,11 @@ export function assemblePrerenderedHtml({
   // 3. Inject prerendered episode content outside the React-controlled container
   // In index.html, the main tag contains #page-home, #page-episodes, #page-reviews, etc.
   // We hide #page-home and #page-reviews, and inject #prerendered-episode-content into <main>.
+  const fixtureComment = isFixture ? '<!-- __FGG_FIXTURE__ -->\n    ' : '';
   const contentWrapper = `
     <!-- Prerendered Static Episode & Transcript Content (Static HTML First) -->
     <div id="page-prerendered-review" class="page active" style="display:block;">
-      ${bodyMarkup}
+      ${fixtureComment}${bodyMarkup}
     </div>
   `;
 

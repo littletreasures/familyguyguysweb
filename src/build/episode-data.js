@@ -19,22 +19,28 @@ export const MOCK_COHOSTS = [
     id: 'mock-cohost-jason',
     name: 'Jason Hackett',
     role: 'Host',
-    bio: 'Played the theme song entirely too loud on episode one. Sets the tone. Cranks the hogs.',
+    bio: '__FGG_FIXTURE__ Synthetic host bio for Jason.',
     accent: 'Host',
+    is_synthetic: true,
+    fixture_sentinel: '__FGG_FIXTURE__',
   },
   {
     id: 'mock-cohost-tyler',
     name: 'Tyler Simpson',
     role: 'Host',
-    bio: 'Watched the original broadcast as an 8-year-old and loved it.',
+    bio: '__FGG_FIXTURE__ Synthetic host bio for Tyler.',
     accent: 'Host',
+    is_synthetic: true,
+    fixture_sentinel: '__FGG_FIXTURE__',
   },
   {
     id: 'mock-cohost-collin',
     name: 'Collin Brown',
     role: 'Host',
-    bio: "Longtime improv comedian, lifelong Family Guy apologist, and the guy who didn't see the pilot until middle school.",
+    bio: '__FGG_FIXTURE__ Synthetic host bio for Collin.',
     accent: 'Host',
+    is_synthetic: true,
+    fixture_sentinel: '__FGG_FIXTURE__',
   },
 ];
 
@@ -62,6 +68,101 @@ export const DEFAULT_COHOSTS = [
   },
 ];
 
+/**
+ * Validates data provenance for production builds.
+ * Rejects any record with synthetic flags, fixture sentinels, mock IDs, or test routes.
+ *
+ * @param {object} params
+ * @param {Array} [params.episodes]
+ * @param {Array} [params.reviews]
+ * @param {Array} [params.cohosts]
+ * @param {Array|object} [params.transcripts]
+ */
+export function assertProductionProvenance({
+  episodes = [],
+  reviews = [],
+  cohosts = [],
+  transcripts = [],
+} = {}) {
+  for (const ep of episodes || []) {
+    if (ep.is_synthetic === true) {
+      throw new Error(
+        `[loadEpisodeData] Provenance validation failed: Episode "${ep.id}" has invalid production field is_synthetic=true.`
+      );
+    }
+    if (ep.fixture_sentinel === '__FGG_FIXTURE__') {
+      throw new Error(
+        `[loadEpisodeData] Provenance validation failed: Episode "${ep.id}" has invalid production field fixture_sentinel="__FGG_FIXTURE__".`
+      );
+    }
+    if (ep.id === 's99e99') {
+      throw new Error(
+        `[loadEpisodeData] Provenance validation failed: Episode "${ep.id}" is a test-only route (s99e99).`
+      );
+    }
+    if (typeof ep.id === 'string' && ep.id.startsWith('mock-')) {
+      throw new Error(
+        `[loadEpisodeData] Provenance validation failed: Episode "${ep.id}" has mock ID prefix.`
+      );
+    }
+  }
+
+  for (const rev of reviews || []) {
+    const epId = rev.episode_id || rev.episodeId || 'unknown';
+    if (rev.is_synthetic === true) {
+      throw new Error(
+        `[loadEpisodeData] Provenance validation failed: Review for episode "${epId}" has invalid production field is_synthetic=true.`
+      );
+    }
+    if (rev.fixture_sentinel === '__FGG_FIXTURE__') {
+      throw new Error(
+        `[loadEpisodeData] Provenance validation failed: Review for episode "${epId}" has invalid production field fixture_sentinel="__FGG_FIXTURE__".`
+      );
+    }
+    const cohostId = rev.cohost_id || rev.cohostId;
+    if (typeof cohostId === 'string' && cohostId.startsWith('mock-cohost-')) {
+      throw new Error(
+        `[loadEpisodeData] Provenance validation failed: Review for episode "${epId}" contains mock cohost ID "${cohostId}".`
+      );
+    }
+  }
+
+  for (const host of cohosts || []) {
+    if (host.is_synthetic === true) {
+      throw new Error(
+        `[loadEpisodeData] Provenance validation failed: Cohost "${host.id}" has invalid production field is_synthetic=true.`
+      );
+    }
+    if (host.fixture_sentinel === '__FGG_FIXTURE__') {
+      throw new Error(
+        `[loadEpisodeData] Provenance validation failed: Cohost "${host.id}" has invalid production field fixture_sentinel="__FGG_FIXTURE__".`
+      );
+    }
+    if (typeof host.id === 'string' && host.id.startsWith('mock-cohost-')) {
+      throw new Error(
+        `[loadEpisodeData] Provenance validation failed: Cohost "${host.id}" has mock cohost ID prefix.`
+      );
+    }
+  }
+
+  const transcriptList = Array.isArray(transcripts)
+    ? transcripts
+    : Object.values(transcripts || {});
+  for (const tr of transcriptList) {
+    const epId = tr.episode_id || tr.episodeId || tr.id || 'unknown';
+    if (tr.is_synthetic === true) {
+      throw new Error(
+        `[loadEpisodeData] Provenance validation failed: Transcript for episode "${epId}" has invalid production field is_synthetic=true.`
+      );
+    }
+    if (tr.fixture_sentinel === '__FGG_FIXTURE__') {
+      throw new Error(
+        `[loadEpisodeData] Provenance validation failed: Transcript for episode "${epId}" has invalid production field fixture_sentinel="__FGG_FIXTURE__".`
+      );
+    }
+  }
+}
+
 export async function loadEpisodeData({ mode = process.env.PRERENDER_DATA_MODE } = {}) {
   if (!mode) {
     throw new Error(
@@ -77,8 +178,8 @@ export async function loadEpisodeData({ mode = process.env.PRERENDER_DATA_MODE }
     }
 
     const rawEpisodes = JSON.parse(fs.readFileSync(mockEpisodesPath, 'utf8'));
-    // Filter out any synthetic test-only markers so fake test routes are not emitted
-    const episodes = rawEpisodes.filter((ep) => !ep.is_synthetic && ep.id !== 's99e99');
+    // Filter out any explicit test routes so fake test routes are not emitted
+    const episodes = rawEpisodes.filter((ep) => ep.id !== 's99e99');
     const transcripts = {};
 
     return {
@@ -140,29 +241,21 @@ export async function loadEpisodeData({ mode = process.env.PRERENDER_DATA_MODE }
       );
     }
 
-    // Provenance validation: check episodes
-    for (const ep of episodesResult.data || []) {
-      if (ep.is_synthetic || ep.id === 's99e99') {
-        throw new Error(
-          `[loadEpisodeData] Provenance validation failed: Production episode "${ep.id}" contains synthetic marker (is_synthetic=true or test route).`
-        );
-      }
-    }
-
+    const allReviews = reviewsResult.data || [];
     const cohosts =
       cohostsResult.data && cohostsResult.data.length > 0 ? cohostsResult.data : DEFAULT_COHOSTS;
 
-    const allReviews = reviewsResult.data || [];
-    const reviewsByEpisode = new Map();
+    // Strict Production Provenance Assertion Wall
+    assertProductionProvenance({
+      episodes: episodesResult.data || [],
+      reviews: allReviews,
+      cohosts,
+      transcripts: transcriptsResult.data || [],
+    });
 
+    const reviewsByEpisode = new Map();
     for (const rev of allReviews) {
       if (!rev.episode_id) continue;
-      // Provenance validation: check review cohost IDs
-      if (typeof rev.cohost_id === 'string' && rev.cohost_id.startsWith('mock-cohost-')) {
-        throw new Error(
-          `[loadEpisodeData] Provenance validation failed: Review for episode "${rev.episode_id}" contains mock cohost ID "${rev.cohost_id}".`
-        );
-      }
       if (!reviewsByEpisode.has(rev.episode_id)) {
         reviewsByEpisode.set(rev.episode_id, []);
       }

@@ -21,19 +21,10 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 export const SYNTHETIC_FIXTURE_MARKERS = [
-  'Red Hot Chili Peppers and Cigarettes',
-  'is_synthetic',
-  's99e99',
-  'Mock Test Episode',
+  '__FGG_FIXTURE__',
   'mock-cohost-',
-  'mock-cohost-jason',
-  'mock-cohost-tyler',
-  'mock-cohost-collin',
-  'The vanishing blender alert',
-  "Tyler's math meltdown",
-  'We cranked our hogs pretty hard',
-  'A legendary kickoff',
-  'Still finding the formula',
+  '"is_synthetic":true',
+  's99e99',
 ];
 
 export async function runPrerender({ mode = process.env.PRERENDER_DATA_MODE } = {}) {
@@ -96,12 +87,18 @@ export async function runPrerender({ mode = process.env.PRERENDER_DATA_MODE } = 
       React.createElement(RenderEpisodeReviewPage, { episode, transcript, cohosts })
     );
 
+    const isFixture =
+      mode === 'fixture' ||
+      episode.fixture_sentinel === '__FGG_FIXTURE__' ||
+      episode.is_synthetic === true;
+
     const finalHtml = assemblePrerenderedHtml({
       templateHtml,
       metadata,
       jsonLd,
       bodyMarkup,
       _episodeId: episode.id,
+      isFixture,
     });
 
     // Production Safety Guard: Ensure no synthetic fixture phrases leak into production HTML
