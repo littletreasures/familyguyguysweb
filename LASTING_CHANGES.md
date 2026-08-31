@@ -6,8 +6,8 @@ This document outlines all technical updates, layout design shifts, database mig
 
 ## 1. Database Schema & Migrations
 We created and verified SQL migration scripts inside `src/scripts/` to align the Supabase database with our new features:
-* **[create_visitor_reviews.sql](file:///Volumes/RetroSSD/SSD-Family-Guy-Guys-Storage/FamilyGuyWebsite/src/scripts/create_visitor_reviews.sql)**: Sets up the `public.visitor_reviews` table for fan comments and ratings. Employs Row Level Security (RLS) policies allowing anonymous visitor `SELECT` and `INSERT` queries.
-* **[update_reviews_columns.sql](file:///Volumes/RetroSSD/SSD-Family-Guy-Guys-Storage/FamilyGuyWebsite/src/scripts/update_reviews_columns.sql)**: Adds `rating_terminology` (string) and `rating_scale_max` (numeric) columns to the `reviews` table, enabling custom scales per-host.
+* **[create_visitor_reviews.sql](./src/scripts/create_visitor_reviews.sql)**: Sets up the `public.visitor_reviews` table for fan comments and ratings. Employs Row Level Security (RLS) policies allowing anonymous visitor `SELECT` and `INSERT` queries.
+* **[update_reviews_columns.sql](./src/scripts/update_reviews_columns.sql)**: Adds `rating_terminology` (string) and `rating_scale_max` (numeric) columns to the `reviews` table, enabling custom scales per-host.
 
 ---
 
@@ -40,7 +40,7 @@ We created and verified SQL migration scripts inside `src/scripts/` to align the
 
 ## 5. RSS Feed & Pipeline Automation
 * **Subscribe Buttons**: Added feed links to your RSS feed (`https://media.rss.com/family-guy-guys/feed.xml`) on the homepage hero, mobile navigation drawer, and contact listening sections.
-* **Sync Script ([sync_feed.py](file:///Volumes/RetroSSD/SSD-Family-Guy-Guys-Storage/FamilyGuyWebsite/admin-tools/sync_feed.py))**: Created a Python script inside `admin-tools/` that parses the podcast feed XML, extracts episode audio enclosures (`enclosure url`), and updates matching database records' `podcast_url` dynamically.
+* **Sync Script ([sync_feed.py](./admin-tools/sync_feed.py))**: Created a Python script inside `admin-tools/` that parses the podcast feed XML, extracts episode audio enclosures (`enclosure url`), and updates matching database records' `podcast_url` dynamically.
 
 ---
 
