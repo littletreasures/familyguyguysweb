@@ -15,13 +15,14 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import fs from 'fs';
 import path from 'path';
-import { loadEpisodeData } from '../src/build/episode-data.js';
+import { loadEpisodeData, assertProductionProvenance } from '../src/build/episode-data.js';
 import { buildEpisodePageMetadata, resolveEpisodeImage } from '../src/build/build-page-metadata.js';
 import { buildEpisodeJsonLd } from '../src/build/build-jsonld.js';
 import { assemblePrerenderedHtml } from '../src/build/html-shell.js';
 import { RenderEpisodeReviewPage } from '../src/build/render-transcript-component.js';
 import { validateAudioUrlShape, smokeCheckAudioEndpoint } from '../src/build/validate-audio.js';
-import { runPrerender } from '../src/scripts/prerender-reviews.js';
+import { deriveRssEmbed } from '../src/build/rss-embed.js';
+import { runPrerender, SYNTHETIC_FIXTURE_MARKERS } from '../src/scripts/prerender-reviews.js';
 import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 
@@ -34,6 +35,69 @@ describe('Phase 2 Prerendering Modules & Safety Gates', () => {
 
   afterEach(() => {
     process.env = { ...envBackup };
+  });
+
+  describe('0. RSS.com Embed Player URL Derivation', () => {
+    it('derives valid embed and page URLs from canonical page URLs with trailing slash', () => {
+      const result = deriveRssEmbed('https://rss.com/podcasts/family-guy-guys/3038733/');
+      expect(result).toEqual({
+        embedUrl: 'https://player.rss.com/family-guy-guys/3038733?theme=dark&v=2',
+        pageUrl: 'https://rss.com/podcasts/family-guy-guys/3038733/',
+      });
+    });
+
+    it('derives valid embed and page URLs from page URLs without trailing slash', () => {
+      const result = deriveRssEmbed('https://rss.com/podcasts/family-guy-guys/3078652');
+      expect(result).toEqual({
+        embedUrl: 'https://player.rss.com/family-guy-guys/3078652?theme=dark&v=2',
+        pageUrl: 'https://rss.com/podcasts/family-guy-guys/3078652/',
+      });
+    });
+
+    it('derives valid embed and page URLs for synthetic fixture URLs', () => {
+      const result = deriveRssEmbed('https://rss.com/podcasts/fgg-fixture/900001/');
+      expect(result).toEqual({
+        embedUrl: 'https://player.rss.com/fgg-fixture/900001?theme=dark&v=2',
+        pageUrl: 'https://rss.com/podcasts/fgg-fixture/900001/',
+      });
+    });
+
+    it('rejects MP3 enclosure URLs, returning null', () => {
+      expect(deriveRssEmbed('https://media.rss.com/family-guy-guys/2026_01_31_s1e1.mp3')).toBeNull();
+    });
+
+    it('rejects player.rss.com URLs as inputs, returning null', () => {
+      expect(
+        deriveRssEmbed('https://player.rss.com/family-guy-guys/3038733?theme=dark&v=2')
+      ).toBeNull();
+    });
+
+    it('rejects non-HTTPS URLs, returning null', () => {
+      expect(deriveRssEmbed('http://rss.com/podcasts/family-guy-guys/3038733/')).toBeNull();
+    });
+
+    it('rejects URLs with query parameters or hash fragments, returning null', () => {
+      expect(
+        deriveRssEmbed('https://rss.com/podcasts/family-guy-guys/3038733/?tab=transcript')
+      ).toBeNull();
+      expect(deriveRssEmbed('https://rss.com/podcasts/family-guy-guys/3038733/#about')).toBeNull();
+    });
+
+    it('rejects other hosts, subdomains, and extra path segments, returning null', () => {
+      expect(deriveRssEmbed('https://otherpodcast.com/podcasts/family-guy-guys/3038733/')).toBeNull();
+      expect(deriveRssEmbed('https://content.rss.com/podcasts/family-guy-guys/3038733/')).toBeNull();
+      expect(
+        deriveRssEmbed('https://rss.com/podcasts/family-guy-guys/3038733/extra/segment')
+      ).toBeNull();
+    });
+
+    it('rejects empty, null, undefined, or non-string inputs safely without throwing', () => {
+      expect(deriveRssEmbed('')).toBeNull();
+      expect(deriveRssEmbed('   ')).toBeNull();
+      expect(deriveRssEmbed(null as any)).toBeNull();
+      expect(deriveRssEmbed(undefined as any)).toBeNull();
+      expect(deriveRssEmbed(12345 as any)).toBeNull();
+    });
   });
 
   describe('1. Explicit Mode Enforcement & Data Loader', () => {
@@ -90,6 +154,108 @@ describe('Phase 2 Prerendering Modules & Safety Gates', () => {
       await expect(loadEpisodeData({ mode: 'invalid_mode' })).rejects.toThrow(
         /Unsupported PRERENDER_DATA_MODE: "invalid_mode"/i
       );
+    });
+
+    describe('Provenance Wall Validation (assertProductionProvenance)', () => {
+      it('rejects episode with is_synthetic=true, identifying episode ID and field', () => {
+        expect(() =>
+          assertProductionProvenance({
+            episodes: [{ id: 's1e1', is_synthetic: true }],
+          })
+        ).toThrow(
+          /\[loadEpisodeData\] Provenance validation failed: Episode "s1e1" has invalid production field is_synthetic=true/
+        );
+      });
+
+      it('rejects episode with fixture_sentinel="__FGG_FIXTURE__", identifying episode ID and field', () => {
+        expect(() =>
+          assertProductionProvenance({
+            episodes: [{ id: 's1e2', fixture_sentinel: '__FGG_FIXTURE__' }],
+          })
+        ).toThrow(
+          /\[loadEpisodeData\] Provenance validation failed: Episode "s1e2" has invalid production field fixture_sentinel="__FGG_FIXTURE__"/
+        );
+      });
+
+      it('rejects test-only route s99e99', () => {
+        expect(() =>
+          assertProductionProvenance({
+            episodes: [{ id: 's99e99' }],
+          })
+        ).toThrow(
+          /\[loadEpisodeData\] Provenance validation failed: Episode "s99e99" is a test-only route \(s99e99\)/
+        );
+      });
+
+      it('rejects episode with mock ID prefix', () => {
+        expect(() =>
+          assertProductionProvenance({
+            episodes: [{ id: 'mock-episode-1' }],
+          })
+        ).toThrow(
+          /\[loadEpisodeData\] Provenance validation failed: Episode "mock-episode-1" has mock ID prefix/
+        );
+      });
+
+      it('rejects review with mock-cohost ID, identifying episode ID and cohost ID', () => {
+        expect(() =>
+          assertProductionProvenance({
+            reviews: [{ episode_id: 's1e1', cohost_id: 'mock-cohost-jason' }],
+          })
+        ).toThrow(
+          /\[loadEpisodeData\] Provenance validation failed: Review for episode "s1e1" contains mock cohost ID "mock-cohost-jason"/
+        );
+      });
+
+      it('rejects cohost with mock-cohost ID prefix or synthetic flag', () => {
+        expect(() =>
+          assertProductionProvenance({
+            cohosts: [{ id: 'mock-cohost-tyler', name: 'Tyler' }],
+          })
+        ).toThrow(
+          /\[loadEpisodeData\] Provenance validation failed: Cohost "mock-cohost-tyler" has mock cohost ID prefix/
+        );
+      });
+
+      it('rejects transcript with is_synthetic=true or fixture sentinel', () => {
+        expect(() =>
+          assertProductionProvenance({
+            transcripts: [{ episode_id: 's1e6', is_synthetic: true }],
+          })
+        ).toThrow(
+          /\[loadEpisodeData\] Provenance validation failed: Transcript for episode "s1e6" has invalid production field is_synthetic=true/
+        );
+
+        expect(() =>
+          assertProductionProvenance({
+            transcripts: [{ episode_id: 's1e6', fixture_sentinel: '__FGG_FIXTURE__' }],
+          })
+        ).toThrow(
+          /\[loadEpisodeData\] Provenance validation failed: Transcript for episode "s1e6" has invalid production field fixture_sentinel="__FGG_FIXTURE__"/
+        );
+      });
+
+      it('passes clean production data with valid UUIDs and fields', () => {
+        expect(() =>
+          assertProductionProvenance({
+            episodes: [{ id: 's1e1', title: 'Death Has a Shadow' }],
+            reviews: [
+              {
+                episode_id: 's1e1',
+                cohost_id: '01201e1a-dafd-424a-b596-ff9ece65f1aa',
+                rating: 4,
+              },
+            ],
+            cohosts: [
+              {
+                id: '01201e1a-dafd-424a-b596-ff9ece65f1aa',
+                name: 'Jason Hackett',
+              },
+            ],
+            transcripts: [{ episode_id: 's1e1', status: 'published' }],
+          })
+        ).not.toThrow();
+      });
     });
   });
 
@@ -194,35 +360,35 @@ describe('Phase 2 Prerendering Modules & Safety Gates', () => {
     });
   });
 
-  describe('3. Static Component Host Reviews & Conditional Audio Button', () => {
+  describe('3. Static Component Host Reviews & Embed Player / Audio Fallback', () => {
     it('renders host reviews section with Jason, Tyler, and Collin ratings, quotes, and metrics', () => {
       const episode = {
         id: 's1e1',
-        title: 'Death Has a Shadow',
+        title: '__FGG_FIXTURE__ Episode S1E1',
         season: 1,
         episode_number: 1,
-        summary: 'Peter loses his job after drinking too much at a stag party.',
-        podcast_url: 'https://media.rss.com/family-guy-guys/2026_01_31_s1e1.mp3',
+        summary: '__FGG_FIXTURE__ Synthetic episode summary.',
+        podcast_url: 'https://rss.com/podcasts/fgg-fixture/900001/',
         reviews: [
           {
             cohost_id: '01201e1a-dafd-424a-b596-ff9ece65f1aa',
             rating: 4,
-            review: 'The pilot that started it all.',
-            pullQuote: 'We cranked our hogs pretty hard.',
+            review: '__FGG_FIXTURE__ Review text for Jason.',
+            pullQuote: '__FGG_FIXTURE__ Pull quote for Jason.',
             rating_terminology: 'Quahogs',
           },
           {
             cohost_id: 'e08c8c4b-ecf5-427e-8890-fe9cef0a2c9a',
             rating: 4.5,
-            review: 'Watched the original broadcast at age eight.',
-            pullQuote: 'A legendary kickoff.',
+            review: '__FGG_FIXTURE__ Review text for Tyler.',
+            pullQuote: '__FGG_FIXTURE__ Pull quote for Tyler.',
             rating_terminology: 'Quahogs',
           },
           {
             cohost_id: '0a3dfd13-90b2-47db-b0af-2e0c0df21cff',
             rating: 3.5,
-            review: 'Rhythm of the jokes holds up well.',
-            pullQuote: 'Still finding the formula.',
+            review: '__FGG_FIXTURE__ Review text for Collin.',
+            pullQuote: '__FGG_FIXTURE__ Pull quote for Collin.',
             rating_terminology: 'Quahogs',
           },
         ],
@@ -246,21 +412,96 @@ describe('Phase 2 Prerendering Modules & Safety Gates', () => {
       expect(markup).toContain('3.5/5 Quahogs');
 
       // Pull quotes
-      expect(markup).toContain('&quot;We cranked our hogs pretty hard.&quot;');
-      expect(markup).toContain('&quot;A legendary kickoff.&quot;');
-      expect(markup).toContain('&quot;Still finding the formula.&quot;');
+      expect(markup).toContain('&quot;__FGG_FIXTURE__ Pull quote for Jason.&quot;');
+      expect(markup).toContain('&quot;__FGG_FIXTURE__ Pull quote for Tyler.&quot;');
+      expect(markup).toContain('&quot;__FGG_FIXTURE__ Pull quote for Collin.&quot;');
 
       // Review text
-      expect(markup).toContain('The pilot that started it all.');
-
-      // Valid audio button
-      expect(markup).toContain('▶ Listen to Full Episode Audio');
-      expect(markup).toContain('https://media.rss.com/family-guy-guys/2026_01_31_s1e1.mp3');
+      expect(markup).toContain('__FGG_FIXTURE__ Review text for Jason.');
 
       // No-transcript fallback
       expect(markup).toContain(
         'The full transcribed conversation for this episode is currently being curated.'
       );
+    });
+
+    it('renders RSS.com embed player iframe card and secondary link when podcast_url is an RSS page URL', () => {
+      const episodeWithPageUrl = {
+        id: 's1e1',
+        title: '__FGG_FIXTURE__ Episode S1E1',
+        season: 1,
+        episode_number: 1,
+        podcast_url: 'https://rss.com/podcasts/fgg-fixture/900001/',
+        reviews: [],
+      };
+
+      const markup = renderToStaticMarkup(
+        React.createElement(RenderEpisodeReviewPage, {
+          episode: episodeWithPageUrl,
+          transcript: null,
+        })
+      );
+
+      // Embed wrapper card
+      expect(markup).toContain('class="rss-embed-wrapper"');
+
+      // Iframe attributes
+      expect(markup).toContain(
+        '<iframe src="https://player.rss.com/fgg-fixture/900001?theme=dark&amp;v=2"'
+      );
+      expect(markup).toContain(
+        'title="Family Guy Guys podcast player: __FGG_FIXTURE__ Episode S1E1"'
+      );
+      expect(markup).toContain('loading="lazy"');
+      expect(markup).toContain('scrolling="no"');
+      expect(markup).toMatch(/frameborder="0"/i);
+      expect(markup).toContain(
+        'allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"'
+      );
+      expect(markup).toMatch(/allowfullscreen/i);
+
+      // Inner fallback link inside iframe
+      expect(markup).toContain(
+        '<a href="https://rss.com/podcasts/fgg-fixture/900001/">__FGG_FIXTURE__ Episode S1E1 | RSS.com</a>'
+      );
+
+      // Secondary external link
+      expect(markup).toContain('class="rss-embed-external-link"');
+      expect(markup).toContain('href="https://rss.com/podcasts/fgg-fixture/900001/"');
+      expect(markup).toContain('target="_blank"');
+      expect(markup).toContain('rel="noopener noreferrer"');
+      expect(markup).toContain('Open on RSS.com ↗');
+
+      // Legacy button should NOT be rendered when embed succeeds
+      expect(markup).not.toContain('class="listen-podcast-btn"');
+      expect(markup).not.toContain('▶ Listen to Full Episode Audio');
+    });
+
+    it('renders legacy listen button when podcast_url is an MP3 enclosure URL', () => {
+      const episodeWithMp3 = {
+        id: 's1e1',
+        title: '__FGG_FIXTURE__ Episode S1E1',
+        season: 1,
+        episode_number: 1,
+        podcast_url: 'https://media.rss.com/family-guy-guys/2026_01_31_s1e1.mp3',
+        reviews: [],
+      };
+
+      const markup = renderToStaticMarkup(
+        React.createElement(RenderEpisodeReviewPage, {
+          episode: episodeWithMp3,
+          transcript: null,
+        })
+      );
+
+      // Valid legacy audio button
+      expect(markup).toContain('▶ Listen to Full Episode Audio');
+      expect(markup).toContain('https://media.rss.com/family-guy-guys/2026_01_31_s1e1.mp3');
+      expect(markup).toContain('class="listen-podcast-btn"');
+
+      // Should NOT render iframe embed card
+      expect(markup).not.toContain('class="rss-embed-wrapper"');
+      expect(markup).not.toContain('<iframe');
     });
 
     it('omits the Listen button cleanly when podcast_url is missing or signed/invalid', () => {
@@ -431,11 +672,18 @@ describe('Phase 2 Prerendering Modules & Safety Gates', () => {
         const html = fs.readFileSync(filePath, 'utf8');
         expect(html).toContain(`https://familyguyguys.com/reviews/${epId}`);
         expect(html).toContain('id="page-prerendered-review"');
+        expect(html).toContain('<!-- __FGG_FIXTURE__ -->');
         expect(html).toContain('Host Ratings for This Episode');
         expect(html).toMatch(/JASON(&#x27;|')S METRIC/);
         expect(html).toMatch(/TYLER(&#x27;|')S METRIC/);
         expect(html).toMatch(/COLLIN(&#x27;|')S METRIC/);
         expect(html).toContain('no-transcript-fallback');
+
+        // Verify RSS.com embed player iframe in fixture static pages
+        expect(html).toContain('class="rss-embed-wrapper"');
+        expect(html).toContain('https://player.rss.com/fgg-fixture/90000');
+        expect(html).toContain('loading="lazy"');
+        expect(html).toContain('Open on RSS.com ↗');
 
         // Verify visitor reviews island mount point & noscript progressive enhancement fallback
         expect(html).toContain(`<div id="visitor-reviews-root" data-episode-id="${epId}">`);
@@ -444,18 +692,16 @@ describe('Phase 2 Prerendering Modules & Safety Gates', () => {
         expect(html).toContain('Visitor reviews require JavaScript to load and submit');
       }
 
-      // Verify s1e1 specific host review content
+      // Verify s1e1 specific synthetic host review content
       const s1e1Html = fs.readFileSync(path.resolve(distDir, 'reviews/s1e1/index.html'), 'utf8');
-      expect(s1e1Html).toContain('Death Has a Shadow');
-      expect(s1e1Html).toContain('The pilot that started it all.');
-      expect(s1e1Html).toContain('We cranked our hogs pretty hard.');
+      expect(s1e1Html).toContain('__FGG_FIXTURE__ Episode S1E1');
+      expect(s1e1Html).toContain(
+        '__FGG_FIXTURE__ Synthetic review text for Jason host review card.'
+      );
+      expect(s1e1Html).toContain('&quot;__FGG_FIXTURE__ Synthetic pull quote for Jason.&quot;');
 
       // Verify synthetic test route s99e99 was NOT generated
       expect(fs.existsSync(path.resolve(distDir, 'reviews/s99e99/index.html'))).toBe(false);
-
-      // Real S1E6 static page must NOT contain fixture dialogue phrases
-      const s1e6Html = fs.readFileSync(path.resolve(distDir, 'reviews/s1e6/index.html'), 'utf8');
-      expect(s1e6Html).not.toContain('Cold Open: Red Hot Chili Peppers and Cigarettes');
     });
 
     it('verifies zero fixture visitor reviews or synthetic user review content leak into static HTML or JSON-LD', async () => {
@@ -503,14 +749,20 @@ describe('Phase 2 Prerendering Modules & Safety Gates', () => {
       );
     });
 
-    it('rejects emitted artifacts and aborts build if synthetic markers appear in production mode', async () => {
-      const { SYNTHETIC_FIXTURE_MARKERS } = await import('../src/scripts/prerender-reviews.js');
-      expect(SYNTHETIC_FIXTURE_MARKERS).toContain('The vanishing blender alert');
-      expect(SYNTHETIC_FIXTURE_MARKERS).toContain("Tyler's math meltdown");
+    it('enforces machine-token-only tripwires in SYNTHETIC_FIXTURE_MARKERS without natural language lore', () => {
+      expect(SYNTHETIC_FIXTURE_MARKERS).toContain('__FGG_FIXTURE__');
       expect(SYNTHETIC_FIXTURE_MARKERS).toContain('mock-cohost-');
-      expect(SYNTHETIC_FIXTURE_MARKERS).toContain('is_synthetic');
-      expect(SYNTHETIC_FIXTURE_MARKERS).not.toContain('Two out of five');
-      expect(SYNTHETIC_FIXTURE_MARKERS).not.toContain('Meet Joe Swanson');
+      expect(SYNTHETIC_FIXTURE_MARKERS).toContain('"is_synthetic":true');
+      expect(SYNTHETIC_FIXTURE_MARKERS).toContain('s99e99');
+
+      // Natural language lore markers must NOT be present
+      expect(SYNTHETIC_FIXTURE_MARKERS).not.toContain('The vanishing blender alert');
+      expect(SYNTHETIC_FIXTURE_MARKERS).not.toContain("Tyler's math meltdown");
+      expect(SYNTHETIC_FIXTURE_MARKERS).not.toContain('We cranked our hogs pretty hard');
+      expect(SYNTHETIC_FIXTURE_MARKERS).not.toContain('A legendary kickoff');
+      expect(SYNTHETIC_FIXTURE_MARKERS).not.toContain('Still finding the formula');
+      expect(SYNTHETIC_FIXTURE_MARKERS).not.toContain('Red Hot Chili Peppers and Cigarettes');
+      expect(SYNTHETIC_FIXTURE_MARKERS).not.toContain('Mock Test Episode');
     });
   });
 

@@ -7,6 +7,7 @@ import React from 'react';
 import { formatSeconds } from './format-time.js';
 import { resolveEpisodeImage } from './build-page-metadata.js';
 import { validateAudioUrlShape } from './validate-audio.js';
+import { deriveRssEmbed } from './rss-embed.js';
 
 const e = React.createElement;
 
@@ -114,6 +115,7 @@ export function RenderEpisodeReviewPage({ episode, transcript, cohosts }) {
   // Safe audio URL validation: only render audio link if valid HTTPS shape and not forbidden host
   const isAudioValid = rawPodcastUrl && validateAudioUrlShape(rawPodcastUrl).valid;
   const safePodcastUrl = isAudioValid ? rawPodcastUrl : null;
+  const rssEmbed = safePodcastUrl ? deriveRssEmbed(safePodcastUrl) : null;
 
   // Cohost review alignment
   const hostList =
@@ -174,16 +176,47 @@ export function RenderEpisodeReviewPage({ episode, transcript, cohosts }) {
           ? e(
               'div',
               { className: 'episode-audio-action' },
-              e(
-                'a',
-                {
-                  href: safePodcastUrl,
-                  target: '_blank',
-                  rel: 'noopener noreferrer',
-                  className: 'listen-podcast-btn',
-                },
-                '▶ Listen to Full Episode Audio'
-              )
+              rssEmbed
+                ? e(
+                    'div',
+                    { className: 'rss-embed-wrapper' },
+                    e(
+                      'iframe',
+                      {
+                        src: rssEmbed.embedUrl,
+                        title: `Family Guy Guys podcast player: ${episode.title}`,
+                        width: '100%',
+                        height: '202',
+                        frameBorder: '0',
+                        allow:
+                          'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture',
+                        allowFullScreen: true,
+                        scrolling: 'no',
+                        loading: 'lazy',
+                      },
+                      e('a', { href: rssEmbed.pageUrl }, `${episode.title} | RSS.com`)
+                    ),
+                    e(
+                      'a',
+                      {
+                        href: rssEmbed.pageUrl,
+                        target: '_blank',
+                        rel: 'noopener noreferrer',
+                        className: 'rss-embed-external-link',
+                      },
+                      'Open on RSS.com ↗'
+                    )
+                  )
+                : e(
+                    'a',
+                    {
+                      href: safePodcastUrl,
+                      target: '_blank',
+                      rel: 'noopener noreferrer',
+                      className: 'listen-podcast-btn',
+                    },
+                    '▶ Listen to Full Episode Audio'
+                  )
             )
           : null
       ),

@@ -87,9 +87,10 @@ To ensure that mock data or malformed URLs never contaminate the production webs
 ### Layer 1: Data Provenance Validation ("The Wall")
 Location: [`src/build/episode-data.js`](./src/build/episode-data.js)
 
-- Validates each episode returned from Supabase: aborts if `is_synthetic === true` or `id === 's99e99'`.
-- Validates all host reviews: aborts if any review references a mock cohost identifier (e.g. `mock-cohost-*`).
-- Validates transcripts: requires `status === 'published'`, non-null `published_at`, non-empty `sections`, and `!is_synthetic`.
+- Validates each episode, review, cohost, and transcript record returned from Supabase.
+- Rejects records containing `is_synthetic === true` or `fixture_sentinel === '__FGG_FIXTURE__'`.
+- Rejects mock cohost IDs (`mock-cohost-*`) and test routes (`s99e99`).
+- Aborts production data loading before any records can reach prerendering, naming the record and field.
 
 ### Layer 2: Audio URL Shape Validation
 Location: [`src/build/validate-audio.js`](./src/build/validate-audio.js)
@@ -97,25 +98,16 @@ Location: [`src/build/validate-audio.js`](./src/build/validate-audio.js)
 - Enforces valid HTTPS podcast media URLs (e.g. RSS.com feeds).
 - Aborts production builds if audio URLs fail format or reachability assertions.
 
-### Layer 3: HTML Marker Blocklist ("The Tripwire")
+### Layer 3: HTML Marker Tripwire
 Location: [`src/scripts/prerender-reviews.js`](./src/scripts/prerender-reviews.js)
 
-The `SYNTHETIC_FIXTURE_MARKERS` array contains known test fixtures and mock strings:
-- `'Red Hot Chili Peppers and Cigarettes'`
-- `'is_synthetic'`
-- `'s99e99'`
-- `'Mock Test Episode'`
+The `SYNTHETIC_FIXTURE_MARKERS` array contains unambiguous machine tokens:
+- `'__FGG_FIXTURE__'`
 - `'mock-cohost-'`
-- `'mock-cohost-jason'`
-- `'mock-cohost-tyler'`
-- `'mock-cohost-collin'`
-- `'The vanishing blender alert'`
-- `'Tyler\'s math meltdown'`
-- `'We cranked our hogs pretty hard'`
-- `'A legendary kickoff'`
-- `'Still finding the formula'`
+- `'"is_synthetic":true'`
+- `'s99e99'`
 
-During production prerendering, every generated HTML document is scanned against this blocklist. If any marker is present, prerendering aborts immediately with `FATAL: Production artifact contains synthetic fixture marker`.
+During production prerendering, every generated HTML document is scanned against this blocklist as a backup tripwire. If any marker is present, prerendering aborts immediately with `FATAL: Production artifact contains synthetic fixture marker`.
 
 ---
 
@@ -181,7 +173,7 @@ Giggitys
 Verify that test fixture text has not leaked into production pages:
 
 ```bash
-curl -sSL https://familyguyguys.com/reviews/s1e6 | grep -o "vanishing blender\|math meltdown\|podcast-art-512"
+curl -sSL https://familyguyguys.com/reviews/s1e6 | grep -o "__FGG_FIXTURE__\|mock-cohost-\|s99e99"
 ```
 
 **Expected Output:**

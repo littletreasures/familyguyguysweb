@@ -3,6 +3,15 @@ sync_feed.py — Sync podcast RSS feed episodes to Supabase database.
 Fetches the podcast XML feed, parses the audio enclosure URLs, and updates
 the `podcast_url` column in your Supabase `episodes` table based on matching season and episode numbers.
 
+========================================================================================
+WARNING: DO NOT RUN AGAINST PRODUCTION ROWS WITHOUT RECONCILING podcast_url SEMANTICS!
+Production `episodes.podcast_url` holds canonical RSS.com episode page URLs
+(e.g., https://rss.com/podcasts/family-guy-guys/3038733/) used by prerendering to derive
+the official RSS.com player embed iframe. Running this script overwrites `podcast_url`
+with raw MP3 enclosure URLs from the RSS feed, which will silently break player embed
+derivation across all static episode review pages.
+========================================================================================
+
 Usage:
     python sync_feed.py
     python sync_feed.py --dry-run
