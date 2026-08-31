@@ -460,6 +460,13 @@ describe('Phase 2 Prerendering Modules & Safety Gates', () => {
 
     it('verifies zero fixture visitor reviews or synthetic user review content leak into static HTML or JSON-LD', async () => {
       const distDir = path.resolve(__dirname, '../dist');
+      if (!fs.existsSync(path.resolve(distDir, 'reviews/s1e1/index.html'))) {
+        fs.mkdirSync(distDir, { recursive: true });
+        const mockBaseHtml = `<!DOCTYPE html><html lang="en"><head><title>Base</title></head><body><main><div id="page-home" class="page active"></div><div id="page-reviews" class="page"></div></main></body></html>`;
+        fs.writeFileSync(path.resolve(distDir, 'index.html'), mockBaseHtml, 'utf8');
+        await runPrerender({ mode: 'fixture' });
+      }
+
       const episodes = ['s1e1', 's1e2', 's1e3', 's1e4', 's1e5', 's1e6'];
       for (const epId of episodes) {
         const filePath = path.resolve(distDir, `reviews/${epId}/index.html`);
