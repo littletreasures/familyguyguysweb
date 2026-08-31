@@ -130,7 +130,11 @@ function getHostTheme(hostId: string): {
   textClass: string;
 } {
   const id = hostId.toLowerCase();
-  if (id === 'collin' || id === '0a3dfd13-90b2-47db-b0af-2e0c0df21cff' || id === 'mock-cohost-collin') {
+  if (
+    id === 'collin' ||
+    id === '0a3dfd13-90b2-47db-b0af-2e0c0df21cff' ||
+    id === 'mock-cohost-collin'
+  ) {
     return {
       bgClass: 'host-bg-collin',
       starColor: 'var(--teal, #1a6b6b)',
@@ -138,7 +142,11 @@ function getHostTheme(hostId: string): {
       textClass: 'text-white',
     };
   }
-  if (id === 'tyler' || id === 'e08c8c4b-ecf5-427e-8890-fe9cef0a2c9a' || id === 'mock-cohost-tyler') {
+  if (
+    id === 'tyler' ||
+    id === 'e08c8c4b-ecf5-427e-8890-fe9cef0a2c9a' ||
+    id === 'mock-cohost-tyler'
+  ) {
     return {
       bgClass: 'host-bg-tyler',
       starColor: 'var(--maroon, #5c1a1a)',
@@ -778,7 +786,6 @@ function EpisodeTile({
     </button>
   );
 }
-
 
 function EpisodePage({
   dataset,
