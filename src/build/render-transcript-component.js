@@ -458,6 +458,33 @@ export function RenderEpisodeReviewPage({ episode, transcript, cohosts }) {
               'Listen to the complete audio discussion above, or explore other reviewed episodes.'
             )
           )
+    ),
+
+    // Visitor / Community Reviews Section (Progressive Enhancement Island Mount)
+    e(
+      'section',
+      { className: 'visitor-reviews-static-section', 'aria-label': 'Community Reviews' },
+      e(
+        'div',
+        {
+          id: 'visitor-reviews-root',
+          'data-episode-id': episode.id,
+        },
+        e(
+          'noscript',
+          null,
+          e(
+            'div',
+            { className: 'visitor-reviews-nojs' },
+            e('h3', null, 'Community Reviews & Ratings'),
+            e(
+              'p',
+              null,
+              'Visitor reviews require JavaScript to load and submit. Please enable JavaScript in your browser to view community ratings or leave your own review!'
+            )
+          )
+        )
+      )
     )
   );
 }
