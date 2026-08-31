@@ -40,8 +40,7 @@
    - **Mechanism**: Unblocks initial main thread execution, reducing Total Blocking Time (TBT) and Interaction to Next Paint (INP).
 
 4. **Immutable Static Asset Caching & Font Display Optimization**:
-   - Configured `Cache-Control: public, max-age=31536000, immutable` in `vercel.json` for content-hashed assets (`/assets/*`, JS, CSS, WebP, AVIF).
-   - Set revalidation policy `Cache-Control: public, max-age=0, must-revalidate` for `index.html`.
+   - Configured static asset serving and caching via Cloudflare Workers (`wrangler.jsonc` assets binding serving `./dist` with SPA fallback). Content-hashed assets (`/assets/*`, JS, CSS, WebP, AVIF) are cached immutably (`Cache-Control: public, max-age=31536000, immutable`), while `index.html` enforces immediate revalidation (`Cache-Control: public, max-age=0, must-revalidate`).
    - Added `font-display: swap` to external font stylesheet definitions.
    - **Mechanism**: Ensures zero-latency repeat visits via HTTP cache and prevents invisible text during font loading.
 
