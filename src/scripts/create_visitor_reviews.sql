@@ -27,18 +27,30 @@ CREATE POLICY "Allow anonymous read access" ON public.visitor_reviews
 CREATE POLICY "Allow anonymous insert access" ON public.visitor_reviews
   FOR INSERT WITH CHECK (true);
 
+-- 3. Allow anonymous update strictly on the likes counter (Option B)
+-- Revoke general table-wide update privileges from anon & authenticated
+REVOKE UPDATE ON public.visitor_reviews FROM anon, authenticated;
+
+-- Grant column-level UPDATE privilege strictly on the `likes` column
+GRANT UPDATE (likes) ON public.visitor_reviews TO anon;
+GRANT UPDATE (likes) ON public.visitor_reviews TO authenticated;
+
+-- Create scoped RLS update policy for likes
+CREATE POLICY "Allow anonymous update likes access" ON public.visitor_reviews
+  FOR UPDATE USING (true) WITH CHECK (true);
+
 -- ============================================================================
--- SECURE UPDATE / LIKES POLICY GUIDELINES & IMPLEMENTATION OPTIONS
+-- SECURE UPDATE / LIKES POLICY GUIDELINES & ALTERNATIVES
 -- ============================================================================
 -- Security Note:
 -- Do NOT create an open column-wide or table-wide UPDATE policy (e.g. `FOR UPDATE USING (true)`)
--- without restrictions. An unrestricted UPDATE policy would allow anonymous visitors
+-- without column-level grants. An unrestricted UPDATE policy would allow anonymous visitors
 -- to maliciously alter other fields such as author, rating, scale, terminology, or content.
 --
--- To securely permit anonymous visitors to increment/decrement like counts on reviews,
--- implement either Option A (Security Definer RPC) or Option B (Column-Level Grant + Scoped Policy):
+-- The active configuration above uses Option B (Column-Level Grant + Scoped Policy).
+-- Below is the alternative Option A (Security Definer RPC) if preferred:
 --
--- OPTION A (Recommended): Security Definer RPC Function
+-- OPTION A (Alternative): Security Definer RPC Function
 -- ------------------------------------------------------
 -- An isolated PostgreSQL function executes with elevated permissions strictly for the like counter:
 --
@@ -59,21 +71,6 @@ CREATE POLICY "Allow anonymous insert access" ON public.visitor_reviews
 -- $$;
 --
 -- GRANT EXECUTE ON FUNCTION public.increment_like(uuid) TO anon, authenticated;
---
--- OPTION B: Column-Level Privilege Grant + Scoped UPDATE Policy
--- -------------------------------------------------------------
--- Explicitly limit anonymous UPDATE privileges to the `likes` column only:
---
--- 1. Revoke general update privileges from anon and authenticated:
---    REVOKE UPDATE ON public.visitor_reviews FROM anon, authenticated;
---
--- 2. Grant column-level UPDATE strictly on the `likes` column:
---    GRANT UPDATE (likes) ON public.visitor_reviews TO anon;
---    GRANT UPDATE (likes) ON public.visitor_reviews TO authenticated;
---
--- 3. Pair with a scoped RLS update policy:
---    CREATE POLICY "Allow anonymous update likes access" ON public.visitor_reviews
---      FOR UPDATE USING (true) WITH CHECK (true);
 --
 -- ============================================================================
 -- LIVE DATABASE POLICY VERIFICATION QUERIES
