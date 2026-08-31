@@ -499,7 +499,7 @@ describe('Phase 2 Prerendering Modules & Safety Gates', () => {
     it('rejects emitted artifacts and aborts build if synthetic markers appear in production mode', async () => {
       const { SYNTHETIC_FIXTURE_MARKERS } = await import('../src/scripts/prerender-reviews.js');
       expect(SYNTHETIC_FIXTURE_MARKERS).toContain('The vanishing blender alert');
-      expect(SYNTHETIC_FIXTURE_MARKERS).toContain('math meltdown');
+      expect(SYNTHETIC_FIXTURE_MARKERS).toContain("Tyler's math meltdown");
       expect(SYNTHETIC_FIXTURE_MARKERS).toContain('mock-cohost-');
       expect(SYNTHETIC_FIXTURE_MARKERS).toContain('is_synthetic');
       expect(SYNTHETIC_FIXTURE_MARKERS).not.toContain('Two out of five');
