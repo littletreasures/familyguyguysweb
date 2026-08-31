@@ -30,7 +30,7 @@ export const SYNTHETIC_FIXTURE_MARKERS = [
   'mock-cohost-tyler',
   'mock-cohost-collin',
   'The vanishing blender alert',
-  'math meltdown',
+  "Tyler's math meltdown",
   'We cranked our hogs pretty hard',
   'A legendary kickoff',
   'Still finding the formula',

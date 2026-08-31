@@ -12,7 +12,7 @@ This document defines the canonical deployment architecture, environment contrac
 > There is **no secondary host**, no fallback CDN, and no dual-hosting configuration (such as Vercel, Netlify, or AWS S3/CloudFront).
 > If anyone attempts to introduce an alternate hosting platform or split traffic, consult the repository git history to understand why doing so violates architectural integrity and constitutes a fireable offense.
 
-All production DNS records, edge routing, static assets, and single-page application routing are managed exclusively through Cloudflare Workers using the configuration defined in [`wrangler.jsonc`](file:///Volumes/RetroSSD/SSD-Family-Guy-Guys-Storage/FamilyGuyWebsite/wrangler.jsonc).
+All production DNS records, edge routing, static assets, and single-page application routing are managed exclusively through Cloudflare Workers using the configuration defined in [`wrangler.jsonc`](./wrangler.jsonc).
 
 ---
 
@@ -24,10 +24,10 @@ Static HTML generation and client bundles are generated at build time using dete
 
 | NPM Script | Command | Purpose / Target |
 | :--- | :--- | :--- |
-| `npm run build:cf` | `PRERENDER_DATA_MODE=${PRERENDER_DATA_MODE:-fixture} npm run build` | **Default Cloudflare Build Command**.<br>Resolves to `fixture` mode if `PRERENDER_DATA_MODE` is unset (used for pull requests and preview branches). In production, Cloudflare injects `PRERENDER_DATA_MODE=production`. |
+| `npm run build:cf` | `PRERENDER_DATA_MODE=${PRERENDER_DATA_MODE:-fixture} npm run build` | **Wrangler Custom Build Command**.<br>Resolves to `fixture` mode if `PRERENDER_DATA_MODE` is unset (used for pull requests and preview branches). In production, Cloudflare injects `PRERENDER_DATA_MODE=production`. |
 | `npm run build:fixture` | `PRERENDER_DATA_MODE=fixture npm run build` | Explicit local or preview build using deterministic fixture files in `tests/fixtures/`. |
 | `npm run build:production` | `PRERENDER_DATA_MODE=production npm run build` | Explicit production build pulling real episodes, reviews, and published transcripts from Supabase. |
-| `npm run deploy` | `PRERENDER_DATA_MODE=production wrangler deploy` | Direct deployment to Cloudflare Workers with production mode enforced. |
+| `npm run deploy` | `PRERENDER_DATA_MODE=production wrangler deploy` | Production deployment command executed by Cloudflare Workers Builds or local operators. |
 
 ### Environment Variables & Secrets Matrix
 
@@ -85,20 +85,20 @@ To ensure that mock data or malformed URLs never contaminate the production webs
 ```
 
 ### Layer 1: Data Provenance Validation ("The Wall")
-Location: [`src/build/episode-data.js`](file:///Volumes/RetroSSD/SSD-Family-Guy-Guys-Storage/FamilyGuyWebsite/src/build/episode-data.js)
+Location: [`src/build/episode-data.js`](./src/build/episode-data.js)
 
 - Validates each episode returned from Supabase: aborts if `is_synthetic === true` or `id === 's99e99'`.
 - Validates all host reviews: aborts if any review references a mock cohost identifier (e.g. `mock-cohost-*`).
 - Validates transcripts: requires `status === 'published'`, non-null `published_at`, non-empty `sections`, and `!is_synthetic`.
 
 ### Layer 2: Audio URL Shape Validation
-Location: [`src/build/validate-audio.js`](file:///Volumes/RetroSSD/SSD-Family-Guy-Guys-Storage/FamilyGuyWebsite/src/build/validate-audio.js)
+Location: [`src/build/validate-audio.js`](./src/build/validate-audio.js)
 
 - Enforces valid HTTPS podcast media URLs (e.g. RSS.com feeds).
 - Aborts production builds if audio URLs fail format or reachability assertions.
 
 ### Layer 3: HTML Marker Blocklist ("The Tripwire")
-Location: [`src/scripts/prerender-reviews.js`](file:///Volumes/RetroSSD/SSD-Family-Guy-Guys-Storage/FamilyGuyWebsite/src/scripts/prerender-reviews.js)
+Location: [`src/scripts/prerender-reviews.js`](./src/scripts/prerender-reviews.js)
 
 The `SYNTHETIC_FIXTURE_MARKERS` array contains known test fixtures and mock strings:
 - `'Red Hot Chili Peppers and Cigarettes'`
@@ -110,7 +110,7 @@ The `SYNTHETIC_FIXTURE_MARKERS` array contains known test fixtures and mock stri
 - `'mock-cohost-tyler'`
 - `'mock-cohost-collin'`
 - `'The vanishing blender alert'`
-- `'math meltdown'`
+- `'Tyler\'s math meltdown'`
 - `'We cranked our hogs pretty hard'`
 - `'A legendary kickoff'`
 - `'Still finding the formula'`
@@ -124,8 +124,8 @@ During production prerendering, every generated HTML document is scanned against
 ### Option A: Cloudflare Workers CI (Automated via Git)
 
 1. Ensure all changes are committed and pushed to the tracking branch (`main` or production release branch).
-2. Cloudflare Workers Builds automatically executes `npm run build:cf`.
-3. When built on the production environment, Cloudflare supplies the production environment variables, triggering `PRERENDER_DATA_MODE=production`.
+2. Cloudflare Workers Builds executes the user deploy command: `npm run deploy` (which runs `PRERENDER_DATA_MODE=production wrangler deploy`).
+3. Wrangler triggers its custom build command: `npm run build:cf` (resolving `PRERENDER_DATA_MODE=production npm run build`).
 4. Artifacts from `dist/` are deployed globally across Cloudflare's edge network.
 
 ### Option B: Local CLI Deployment (Manual Operator)
