@@ -108,6 +108,26 @@ if (typeof window !== 'undefined' && typeof document !== 'undefined') {
 
   initHeadersGaggs();
 
+  // Mount Visitor Reviews Island
+  let visitorReviewsMounted = false;
+  const initVisitorReviews = async () => {
+    const rootEl = document.getElementById('visitor-reviews-root');
+    if (rootEl && !visitorReviewsMounted) {
+      const episodeId = rootEl.dataset.episodeId;
+      if (episodeId) {
+        try {
+          const { mountVisitorReviews } = await import('./reviews/mount-visitor-reviews.tsx');
+          mountVisitorReviews(rootEl, episodeId);
+          visitorReviewsMounted = true;
+        } catch (err) {
+          console.error('Failed to mount visitor reviews island:', err);
+        }
+      }
+    }
+  };
+
+  initVisitorReviews();
+
   // Setup active link highlight and route handling - MUST run after registering event listeners
   initRouter();
 

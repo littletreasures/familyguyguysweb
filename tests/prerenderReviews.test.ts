@@ -314,6 +314,27 @@ describe('Phase 2 Prerendering Modules & Safety Gates', () => {
       expect(markup).toContain('class="breadcrumb-separator"');
       expect(markup).toContain('aria-hidden="true"');
     });
+
+    it('renders visitor reviews island mount container with data-episode-id and noscript fallback', () => {
+      const episode = {
+        id: 's1e5',
+        title: 'A Hero Sits Next Door',
+        season: 1,
+        episode_number: 5,
+        reviews: [],
+      };
+      const markup = renderToStaticMarkup(
+        React.createElement(RenderEpisodeReviewPage, { episode, transcript: null })
+      );
+      expect(markup).toContain('id="visitor-reviews-root"');
+      expect(markup).toContain('data-episode-id="s1e5"');
+      expect(markup).toContain('<noscript>');
+      expect(markup).toContain('class="visitor-reviews-nojs"');
+      expect(markup).toContain('Community Reviews &amp; Ratings');
+      expect(markup).toContain(
+        'Visitor reviews require JavaScript to load and submit. Please enable JavaScript in your browser to view community ratings or leave your own review!'
+      );
+    });
   });
 
   describe('4. Metadata & Schema.org JSON-LD Generators', () => {
@@ -356,6 +377,37 @@ describe('Phase 2 Prerendering Modules & Safety Gates', () => {
         'https://media.rss.com/family-guy-guys/2026_05_09_s1e6.mp3'
       );
     });
+
+    it('ensures JSON-LD structured data contains only podcast episode schema with zero visitor review leaks', () => {
+      const mockEpisode = {
+        id: 's1e1',
+        season: 1,
+        episode_number: 1,
+        title: 'Death Has a Shadow',
+        summary: 'Peter loses his job after drinking too much at a stag party.',
+        podcast_url: 'https://media.rss.com/family-guy-guys/2026_01_31_s1e1.mp3',
+        reviews: [
+          {
+            cohost_id: 'mock-cohost-jason',
+            rating: 4,
+            review: 'The pilot that started it all.',
+          },
+        ],
+      };
+
+      const jsonLd = buildEpisodeJsonLd(mockEpisode, null);
+      const jsonStr = JSON.stringify(jsonLd);
+
+      expect(jsonLd['@context']).toBe('https://schema.org');
+      expect(jsonLd['@graph'][0]['@type']).toBe('PodcastEpisode');
+
+      // Zero visitor reviews or synthetic user review content leak into JSON-LD
+      expect(jsonStr).not.toContain('visitor');
+      expect(jsonStr).not.toContain('reviewBody');
+      expect(jsonStr).not.toContain('UserReview');
+      expect(jsonStr).not.toContain('Comment');
+      expect(jsonStr).not.toContain('synthetic');
+    });
   });
 
   describe('5. Prerender Execution & Emitted Artifact Verification', () => {
@@ -384,6 +436,12 @@ describe('Phase 2 Prerendering Modules & Safety Gates', () => {
         expect(html).toMatch(/TYLER(&#x27;|')S METRIC/);
         expect(html).toMatch(/COLLIN(&#x27;|')S METRIC/);
         expect(html).toContain('no-transcript-fallback');
+
+        // Verify visitor reviews island mount point & noscript progressive enhancement fallback
+        expect(html).toContain(`<div id="visitor-reviews-root" data-episode-id="${epId}">`);
+        expect(html).toContain('<noscript>');
+        expect(html).toContain('class="visitor-reviews-nojs"');
+        expect(html).toContain('Visitor reviews require JavaScript to load and submit');
       }
 
       // Verify s1e1 specific host review content
@@ -398,6 +456,41 @@ describe('Phase 2 Prerendering Modules & Safety Gates', () => {
       // Real S1E6 static page must NOT contain fixture dialogue phrases
       const s1e6Html = fs.readFileSync(path.resolve(distDir, 'reviews/s1e6/index.html'), 'utf8');
       expect(s1e6Html).not.toContain('Cold Open: Red Hot Chili Peppers and Cigarettes');
+    });
+
+    it('verifies zero fixture visitor reviews or synthetic user review content leak into static HTML or JSON-LD', async () => {
+      const distDir = path.resolve(__dirname, '../dist');
+      if (!fs.existsSync(path.resolve(distDir, 'reviews/s1e1/index.html'))) {
+        fs.mkdirSync(distDir, { recursive: true });
+        const mockBaseHtml = `<!DOCTYPE html><html lang="en"><head><title>Base</title></head><body><main><div id="page-home" class="page active"></div><div id="page-reviews" class="page"></div></main></body></html>`;
+        fs.writeFileSync(path.resolve(distDir, 'index.html'), mockBaseHtml, 'utf8');
+        await runPrerender({ mode: 'fixture' });
+      }
+
+      const episodes = ['s1e1', 's1e2', 's1e3', 's1e4', 's1e5', 's1e6'];
+      for (const epId of episodes) {
+        const filePath = path.resolve(distDir, `reviews/${epId}/index.html`);
+        const html = fs.readFileSync(filePath, 'utf8');
+
+        // Extract JSON-LD from HTML
+        const jsonLdMatch = html.match(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/);
+        expect(jsonLdMatch).not.toBeNull();
+        if (jsonLdMatch) {
+          const jsonLdContent = jsonLdMatch[1];
+          expect(jsonLdContent).not.toContain('visitor');
+          expect(jsonLdContent).not.toContain('reviewBody');
+          expect(jsonLdContent).not.toContain('UserReview');
+          expect(jsonLdContent).not.toContain('Comment');
+          expect(jsonLdContent).not.toContain('mock-user');
+        }
+
+        // Static markup should contain the mount container, but NO pre-rendered user review cards or comments
+        expect(html).toContain(`<div id="visitor-reviews-root" data-episode-id="${epId}">`);
+        expect(html).not.toContain('visitor-review-card');
+        expect(html).not.toContain('visitor-review-item');
+        expect(html).not.toContain('mock-visitor');
+        expect(html).not.toContain('synthetic-user');
+      }
     });
 
     it('fails non-zero when executed with mode=production without credentials', async () => {
