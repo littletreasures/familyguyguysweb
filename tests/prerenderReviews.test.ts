@@ -576,6 +576,93 @@ describe('Phase 2 Prerendering Modules & Safety Gates', () => {
         'Visitor reviews require JavaScript to load and submit. Please enable JavaScript in your browser to view community ratings or leave your own review!'
       );
     });
+
+    it('renders collapsible transcript inside native details with summary, TOC containment, and SEO content', () => {
+      const episode = {
+        id: 's1e6',
+        title: 'The Son Also Draws',
+        season: 1,
+        episode_number: 6,
+        reviews: [],
+      };
+      const mockTranscript = {
+        episode_id: 's1e6',
+        status: 'published',
+        transcript_version: 2,
+        word_count: 24705,
+        intro: 'Introductory notes for the episode.',
+        sections: [
+          {
+            id: 'sec-01-cold-open',
+            heading: 'Cold Open: Cigarettes and the Red Hot Chili Peppers',
+            start_seconds: 28.0,
+            end_seconds: 463.0,
+            entries: [
+              {
+                start_seconds: 28.0,
+                speaker: 'Jason',
+                text: 'Yeah let me make sure I got all my stuff in here.',
+              },
+              {
+                start_seconds: 30.0,
+                speaker: 'Collin',
+                text: 'Yeah.',
+              },
+            ],
+          },
+          {
+            id: 'sec-02-welcome',
+            heading: 'Welcome to the Only Family Guy Podcast',
+            start_seconds: 463.0,
+            end_seconds: 667.0,
+            entries: [
+              {
+                start_seconds: 463.0,
+                speaker: 'Tyler',
+                text: 'Welcome to the only Family Guy podcast.',
+              },
+            ],
+          },
+        ],
+      };
+
+      const markup = renderToStaticMarkup(
+        React.createElement(RenderEpisodeReviewPage, { episode, transcript: mockTranscript })
+      );
+
+      // 1. Visitor reviews MUST appear before transcript in DOM markup order
+      const visitorReviewsIdx = markup.indexOf('id="visitor-reviews-root"');
+      const transcriptDetailsIdx = markup.indexOf('id="transcript-details"');
+      expect(visitorReviewsIdx).toBeGreaterThan(-1);
+      expect(transcriptDetailsIdx).toBeGreaterThan(-1);
+      expect(visitorReviewsIdx).toBeLessThan(transcriptDetailsIdx);
+
+      // 2. Transcript is wrapped in native <details> with summary
+      expect(markup).toContain('<details class="episode-transcript-wrapper transcript-collapse" id="transcript-details"');
+      // Collapsed by default (no open attribute on transcript-details)
+      expect(markup).not.toMatch(/<details[^>]*\bopen\b[^>]*id="transcript-details"/);
+
+      // Summary header bar
+      expect(markup).toContain('<summary class="transcript-header-bar transcript-summary"');
+      expect(markup).toContain('Full Spoken Podcast Transcript');
+      expect(markup).toContain('24,705 words');
+      expect(markup).toContain('Read Transcript');
+
+      // 3. Full transcript text remains in DOM (SEO guard)
+      expect(markup).toContain('Yeah let me make sure I got all my stuff in here.');
+      expect(markup).toContain('Welcome to the only Family Guy podcast.');
+
+      // 4. Section anchors and TOC links
+      expect(markup).toContain('id="sec-01-cold-open"');
+      expect(markup).toContain('id="sec-02-welcome"');
+      expect(markup).toContain('href="#sec-01-cold-open"');
+      expect(markup).toContain('href="#sec-02-welcome"');
+
+      // 5. TOC containment inside transcript layout grid (rendered as <aside> to avoid global nav collisions)
+      expect(markup).toContain('class="transcript-layout-grid"');
+      expect(markup).toContain('<aside class="transcript-toc" aria-label="Transcript Topics"');
+      expect(markup).toContain('class="toc-mobile-details"');
+    });
   });
 
   describe('4. Metadata & Schema.org JSON-LD Generators', () => {

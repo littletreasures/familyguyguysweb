@@ -372,127 +372,6 @@ export function RenderEpisodeReviewPage({ episode, transcript, cohosts }) {
         )
       : null,
 
-    // Spoken Transcript Section
-    e(
-      'section',
-      { className: 'episode-transcript-wrapper', 'aria-label': 'Episode Transcript' },
-      e(
-        'div',
-        { className: 'transcript-header-bar' },
-        e('h2', { className: 'transcript-section-title' }, 'Full Spoken Podcast Transcript'),
-        hasTranscript
-          ? e(
-              'span',
-              { className: 'transcript-wordcount' },
-              transcript?.word_count
-                ? `${transcript.word_count.toLocaleString()} words`
-                : 'Full Length'
-            )
-          : null
-      ),
-
-      hasTranscript && transcript?.sections
-        ? e(
-            'div',
-            { className: 'transcript-body', id: 'prerendered-transcript' },
-
-            // Table of Contents
-            transcript.sections.length > 1
-              ? e(
-                  'nav',
-                  { className: 'transcript-toc', 'aria-label': 'Transcript Topics' },
-                  e('h3', { className: 'toc-title' }, 'Episode Topics'),
-                  e(
-                    'ul',
-                    { className: 'toc-list' },
-                    transcript.sections.map((sec) =>
-                      e(
-                        'li',
-                        { key: sec.id },
-                        e(
-                          'a',
-                          { href: `#${sec.id}`, className: 'toc-link' },
-                          e('span', { className: 'toc-time' }, formatSeconds(sec.start_seconds)),
-                          e('span', { className: 'toc-heading' }, sec.heading)
-                        )
-                      )
-                    )
-                  )
-                )
-              : null,
-
-            // Transcript Sections
-            e(
-              'div',
-              { className: 'transcript-sections-list' },
-              transcript.sections.map((section) =>
-                e(
-                  'section',
-                  {
-                    key: section.id,
-                    id: section.id,
-                    className: 'transcript-section-block',
-                    'aria-labelledby': `heading-${section.id}`,
-                  },
-                  e(
-                    'div',
-                    { className: 'section-meta-header' },
-                    e(
-                      'h3',
-                      { id: `heading-${section.id}`, className: 'section-title' },
-                      section.heading
-                    ),
-                    e(
-                      'span',
-                      { className: 'section-time-range' },
-                      `${formatSeconds(section.start_seconds)} – ${formatSeconds(section.end_seconds)}`
-                    )
-                  ),
-                  e(
-                    'div',
-                    { className: 'section-entries' },
-                    section.entries.map((entry, idx) => {
-                      const speakerSlug = entry.speaker.toLowerCase().replace(/[^a-z0-9]/g, '');
-                      return e(
-                        'div',
-                        {
-                          key: `${section.id}-e${idx}`,
-                          className: `dialogue-entry speaker-${speakerSlug}`,
-                        },
-                        e(
-                          'div',
-                          { className: 'entry-header' },
-                          e('span', { className: 'speaker-label' }, entry.speaker),
-                          e(
-                            'span',
-                            { className: 'timestamp-label' },
-                            formatSeconds(entry.start_seconds)
-                          )
-                        ),
-                        e('div', { className: 'dialogue-content' }, e('p', null, entry.text))
-                      );
-                    })
-                  )
-                )
-              )
-            )
-          )
-        : e(
-            'div',
-            { className: 'no-transcript-fallback' },
-            e(
-              'p',
-              { className: 'no-transcript-msg' },
-              'The full transcribed conversation for this episode is currently being curated.'
-            ),
-            e(
-              'p',
-              { className: 'no-transcript-sub' },
-              'Listen to the complete audio discussion above, or explore other reviewed episodes.'
-            )
-          )
-    ),
-
     // Visitor / Community Reviews Section (Progressive Enhancement Island Mount)
     e(
       'section',
@@ -518,6 +397,171 @@ export function RenderEpisodeReviewPage({ episode, transcript, cohosts }) {
           )
         )
       )
+    ),
+
+    // Spoken Transcript Section (Collapsible Native Details)
+    e(
+      'section',
+      { className: 'episode-transcript-container', 'aria-label': 'Episode Transcript' },
+      hasTranscript && transcript?.sections
+        ? e(
+            'details',
+            {
+              className: 'episode-transcript-wrapper transcript-collapse',
+              id: 'transcript-details',
+            },
+            e(
+              'summary',
+              { className: 'transcript-header-bar transcript-summary' },
+              e('h2', { className: 'transcript-section-title' }, 'Full Spoken Podcast Transcript'),
+              e(
+                'div',
+                { className: 'transcript-summary-meta' },
+                e(
+                  'span',
+                  { className: 'transcript-wordcount' },
+                  transcript.word_count
+                    ? `${transcript.word_count.toLocaleString()} words`
+                    : 'Full Length'
+                ),
+                e(
+                  'span',
+                  { className: 'transcript-expand-badge' },
+                  e('span', { className: 'transcript-expand-text' }, 'Read Transcript'),
+                  e('span', { className: 'transcript-expand-icon', 'aria-hidden': 'true' }, '▾')
+                )
+              )
+            ),
+            e(
+              'div',
+              { className: 'transcript-body', id: 'prerendered-transcript' },
+              e(
+                'div',
+                { className: 'transcript-layout-grid' },
+                // Column 1: Table of Contents (sticky on desktop >=1100px, collapsed details on mobile <1100px)
+                transcript.sections.length > 1
+                  ? e(
+                      'aside',
+                      { className: 'transcript-toc', 'aria-label': 'Transcript Topics' },
+                      e(
+                        'details',
+                        { className: 'toc-mobile-details', open: true },
+                        e(
+                          'summary',
+                          { className: 'toc-summary' },
+                          e('span', { className: 'toc-title' }, 'Episode Topics'),
+                          e(
+                            'span',
+                            { className: 'toc-badge' },
+                            `${transcript.sections.length} topics`
+                          ),
+                          e('span', { className: 'toc-chevron', 'aria-hidden': 'true' }, '▾')
+                        ),
+                        e(
+                          'ul',
+                          { className: 'toc-list' },
+                          transcript.sections.map((sec) =>
+                            e(
+                              'li',
+                              { key: sec.id },
+                              e(
+                                'a',
+                                { href: `#${sec.id}`, className: 'toc-link' },
+                                e(
+                                  'span',
+                                  { className: 'toc-time' },
+                                  formatSeconds(sec.start_seconds)
+                                ),
+                                e('span', { className: 'toc-heading' }, sec.heading)
+                              )
+                            )
+                          )
+                        )
+                      )
+                    )
+                  : null,
+
+                // Column 2: Transcript Sections
+                e(
+                  'div',
+                  { className: 'transcript-sections-list' },
+                  transcript.sections.map((section) =>
+                    e(
+                      'section',
+                      {
+                        key: section.id,
+                        id: section.id,
+                        className: 'transcript-section-block',
+                        'aria-labelledby': `heading-${section.id}`,
+                      },
+                      e(
+                        'div',
+                        { className: 'section-meta-header' },
+                        e(
+                          'h3',
+                          { id: `heading-${section.id}`, className: 'section-title' },
+                          section.heading
+                        ),
+                        e(
+                          'span',
+                          { className: 'section-time-range' },
+                          `${formatSeconds(section.start_seconds)} – ${formatSeconds(section.end_seconds)}`
+                        )
+                      ),
+                      e(
+                        'div',
+                        { className: 'section-entries' },
+                        section.entries.map((entry, idx) => {
+                          const speakerSlug = entry.speaker.toLowerCase().replace(/[^a-z0-9]/g, '');
+                          return e(
+                            'div',
+                            {
+                              key: `${section.id}-e${idx}`,
+                              className: `dialogue-entry speaker-${speakerSlug}`,
+                            },
+                            e(
+                              'div',
+                              { className: 'entry-header' },
+                              e('span', { className: 'speaker-label' }, entry.speaker),
+                              e(
+                                'span',
+                                { className: 'timestamp-label' },
+                                formatSeconds(entry.start_seconds)
+                              )
+                            ),
+                            e('div', { className: 'dialogue-content' }, e('p', null, entry.text))
+                          );
+                        })
+                      )
+                    )
+                  )
+                )
+              )
+            )
+          )
+        : e(
+            'div',
+            { className: 'episode-transcript-wrapper' },
+            e(
+              'div',
+              { className: 'transcript-header-bar' },
+              e('h2', { className: 'transcript-section-title' }, 'Full Spoken Podcast Transcript')
+            ),
+            e(
+              'div',
+              { className: 'no-transcript-fallback' },
+              e(
+                'p',
+                { className: 'no-transcript-msg' },
+                'The full transcribed conversation for this episode is currently being curated.'
+              ),
+              e(
+                'p',
+                { className: 'no-transcript-sub' },
+                'Listen to the complete audio discussion above, or explore other reviewed episodes.'
+              )
+            )
+          )
     )
   );
 }
