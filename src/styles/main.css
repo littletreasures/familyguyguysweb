@@ -2094,7 +2094,9 @@ details.transcript-collapse[open] > summary.transcript-summary {
   border-radius: 4px;
   box-shadow: 2px 2px 0 var(--black);
   color: var(--black);
-  transition: background-color 0.15s ease, transform 0.15s ease;
+  transition:
+    background-color 0.15s ease,
+    transform 0.15s ease;
 }
 
 summary.transcript-summary:hover .transcript-expand-badge {
