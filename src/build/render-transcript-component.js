@@ -441,7 +441,7 @@ export function RenderEpisodeReviewPage({ episode, transcript, cohosts }) {
                 // Column 1: Table of Contents (sticky on desktop >=1100px, collapsed details on mobile <1100px)
                 transcript.sections.length > 1
                   ? e(
-                      'nav',
+                      'aside',
                       { className: 'transcript-toc', 'aria-label': 'Transcript Topics' },
                       e(
                         'details',

@@ -658,9 +658,9 @@ describe('Phase 2 Prerendering Modules & Safety Gates', () => {
       expect(markup).toContain('href="#sec-01-cold-open"');
       expect(markup).toContain('href="#sec-02-welcome"');
 
-      // 5. TOC containment inside transcript layout grid
+      // 5. TOC containment inside transcript layout grid (rendered as <aside> to avoid global nav collisions)
       expect(markup).toContain('class="transcript-layout-grid"');
-      expect(markup).toContain('class="transcript-toc"');
+      expect(markup).toContain('<aside class="transcript-toc" aria-label="Transcript Topics"');
       expect(markup).toContain('class="toc-mobile-details"');
     });
   });
