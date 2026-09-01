@@ -181,6 +181,34 @@ if (typeof window !== 'undefined' && typeof document !== 'undefined') {
       if (newsletterEmail) newsletterEmail.value = '';
     });
   }
+
+  // Auto-expand transcript <details> if navigating to a section anchor (#sec-...)
+  const handleTranscriptHash = () => {
+    const hash = window.location.hash;
+    if (hash && hash.startsWith('#sec-')) {
+      const details = document.getElementById('transcript-details');
+      if (details && !details.open) {
+        details.open = true;
+      }
+      try {
+        const target = document.querySelector(hash);
+        if (target) {
+          setTimeout(() => {
+            target.scrollIntoView({ behavior: 'smooth' });
+          }, 50);
+        }
+      } catch {
+        // ignore malformed selector
+      }
+    }
+  };
+
+  window.addEventListener('hashchange', handleTranscriptHash);
+  if (document.readyState === 'complete') {
+    handleTranscriptHash();
+  } else {
+    window.addEventListener('load', handleTranscriptHash);
+  }
 }
 
 // Dynamic Episode Loader from Supabase

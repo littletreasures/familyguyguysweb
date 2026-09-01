@@ -131,6 +131,40 @@ This skill covers two related editorial pipelines:
 
 ---
 
+## Part 3: Publication Verification & Visual Review Checklist (Non-Negotiable)
+
+Before any transcript publication is approved for live database write (`--publish --allow-live-write`) or production deploy, the following checklist MUST be executed and verified:
+
+### 1. Schema & Data Integrity Validation
+- [ ] Validate transcript payload using `admin-tools/transcript_schema.py`.
+- [ ] Run dry-run upsert with `admin-tools/transcript_upsert.py --dry-run` and inspect diff.
+- [ ] Verify sanity anchors (e.g. key jokes, continuity alarms, ratings segments landing in expected sections).
+- [ ] Verify zero empty sections and zero synthetic fixture tokens (`__FGG_FIXTURE__`, `mock-cohost-`, `s99e99`).
+
+### 2. Mandatory Visual & Responsive Review (Desktop & Mobile)
+- [ ] Run production prerender (`npm run build:production`) and inspect rendered output.
+- [ ] **Desktop (1440px / $\ge 1100$px)**:
+  - Transcript is collapsed by default inside `<details id="transcript-details">`.
+  - Expanding transcript reveals the 2-column layout.
+  - Table of Contents (`.transcript-toc`) sits sticky beside dialogue entries (`position: sticky; top: 90px; max-height: calc(100vh - 120px); overflow-y: auto`) and is never cut off.
+  - Clicking TOC links jumps smoothly to target sections without header overlap (`scroll-margin-top: 90px`).
+- [ ] **Mobile (375px) & Tablet (768px)**:
+  - Table of Contents renders as an inline collapsible container (`.toc-mobile-details`) at the top of the transcript body. Absolutely no floating or fixed overlay covering dialogue content.
+  - Page flow is natural; no nested horizontal scroll clipping.
+- [ ] **Deep Linking**:
+  - Navigating to `#sec-N-...` anchors automatically expands `<details id="transcript-details">` and scrolls into view.
+- [ ] **Page Ordering**:
+  1. Episode header / metadata / RSS embed player
+  2. Host ratings & review cards
+  3. Review Overview & Notes (intro)
+  4. Visitor reviews (island mount `#visitor-reviews-root`)
+  5. Transcript — collapsed `<details>` containing TOC + sections
+
+### 3. Static SEO Verification
+- [ ] Verify the full transcript text remains in the server-rendered HTML file in `dist/reviews/:id/index.html` (crawlers and no-JS clients can read the full text).
+
+---
+
 ## Tone Summary
 
 Family Guy Guys' voice is crude, chaotic, improv-honed, and unfiltered — your job is curatorial, not comedic. Preserve THEIR humor and voice by using their actual words; do not invent jokes of your own.
