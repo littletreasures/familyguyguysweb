@@ -21,6 +21,30 @@
     </itunes:category>
     <itunes:explicit>yes</itunes:explicit>
     <item>
+      <title>Peter, Peter, Caviar Eater</title>
+      <description>Peter changes for the worse after he and Lois inherit a mansion in Newport.</description>
+      <link>https://familyguyguys.com/reviews/s02e01</link>
+      <guid isPermaLink="true">https://familyguyguys.com/reviews/s02e01</guid>
+      <pubDate>Thu, 23 Sep 1999 05:00:00 GMT</pubDate>
+      <itunes:episodeType>full</itunes:episodeType>
+      <itunes:season>2</itunes:season>
+      <itunes:episode>1</itunes:episode>
+      <itunes:explicit>yes</itunes:explicit>
+      <enclosure url="https://rss.com/podcasts/family-guy-guys/3136292" length="0" type="audio/mpeg" />
+    </item>
+    <item>
+      <title>Brian: Portrait of a Dog</title>
+      <description>Brian&apos;s life is on the line after he refuses to be treated like a dog.</description>
+      <link>https://familyguyguys.com/reviews/s1e7</link>
+      <guid isPermaLink="true">https://familyguyguys.com/reviews/s1e7</guid>
+      <pubDate>Sun, 16 May 1999 05:00:00 GMT</pubDate>
+      <itunes:episodeType>full</itunes:episodeType>
+      <itunes:season>1</itunes:season>
+      <itunes:episode>7</itunes:episode>
+      <itunes:explicit>yes</itunes:explicit>
+      <enclosure url="https://rss.com/podcasts/family-guy-guys/3113038" length="0" type="audio/mpeg" />
+    </item>
+    <item>
       <title>The Son Also Draws</title>
       <description>A chance encounter with a prune smoothie puts in motion a series of events that ultimately allows Peter to accept Chris&apos; artistic side.</description>
       <link>https://familyguyguys.com/reviews/s1e6</link>
