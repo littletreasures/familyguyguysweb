@@ -232,7 +232,7 @@ def extract_quoted_score(note: str, scale_max: float) -> Optional[float]:
     return None
 
 
-def validate_reviews_data(reviews_data: Dict[str, Any]) -> Dict[str, Any]:
+def validate_reviews_data(reviews_data: Dict[str, Any], guest_name: Optional[str] = None) -> Dict[str, Any]:
     """
     Validates reviews dictionary:
     - Non-empty reviews array
@@ -240,6 +240,7 @@ def validate_reviews_data(reviews_data: Dict[str, Any]) -> Dict[str, Any]:
     - Review text completeness
     - Spoken rating consistency vs rating_source_note
     - Canonical host coverage (Jason, Collin, Tyler)
+    - Rejects fabricated/unexpected guests when guest_name is None
     """
     errors: List[str] = []
     warnings: List[str] = []
@@ -256,10 +257,27 @@ def validate_reviews_data(reviews_data: Dict[str, Any]) -> Dict[str, Any]:
         errors.append("Reviews list is empty.")
         return {"passed": False, "errors": errors, "warnings": warnings}
 
+    canonical_hosts = ["Jason", "Collin", "Tyler"]
+    g_clean = guest_name.strip() if guest_name and guest_name.strip() else None
+
     present_hosts = set()
     for idx, r in enumerate(reviews_list):
         host = r.get("host_name", f"Host {idx}")
         present_hosts.add(host)
+
+        # Guest fabrication check
+        if g_clean is None:
+            if host not in canonical_hosts:
+                errors.append(
+                    f"Unrecognized host '{host}' found in reviews when guest_name is None. "
+                    "Only canonical hosts (Jason, Collin, Tyler) are permitted on non-guest episodes."
+                )
+        else:
+            if host not in canonical_hosts and host.lower() != g_clean.lower():
+                errors.append(
+                    f"Unrecognized speaker '{host}' found in reviews. Expected Jason, Collin, Tyler, or guest '{g_clean}'."
+                )
+
         rating = r.get("rating")
         r_val = None
         if rating is not None:

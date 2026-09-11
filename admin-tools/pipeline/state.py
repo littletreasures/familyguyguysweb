@@ -82,11 +82,18 @@ def create_initial_state(
     riverside_transcript_path: str = "",
     srt_path: str = "",
     dry_run: bool = True,
+    llm_provider: Optional[str] = None,
+    llm_model: Optional[str] = None,
 ) -> Dict[str, Any]:
     """Creates a fresh state dictionary for an episode."""
+    import config
+
     # Enforce test episode locked to dry_run
     if is_test_episode_id(episode_id):
         dry_run = True
+
+    default_prov = llm_provider or getattr(config, "LLM_PROVIDER", "gemini")
+    default_mod = llm_model or getattr(config, "DEFAULT_PROVIDER_MODELS", {}).get(default_prov, "")
 
     steps = {}
     for step in STEP_NAMES:
@@ -97,6 +104,7 @@ def create_initial_state(
             "artifacts": {},
             "validation": {"passed": True, "errors": [], "warnings": []},
             "approved": False,
+            "llm_provenance": None,
         }
 
     return {
@@ -110,6 +118,8 @@ def create_initial_state(
         "riverside_transcript_path": riverside_transcript_path,
         "srt_path": srt_path,
         "dry_run": dry_run,
+        "llm_provider": default_prov,
+        "llm_model": default_mod,
         "source_metadata": {},
         "created_at": datetime.now(timezone.utc).isoformat(),
         "updated_at": datetime.now(timezone.utc).isoformat(),
@@ -168,6 +178,7 @@ def update_step_state(
     validation: Optional[Dict[str, Any]] = None,
     approved: Optional[bool] = None,
     source_metadata: Optional[Dict[str, Any]] = None,
+    llm_provenance: Optional[Dict[str, Any]] = None,
 ) -> Dict[str, Any]:
     """Updates a single step's execution state and saves immediately."""
     state = load_episode_state(episode_id)
@@ -184,6 +195,12 @@ def update_step_state(
         step_data["approved"] = approved
     if source_metadata is not None:
         state.setdefault("source_metadata", {}).update(source_metadata)
+    if llm_provenance is not None:
+        step_data["llm_provenance"] = {
+            "provider": llm_provenance.get("provider"),
+            "model": llm_provenance.get("model"),
+            "generated_at": llm_provenance.get("generated_at") or datetime.now(timezone.utc).isoformat(),
+        }
 
     state["steps"][step_name] = step_data
     save_episode_state(episode_id, state)

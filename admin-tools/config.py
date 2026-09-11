@@ -10,14 +10,28 @@ load_dotenv(Path(__file__).parent / ".env")
 ENVIRONMENT = os.getenv("ENVIRONMENT", "development").lower()
 LLM_PROVIDER = os.getenv("LLM_PROVIDER", "gemini").lower()
 
+LLM_PROVIDERS = ["gemini", "omlx", "openai", "anthropic"]
+
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
 GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-3.7-flash")
+
+# oMLX / Local OpenAI-compatible inference server (no key required on localhost)
+OMLX_BASE_URL = os.getenv("OMLX_BASE_URL", "http://localhost:8000/v1").rstrip("/")
+OMLX_API_KEY = os.getenv("OMLX_API_KEY", "").strip()
+OMLX_MODEL = os.getenv("OMLX_MODEL", "mlx-community/Qwen2.5-7B-Instruct-4bit")
 
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
 OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-4o")
 
 ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY", "")
 ANTHROPIC_MODEL = os.getenv("ANTHROPIC_MODEL", "claude-3-5-sonnet-20241022")
+
+DEFAULT_PROVIDER_MODELS = {
+    "gemini": GEMINI_MODEL,
+    "omlx": OMLX_MODEL,
+    "openai": OPENAI_MODEL,
+    "anthropic": ANTHROPIC_MODEL,
+}
 
 # OMDb configuration (HTTPS enforced)
 OMDB_API_KEY = os.getenv("OMDB_API_KEY", "")

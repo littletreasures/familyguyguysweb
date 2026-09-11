@@ -10,6 +10,7 @@ Injects Step 6b chapters into the TIMESTAMPS section and runs automated validati
 import json
 import os
 import re
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Dict, Any, Optional
 
@@ -23,9 +24,12 @@ SKILL_PATH = Path(__file__).resolve().parent.parent / "skills" / "youtube_descri
 
 def run_step5_youtube(
     episode_id: str,
-    guest_name: str = "Tim",
+    guest_name: Optional[str] = None,
     cta_url: str = "https://familyguyguys.com",
-    dry_run: bool = True
+    dry_run: bool = True,
+    provider: Optional[str] = None,
+    model: Optional[str] = None,
+    max_tokens: int = 4096,
 ) -> Dict[str, Any]:
     """
     Executes Step 5:
@@ -34,11 +38,31 @@ def run_step5_youtube(
     3. Prompts LLM to generate description with chapters injected.
     4. Runs automated validators.
     5. Saves artifact to episodes/<episode_id>/youtube_description.txt.
-    6. Updates state.
+    6. Updates state with per-step LLM provenance.
     """
-    update_step_state(episode_id, "step5_youtube", "running", logs="Starting Step 5: YouTube Description Generation...")
+    import config
+
+    prov_used = (provider or config.LLM_PROVIDER).lower().strip()
+    model_used = model or config.DEFAULT_PROVIDER_MODELS.get(prov_used, "")
+    g_clean = guest_name.strip() if guest_name and guest_name.strip() else None
 
     ep_dir = get_episodes_dir(episode_id)
+
+    # Clean up stale raw file at the start of the run
+    raw_file = ep_dir / "llm_raw_step5_youtube.txt"
+    if raw_file.exists():
+        try:
+            raw_file.unlink()
+        except Exception:
+            pass
+
+    update_step_state(
+        episode_id,
+        "step5_youtube",
+        "running",
+        logs=f"Starting Step 5: YouTube Description Generation with {prov_used} ({model_used})..."
+    )
+
     metadata_path = ep_dir / "metadata.json"
     chapters_path = ep_dir / "chapters.txt"
     reviews_path = ep_dir / "reviews.json"
@@ -61,32 +85,33 @@ def run_step5_youtube(
 
     title = metadata.get("title", "Peter, Peter, Caviar Eater")
     season = metadata.get("season", 2)
-    ep_num = metadata.get("episode_number", 1)
+    ep_num = metadata.get("episode", metadata.get("episode_number", 1))
     primary_phrase = f'Family Guy Season {season} Episode {ep_num} "{title}"'
 
-    skill_prompt = ""
+    skill_content = ""
     if SKILL_PATH.exists():
         with open(SKILL_PATH, "r", encoding="utf-8") as f:
-            skill_prompt = f.read()
+            skill_content = f.read()
 
-    # Formulate generation prompt
-    prompt = f"""{skill_prompt}
+    guest_var_line = f"- guest_name: {g_clean}" if g_clean else "- guest_name: None (Regular 3-host episode: Jason, Collin, Tyler)"
 
-## Episode Input Facts
-- Video Format: Podcast episode recap / review
-- Channel Name: Family Guy Guys
-- Primary Search Phrase: {primary_phrase}
-- Hosts: Jason Hackett, Collin Brown, Tyler Simpson
-- Special Guest: {guest_name}
-- Episode Plot: When Lois's wealthy aunt dies, she leaves the Griffin family Cherrywood Manor in Newport. Peter tries to fit into Newport high society, bids $100 million at a charity auction, and attempts to prove historical art fraud to save the estate.
-- Ratings Context: Collin and guest {guest_name} give it 4.5 Super Bowls, Jason revises up to 4.5 Super Bowls, and Tyler awards 95 Bikinied Loises out of 100 (4.75 Quahogs).
-- CTA URL: {cta_url}
-- TIMESTAMPS:
+    prompt = f"""{skill_content}
+
+## Input Variables
+- episode_title: {title}
+- season_episode: Season {season}, Episode {ep_num}
+- primary_keyphrase: {primary_phrase}
+{guest_var_line}
+- call_to_action_url: {cta_url}
+- chapters_list:
 {chapters_text}
 
-Write a publish-ready YouTube description adhering strictly to the template and rules in the skill:
-1. Search-first hook starting with the primary search phrase in the first sentence.
-2. Short paragraph covering the actual discussion beats and verdicts.
+## Host and Guest Review Context
+{json.dumps(reviews, indent=2)}
+
+Generate the YouTube description adhering strictly to the required section structure:
+1. Hook paragraph with the primary keyphrase in the first sentence.
+2. 2-3 body paragraphs covering episode discussion, host/guest ratings and comedic units.
 3. Show identity in 1 sentence.
 4. TIMESTAMPS section with the exact timestamps provided above.
 5. One specific call to action with the full URL.
@@ -95,8 +120,9 @@ Write a publish-ready YouTube description adhering strictly to the template and 
 """
 
     description_text = ""
+    raw_output = ""
     try:
-        raw_output = generate_text(prompt, max_tokens=2048)
+        raw_output = generate_text(prompt, max_tokens=max_tokens, provider=prov_used, model=model_used)
         # Clean any markdown wrapper blocks if returned
         clean_text = raw_output.strip()
         if clean_text.startswith("```markdown"):
@@ -107,11 +133,21 @@ Write a publish-ready YouTube description adhering strictly to the template and 
             clean_text = clean_text[:-3].strip()
         description_text = clean_text
     except Exception as e:
-        log_audit_event("GENERATE_YOUTUBE_DESC", episode_id, "FALLBACK_WRITER", str(e))
+        raw_file = ep_dir / "llm_raw_step5_youtube.txt"
+        with open(raw_file, "w", encoding="utf-8") as f:
+            f.write(raw_output)
+        log_audit_event("GENERATE_YOUTUBE_DESC", episode_id, "FALLBACK_WRITER", f"{e}. Raw output saved to {raw_file}")
         # High quality offline fallback passing all strict humanizer rules
-        description_text = f"""{primary_phrase} podcast review: Jason, Collin, Tyler, and special guest {guest_name} kick off Season 2 with Lois's sudden Newport inheritance.
+        if g_clean:
+            lead_in = f"{primary_phrase} podcast review: Jason, Collin, Tyler, and special guest {g_clean} kick off Season 2 with Lois's sudden Newport inheritance."
+            ratings_lead = f"Collin and {g_clean} hand out four and a half Super Bowls, Jason matches with his own four and a half, and Tyler drops ninety-five Bikinied Loises out of one hundred."
+        else:
+            lead_in = f"{primary_phrase} podcast review: Jason, Collin, and Tyler kick off Season 2 with Lois's sudden Newport inheritance."
+            ratings_lead = "Collin hands out four and a half Super Bowls, Jason matches with his own four and a half, and Tyler drops ninety-five Bikinied Loises out of one hundred."
 
-We break down Peter's disastrous transformation into Lord Griffin, the frantic hundred million dollar charity auction bid, and whether the musical number "This House Is Freakin' Sweet" marks the turning point where the series found its real rhythm. Collin and {guest_name} hand out four and a half Super Bowls, Jason matches with his own four and a half, and Tyler drops ninety-five Bikinied Loises out of one hundred.
+        description_text = f"""{lead_in}
+
+We break down Peter's disastrous transformation into Lord Griffin, the frantic hundred million dollar charity auction bid, and whether the musical number "This House Is Freakin' Sweet" marks the turning point where the series found its real rhythm. {ratings_lead}
 
 Family Guy Guys is an episode-by-episode comedy breakdown covering every single Griffin family misadventure in broadcast order.
 
@@ -147,14 +183,21 @@ Did Peter's high-society musical number hold up better than the Newport art frau
 
     log_msg = (
         f"Step 5 Complete:\n"
+        f"- Model used: {prov_used} ({model_used})\n"
         f"- Target episode: {primary_phrase}\n"
-        f"- Guest included: {guest_name}\n"
+        f"- Guest included: {g_clean or 'None (Hosts Only)'}\n"
         f"- Chapters injected: {len(chapters_text.splitlines())} timestamps\n"
         f"- Validation status: {'PASSED' if validation_res['passed'] else 'FAILED'}\n"
         f"- Errors: {validation_res['errors']}\n"
         f"- Warnings: {validation_res['warnings']}\n"
         f"- Artifact saved: {out_path}"
     )
+
+    llm_provenance = {
+        "provider": prov_used,
+        "model": model_used,
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+    }
 
     update_step_state(
         episode_id,
@@ -164,6 +207,7 @@ Did Peter's high-society musical number hold up better than the Newport art frau
         artifacts=artifacts,
         validation=validation_res,
         approved=validation_res["passed"],
+        llm_provenance=llm_provenance,
     )
 
     return {

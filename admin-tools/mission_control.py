@@ -18,6 +18,7 @@ from typing import Dict, Any, Optional
 import streamlit as st
 
 import config
+from llm_client import get_available_models
 from pipeline.state import (
     load_step_state,
     save_step_state,
@@ -78,7 +79,8 @@ def render_mission_control():
 
     col_meta1, col_meta2 = st.columns(2)
     episode_title = col_meta1.text_input("Episode Title (Family Guy)", value=state_data.get("episode_title") or "Peter, Peter, Caviar Eater")
-    guest_name = col_meta2.text_input("Guest Name (optional)", value=state_data.get("guest_name") or "Tim")
+    raw_guest_name = col_meta2.text_input("Guest Name (leave blank if none)", value=state_data.get("guest_name") or "")
+    guest_val = raw_guest_name.strip() if raw_guest_name and raw_guest_name.strip() else None
 
     col_files1, col_files2 = st.columns(2)
     default_riverside = "/Volumes/RetroSSD/SSD-Family-Guy-Guys-Storage/Episode Vault/s2e1/s2e1.txt"
@@ -87,14 +89,68 @@ def render_mission_control():
     riverside_path = col_files1.text_input("Riverside Raw Transcript Path", value=state_data.get("riverside_transcript_path") or default_riverside)
     srt_path = col_files2.text_input("Final-Edit SRT File Path", value=state_data.get("srt_path") or default_srt)
 
+    # LLM Inference Engine Selection
+    st.markdown("##### 🧠 LLM Inference Engine")
+    col_llm_prov, col_llm_mod, col_llm_stat = st.columns([1.2, 1.8, 1.5])
+
+    provider_options = ["gemini", "omlx", "openai", "anthropic"]
+    saved_prov = state_data.get("llm_provider") or getattr(config, "LLM_PROVIDER", "gemini")
+    prov_idx = provider_options.index(saved_prov) if saved_prov in provider_options else 0
+    selected_provider = col_llm_prov.selectbox("Provider", provider_options, index=prov_idx, key="mc_llm_prov")
+
+    available_models = get_available_models(selected_provider)
+    model_options = available_models + ["Custom..."]
+    saved_mod = state_data.get("llm_model") or getattr(config, "DEFAULT_PROVIDER_MODELS", {}).get(selected_provider, "")
+
+    mod_idx = 0
+    if saved_mod in available_models:
+        mod_idx = available_models.index(saved_mod)
+    elif saved_mod:
+        mod_idx = len(available_models)  # "Custom..."
+
+    selected_model_choice = col_llm_mod.selectbox("Model", model_options, index=mod_idx, key="mc_llm_model")
+    if selected_model_choice == "Custom...":
+        active_model = col_llm_mod.text_input("Custom Model Name", value=saved_mod if saved_mod not in available_models else "", key="mc_custom_model").strip()
+    else:
+        active_model = selected_model_choice
+
+    clean_active_model = re.sub(r"\s*\(server offline — typical local models\)", "", active_model).strip()
+
+    with col_llm_stat:
+        st.markdown("<div style='height: 28px;'></div>", unsafe_allow_html=True)
+        if selected_provider == "omlx":
+            is_offline = any("(server offline" in m for m in available_models)
+            if not is_offline:
+                st.success("🟢 oMLX Online (localhost:8000)")
+            else:
+                st.warning("⚠️ oMLX Offline (http://localhost:8000/v1)")
+                st.caption("Generation will fail until oMLX server is started.")
+        elif selected_provider == "gemini":
+            if config.GEMINI_API_KEY:
+                st.success("🟢 Gemini API Key Set")
+            else:
+                st.error("🔴 Missing GEMINI_API_KEY")
+        elif selected_provider == "openai":
+            if config.OPENAI_API_KEY:
+                st.success("🟢 OpenAI API Key Set")
+            else:
+                st.error("🔴 Missing OPENAI_API_KEY")
+        elif selected_provider == "anthropic":
+            if config.ANTHROPIC_API_KEY:
+                st.success("🟢 Anthropic API Key Set")
+            else:
+                st.error("🔴 Missing ANTHROPIC_API_KEY")
+
     # Save inputs to state
     state_data["season"] = season_val
     state_data["episode"] = episode_num_val
     state_data["podcast_episode_number"] = podcast_num_val
     state_data["episode_title"] = episode_title
-    state_data["guest_name"] = guest_name
+    state_data["guest_name"] = guest_val or ""
     state_data["riverside_transcript_path"] = riverside_path
     state_data["srt_path"] = srt_path
+    state_data["llm_provider"] = selected_provider
+    state_data["llm_model"] = clean_active_model
     save_step_state(episode_id, state_data)
 
     # Safety check on test IDs
@@ -146,7 +202,7 @@ def render_mission_control():
                 run_step1_metadata(episode_id, season_val, episode_num_val, dry_run=effective_dry_run)
                 # Step 2
                 st.toast("Running Step 2: Reviews...")
-                run_step2_reviews(episode_id, guest_name=guest_name, dry_run=effective_dry_run)
+                run_step2_reviews(episode_id, guest_name=guest_val, dry_run=effective_dry_run, provider=selected_provider, model=clean_active_model)
                 # Step 3
                 st.toast("Running Step 3: Transcript...")
                 run_step3_transcript(episode_id, publish=False, dry_run=effective_dry_run)
@@ -158,17 +214,28 @@ def render_mission_control():
                 run_step6b_chapters(episode_id, dry_run=effective_dry_run)
                 # Step 5
                 st.toast("Running Step 5: YouTube Description...")
-                run_step5_youtube(episode_id, guest_name=guest_name, dry_run=effective_dry_run)
+                run_step5_youtube(episode_id, guest_name=guest_val, dry_run=effective_dry_run, provider=selected_provider, model=clean_active_model)
                 # Step 6
                 st.toast("Running Step 6: Fake Credits...")
-                run_step6_credits(episode_id, podcast_episode_number=podcast_num_val, dry_run=effective_dry_run)
+                run_step6_credits(episode_id, podcast_episode_number=podcast_num_val, guest_name=guest_val, dry_run=effective_dry_run, provider=selected_provider, model=clean_active_model)
                 # Step 7
                 st.toast("Running Step 7: Feed Sync...")
                 run_step7_feed_sync(episode_id, season=season_val, episode_number=episode_num_val, dry_run=effective_dry_run)
                 st.success("🎉 All pipeline steps executed successfully!")
                 st.rerun()
             except Exception as e:
-                st.error(f"Pipeline stopped on error: {e}")
+                st.error(f"❌ Pipeline halted on error: {e}")
+                for s_name in ["step2_reviews", "step5_youtube", "step6_credits"]:
+                    raw_path = ep_dir / f"llm_raw_{s_name}.txt"
+                    if raw_path.exists():
+                        try:
+                            with open(raw_path, "r", encoding="utf-8") as rf:
+                                r_txt = rf.read()
+                            if r_txt.strip():
+                                st.error(f"⚠️ Raw LLM Response for {s_name}:")
+                                st.code(r_txt, language="text")
+                        except Exception:
+                            pass
 
     if col_btn2.button("⟳ Refresh Status", use_container_width=True):
         st.rerun()
@@ -237,8 +304,20 @@ def render_mission_control():
     with st.expander("Step 2: Host Reviews & Synthesis", expanded=False):
         s2_info = steps_state.get("step2_reviews", {})
         st.write(f"**Status:** `{s2_info.get('status', 'pending')}` | **Updated:** `{s2_info.get('updated_at')}`")
+        prov_s2 = s2_info.get("llm_provenance")
+        if prov_s2:
+            st.caption(f"🧠 **Model Provenance:** Generated with `{prov_s2.get('provider')}` / `{prov_s2.get('model')}` at {prov_s2.get('generated_at')}")
+
         if s2_info.get("logs"):
             st.code(s2_info["logs"], language="text")
+
+        raw_err_file = ep_dir / "llm_raw_step2_reviews.txt"
+        if raw_err_file.exists():
+            with open(raw_err_file, "r", encoding="utf-8") as f:
+                raw_err_text = f.read()
+            if raw_err_text.strip():
+                st.error("⚠️ Raw LLM Response (JSON Extraction Failed):")
+                st.code(raw_err_text, language="text")
 
         rev_file = ep_dir / "reviews.json"
         if rev_file.exists():
@@ -246,7 +325,7 @@ def render_mission_control():
                 rev_json = json.load(f)
             st.json(rev_json)
             # Run validator live
-            v_rev = validate_reviews_data(rev_json)
+            v_rev = validate_reviews_data(rev_json, guest_name=guest_val)
             if v_rev["passed"]:
                 st.success("✅ Quality Gate: Rating bounds & host coverage verified. No precision drift.")
             else:
@@ -254,8 +333,18 @@ def render_mission_control():
 
         c_s2_1, c_s2_2 = st.columns(2)
         if c_s2_1.button("Synthesize Reviews Across 3 Chunks", key="btn_s2"):
-            run_step2_reviews(episode_id, guest_name=guest_name, dry_run=dry_run_toggle)
-            st.rerun()
+            try:
+                run_step2_reviews(episode_id, guest_name=guest_val, dry_run=dry_run_toggle, provider=selected_provider, model=clean_active_model)
+                st.rerun()
+            except Exception as e:
+                st.error(f"❌ Step 2 Synthesis Failed: {e}")
+                raw_err_file = ep_dir / "llm_raw_step2_reviews.txt"
+                if raw_err_file.exists():
+                    with open(raw_err_file, "r", encoding="utf-8") as f:
+                        raw_err_text = f.read()
+                    if raw_err_text.strip():
+                        st.error("⚠️ Raw LLM Response:")
+                        st.code(raw_err_text, language="text")
 
         with c_s2_2:
             s2_phrase = st.text_input("Confirmation Phrase for Step 2 Live Write", key="phrase_s2", placeholder="PUBLISH TO PRODUCTION")
@@ -264,7 +353,7 @@ def render_mission_control():
                     if is_test_id:
                         st.error("BLOCKED: Test episode IDs cannot write to live database.")
                     else:
-                        run_step2_reviews(episode_id, guest_name=guest_name, dry_run=False)
+                        run_step2_reviews(episode_id, guest_name=guest_val, dry_run=False, provider=selected_provider, model=clean_active_model)
                         st.success("Host reviews pushed to Supabase!")
                         st.rerun()
                 else:
@@ -360,8 +449,20 @@ def render_mission_control():
     with st.expander("Step 5: YouTube Title & Description", expanded=False):
         s5_info = steps_state.get("step5_youtube", {})
         st.write(f"**Status:** `{s5_info.get('status', 'pending')}` | **Updated:** `{s5_info.get('updated_at')}`")
+        prov_s5 = s5_info.get("llm_provenance")
+        if prov_s5:
+            st.caption(f"🧠 **Model Provenance:** Generated with `{prov_s5.get('provider')}` / `{prov_s5.get('model')}` at {prov_s5.get('generated_at')}")
+
         if s5_info.get("logs"):
             st.code(s5_info["logs"], language="text")
+
+        raw_err_file_s5 = ep_dir / "llm_raw_step5_youtube.txt"
+        if raw_err_file_s5.exists():
+            with open(raw_err_file_s5, "r", encoding="utf-8") as f:
+                raw_err_text_s5 = f.read()
+            if raw_err_text_s5.strip():
+                st.error("⚠️ Raw LLM Response (Generation/Formatting Failed):")
+                st.code(raw_err_text_s5, language="text")
 
         yt_file = ep_dir / "youtube_description.txt"
         yt_content = ""
@@ -384,15 +485,37 @@ def render_mission_control():
                 st.warning(f"⚠️ Quality Gate Warnings: {v_yt['warnings']}")
 
         if st.button("Generate Description with Injected Chapters", key="btn_s5"):
-            run_step5_youtube(episode_id, guest_name=guest_name, dry_run=dry_run_toggle)
-            st.rerun()
+            try:
+                run_step5_youtube(episode_id, guest_name=guest_val, dry_run=dry_run_toggle, provider=selected_provider, model=clean_active_model)
+                st.rerun()
+            except Exception as e:
+                st.error(f"❌ Step 5 Failed: {e}")
+                raw_err_file_s5 = ep_dir / "llm_raw_step5_youtube.txt"
+                if raw_err_file_s5.exists():
+                    with open(raw_err_file_s5, "r", encoding="utf-8") as f:
+                        raw_err_text_s5 = f.read()
+                    if raw_err_text_s5.strip():
+                        st.error("⚠️ Raw LLM Response:")
+                        st.code(raw_err_text_s5, language="text")
 
     # --- STEP 6 ---
     with st.expander("Step 6: Fake Credit Scroll", expanded=False):
         s6_info = steps_state.get("step6_credits", {})
         st.write(f"**Status:** `{s6_info.get('status', 'pending')}` | **Updated:** `{s6_info.get('updated_at')}`")
+        prov_s6 = s6_info.get("llm_provenance")
+        if prov_s6:
+            st.caption(f"🧠 **Model Provenance:** Generated with `{prov_s6.get('provider')}` / `{prov_s6.get('model')}` at {prov_s6.get('generated_at')}")
+
         if s6_info.get("logs"):
             st.code(s6_info["logs"], language="text")
+
+        raw_err_file_s6 = ep_dir / "llm_raw_step6_credits.txt"
+        if raw_err_file_s6.exists():
+            with open(raw_err_file_s6, "r", encoding="utf-8") as f:
+                raw_err_text_s6 = f.read()
+            if raw_err_text_s6.strip():
+                st.error("⚠️ Raw LLM Response (Generation/Formatting Failed):")
+                st.code(raw_err_text_s6, language="text")
 
         cr_file = ep_dir / "credits.md"
         cr_content = ""
@@ -416,8 +539,18 @@ def render_mission_control():
                     st.warning(f"⚠️ Quality Gate Warnings: {v_cr['warnings']}")
 
         if st.button("Generate Credit Scroll (Spelled-Out Typography)", key="btn_s6"):
-            run_step6_credits(episode_id, podcast_episode_number=podcast_num_val, dry_run=dry_run_toggle)
-            st.rerun()
+            try:
+                run_step6_credits(episode_id, podcast_episode_number=podcast_num_val, guest_name=guest_val, dry_run=dry_run_toggle, provider=selected_provider, model=clean_active_model)
+                st.rerun()
+            except Exception as e:
+                st.error(f"❌ Step 6 Failed: {e}")
+                raw_err_file_s6 = ep_dir / "llm_raw_step6_credits.txt"
+                if raw_err_file_s6.exists():
+                    with open(raw_err_file_s6, "r", encoding="utf-8") as f:
+                        raw_err_text_s6 = f.read()
+                    if raw_err_text_s6.strip():
+                        st.error("⚠️ Raw LLM Response:")
+                        st.code(raw_err_text_s6, language="text")
 
     # --- STEP 7 ---
     with st.expander("Step 7: Podcast Feed Sync", expanded=False):
@@ -464,7 +597,7 @@ def render_mission_control():
                     # 1. Step 1 live
                     run_step1_metadata(episode_id, season_val, episode_num_val, dry_run=False)
                     # 2. Step 2 live
-                    run_step2_reviews(episode_id, guest_name=guest_name, dry_run=False)
+                    run_step2_reviews(episode_id, guest_name=guest_val, dry_run=False, provider=selected_provider, model=clean_active_model)
                     # 3. Step 3 live
                     run_step3_transcript(episode_id, publish=True, dry_run=False)
                     # 4. Step 4 live

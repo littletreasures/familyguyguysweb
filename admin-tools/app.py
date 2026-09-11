@@ -11,7 +11,7 @@ import streamlit as st
 
 import config
 from omdb_fetch import fetch_episode_metadata, map_to_episodes_row, upsert_episode
-from llm_client import generate_review_json
+from llm_client import generate_review_json, get_available_models
 from supabase_upsert import build_review_rows, upsert_reviews
 from validation import validate_episode_dict, log_audit_event
 from thumbnail_service import (
@@ -83,8 +83,26 @@ with tab1:
 
 with tab2:
     st.header("Generate review from transcript")
-    provider = st.selectbox("LLM Provider", ["gemini", "openai", "anthropic"],
-                             index=["gemini", "openai", "anthropic"].index(config.LLM_PROVIDER))
+    prov_col, mod_col = st.columns(2)
+    provider_options = ["gemini", "omlx", "openai", "anthropic"]
+    provider = prov_col.selectbox(
+        "LLM Provider",
+        provider_options,
+        index=provider_options.index(config.LLM_PROVIDER) if config.LLM_PROVIDER in provider_options else 0,
+        key="tab2_provider"
+    )
+    available_models = get_available_models(provider)
+    model_options = available_models + ["Custom..."]
+    default_mod = getattr(config, "DEFAULT_PROVIDER_MODELS", {}).get(provider, "")
+    mod_idx = available_models.index(default_mod) if default_mod in available_models else 0
+    selected_model = mod_col.selectbox("Model", model_options, index=mod_idx, key="tab2_model")
+    if selected_model == "Custom...":
+        active_model = mod_col.text_input("Custom Model Name", value="", key="tab2_custom_model").strip()
+    else:
+        active_model = selected_model
+    import re
+    active_model = re.sub(r"\s*\(server offline — typical local models\)", "", active_model).strip()
+
     ep_id = st.text_input("Episode ID for review", value="")
     ep_title = st.text_input("Episode title (optional)", value="")
     uploaded = st.file_uploader("Upload transcript (.txt)", type=["txt"])
@@ -94,9 +112,9 @@ with tab2:
         transcript_text = uploaded.read().decode("utf-8")
         with st.spinner("Calling LLM..."):
             try:
-                result = generate_review_json(ep_id, ep_title, transcript_text)
+                result = generate_review_json(ep_id, ep_title, transcript_text, provider=provider, model=active_model)
                 st.session_state["review_json"] = result
-                log_audit_event("GUI_GENERATE_LLM", ep_id, "SUCCESS", f"Provider={provider}")
+                log_audit_event("GUI_GENERATE_LLM", ep_id, "SUCCESS", f"Provider={provider}, Model={active_model}")
             except Exception as e:
                 st.error(str(e))
                 log_audit_event("GUI_GENERATE_LLM", ep_id or "UNKNOWN", "FAILED", str(e))
