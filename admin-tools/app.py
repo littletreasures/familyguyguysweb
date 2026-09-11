@@ -100,6 +100,8 @@ with tab2:
         active_model = mod_col.text_input("Custom Model Name", value="", key="tab2_custom_model").strip()
     else:
         active_model = selected_model
+    import re
+    active_model = re.sub(r"\s*\(server offline — typical local models\)", "", active_model).strip()
 
     ep_id = st.text_input("Episode ID for review", value="")
     ep_title = st.text_input("Episode title (optional)", value="")

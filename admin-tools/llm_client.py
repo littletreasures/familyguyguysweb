@@ -50,19 +50,39 @@ transcript:
 Return ONLY the JSON object described above, nothing else."""
 
 
+def _get_omlx_api_key() -> str:
+    """Returns configured OMLX_API_KEY, or attempts to read ~/.omlx/settings.json, or defaults to empty."""
+    if getattr(config, "OMLX_API_KEY", ""):
+        return config.OMLX_API_KEY
+    try:
+        from pathlib import Path
+        settings_file = Path.home() / ".omlx" / "settings.json"
+        if settings_file.exists():
+            import json
+            with open(settings_file, "r", encoding="utf-8") as f:
+                s = json.load(f)
+                return s.get("auth", {}).get("api_key", "")
+    except Exception:
+        pass
+    return ""
+
+
 def get_available_models(provider: str) -> list[str]:
     """
     Returns available models for the given provider.
     For oMLX / OpenAI-compatible local servers, queries {OMLX_BASE_URL}/models with a short timeout.
+    If unreachable, returns typical models clearly labeled as '(server offline — typical local models)'.
     """
     p = provider.lower().strip()
     if p in ("omlx", "local", "lmstudio"):
         try:
             import requests
             headers = {}
-            if config.OMLX_API_KEY:
-                headers["Authorization"] = f"Bearer {config.OMLX_API_KEY}"
-            resp = requests.get(f"{config.OMLX_BASE_URL}/models", headers=headers, timeout=1.0)
+            api_key = _get_omlx_api_key()
+            if api_key:
+                headers["Authorization"] = f"Bearer {api_key}"
+            # Disable proxy for localhost probes
+            resp = requests.get(f"{config.OMLX_BASE_URL}/models", headers=headers, timeout=1.0, proxies={"http": None, "https": None})
             if resp.status_code == 200:
                 data = resp.json()
                 models = [m.get("id") for m in data.get("data", []) if m.get("id")]
@@ -71,9 +91,9 @@ def get_available_models(provider: str) -> list[str]:
         except Exception:
             pass
         return [
-            "mlx-community/Qwen2.5-7B-Instruct-4bit",
-            "mlx-community/Llama-3.2-3B-Instruct-4bit",
-            "mlx-community/Qwen2.5-Coder-32B-Instruct-4bit",
+            "mlx-community/Qwen2.5-7B-Instruct-4bit (server offline — typical local models)",
+            "mlx-community/Llama-3.2-3B-Instruct-4bit (server offline — typical local models)",
+            "mlx-community/Qwen2.5-Coder-32B-Instruct-4bit (server offline — typical local models)",
         ]
     elif p == "gemini":
         return [
@@ -126,16 +146,25 @@ def generate_text(
         # Generic OpenAI-compatible local server (oMLX default at localhost:8000/v1, LM Studio at localhost:1234/v1)
         from openai import OpenAI
         base_url = config.OMLX_BASE_URL
-        api_key = config.OMLX_API_KEY or "not-needed"
+        api_key = _get_omlx_api_key() or "not-needed"
         target_model = model or config.OMLX_MODEL
+        target_model = re.sub(r"\s*\(server offline — typical local models\)", "", target_model).strip()
         client = OpenAI(base_url=base_url, api_key=api_key)
-        response = client.chat.completions.create(
-            model=target_model,
-            messages=[{"role": "user", "content": prompt}],
-            max_tokens=max_tokens,
-            temperature=0.3,
-        )
-        return response.choices[0].message.content or ""
+        try:
+            response = client.chat.completions.create(
+                model=target_model,
+                messages=[{"role": "user", "content": prompt}],
+                max_tokens=max_tokens,
+                temperature=0.3,
+            )
+            return response.choices[0].message.content or ""
+        except Exception as e:
+            err_str = str(e).lower()
+            if any(k in err_str for k in ["connection", "refused", "failed to connect", "unreachable", "not allowed"]):
+                raise ConnectionError(
+                    f"oMLX server is unreachable at {base_url}. Start oMLX to generate with local models."
+                ) from e
+            raise
 
     elif prov == "openai":
         from openai import OpenAI

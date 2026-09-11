@@ -85,6 +85,7 @@ def sanitize_scroll_body_digits(text: str) -> str:
 def run_step6_credits(
     episode_id: str,
     podcast_episode_number: int = 8,
+    guest_name: Optional[str] = None,
     dry_run: bool = True,
     provider: Optional[str] = None,
     model: Optional[str] = None,
@@ -104,6 +105,17 @@ def run_step6_credits(
 
     prov_used = (provider or config.LLM_PROVIDER).lower().strip()
     model_used = model or config.DEFAULT_PROVIDER_MODELS.get(prov_used, "")
+    g_clean = guest_name.strip() if guest_name and guest_name.strip() else None
+
+    ep_dir = get_episodes_dir(episode_id)
+
+    # Clean up stale raw file at the start of the run
+    raw_file = ep_dir / "llm_raw_step6_credits.txt"
+    if raw_file.exists():
+        try:
+            raw_file.unlink()
+        except Exception:
+            pass
 
     update_step_state(
         episode_id,
@@ -112,7 +124,6 @@ def run_step6_credits(
         logs=f"Starting Step 6: Credit Scroll Generation with {prov_used} ({model_used})..."
     )
 
-    ep_dir = get_episodes_dir(episode_id)
     metadata_path = ep_dir / "metadata.json"
 
     metadata = {}
@@ -134,6 +145,15 @@ def run_step6_credits(
         with open(SKILL_PATH, "r", encoding="utf-8") as f:
             skill_content = f.read()
 
+    if g_clean:
+        guest_riff = f"  - Guest {g_clean}'s cool sunglasses and relaxed posture while podcasting"
+        tier3_fallback_guest = f"""Guest Sunglasses and Demeanor Liaison
+{g_clean}"""
+    else:
+        guest_riff = "  - Host chemistry, banter, and jokes between Jason, Collin, and Tyler"
+        tier3_fallback_guest = """Host Chemistry and Banter Coordinator
+Jason Hackett, Tyler Simpson, Collin Brown"""
+
     prompt = f"""{skill_content}
 
 ## Input Variables
@@ -145,7 +165,7 @@ def run_step6_credits(
 
 ## Actual Episode Riffs to Incorporate into Tier 3
 - Primary Conversation Bits from this recording:
-  - Tim's cool sunglasses and relaxed posture while podcasting
+{guest_riff}
   - Collin's obsession with sweet corn
   - The Red Hot Chili Peppers cigarette smoke debate
   - Jason sitting in "the good chair" for the first time
@@ -219,8 +239,7 @@ Tyler Simpson's Cigarette Pack
 Red Hot Chili Peppers Cigarette Break Coordinator
 The Smoking Section
 
-Guest Sunglasses and Demeanor Liaison
-Tim
+{tier3_fallback_guest}
 
 Executive Vice President of Super Bowl Ratings
 Collin Brown

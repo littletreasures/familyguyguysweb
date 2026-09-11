@@ -79,7 +79,8 @@ def render_mission_control():
 
     col_meta1, col_meta2 = st.columns(2)
     episode_title = col_meta1.text_input("Episode Title (Family Guy)", value=state_data.get("episode_title") or "Peter, Peter, Caviar Eater")
-    guest_name = col_meta2.text_input("Guest Name (optional)", value=state_data.get("guest_name") or "Tim")
+    raw_guest_name = col_meta2.text_input("Guest Name (leave blank if none)", value=state_data.get("guest_name") or "")
+    guest_val = raw_guest_name.strip() if raw_guest_name and raw_guest_name.strip() else None
 
     col_files1, col_files2 = st.columns(2)
     default_riverside = "/Volumes/RetroSSD/SSD-Family-Guy-Guys-Storage/Episode Vault/s2e1/s2e1.txt"
@@ -113,21 +114,17 @@ def render_mission_control():
     else:
         active_model = selected_model_choice
 
+    clean_active_model = re.sub(r"\s*\(server offline — typical local models\)", "", active_model).strip()
+
     with col_llm_stat:
         st.markdown("<div style='height: 28px;'></div>", unsafe_allow_html=True)
         if selected_provider == "omlx":
-            try:
-                import requests
-                headers = {}
-                if config.OMLX_API_KEY:
-                    headers["Authorization"] = f"Bearer {config.OMLX_API_KEY}"
-                r = requests.get(f"{config.OMLX_BASE_URL}/models", headers=headers, timeout=0.8)
-                if r.status_code == 200:
-                    st.success("🟢 oMLX Online (localhost:8000)")
-                else:
-                    st.warning(f"⚠️ oMLX Responded {r.status_code}")
-            except Exception:
+            is_offline = any("(server offline" in m for m in available_models)
+            if not is_offline:
+                st.success("🟢 oMLX Online (localhost:8000)")
+            else:
                 st.warning("⚠️ oMLX Offline (http://localhost:8000/v1)")
+                st.caption("Generation will fail until oMLX server is started.")
         elif selected_provider == "gemini":
             if config.GEMINI_API_KEY:
                 st.success("🟢 Gemini API Key Set")
@@ -149,11 +146,11 @@ def render_mission_control():
     state_data["episode"] = episode_num_val
     state_data["podcast_episode_number"] = podcast_num_val
     state_data["episode_title"] = episode_title
-    state_data["guest_name"] = guest_name
+    state_data["guest_name"] = guest_val or ""
     state_data["riverside_transcript_path"] = riverside_path
     state_data["srt_path"] = srt_path
     state_data["llm_provider"] = selected_provider
-    state_data["llm_model"] = active_model
+    state_data["llm_model"] = clean_active_model
     save_step_state(episode_id, state_data)
 
     # Safety check on test IDs
@@ -205,7 +202,7 @@ def render_mission_control():
                 run_step1_metadata(episode_id, season_val, episode_num_val, dry_run=effective_dry_run)
                 # Step 2
                 st.toast("Running Step 2: Reviews...")
-                run_step2_reviews(episode_id, guest_name=guest_name, dry_run=effective_dry_run, provider=selected_provider, model=active_model)
+                run_step2_reviews(episode_id, guest_name=guest_val, dry_run=effective_dry_run, provider=selected_provider, model=clean_active_model)
                 # Step 3
                 st.toast("Running Step 3: Transcript...")
                 run_step3_transcript(episode_id, publish=False, dry_run=effective_dry_run)
@@ -217,17 +214,28 @@ def render_mission_control():
                 run_step6b_chapters(episode_id, dry_run=effective_dry_run)
                 # Step 5
                 st.toast("Running Step 5: YouTube Description...")
-                run_step5_youtube(episode_id, guest_name=guest_name, dry_run=effective_dry_run, provider=selected_provider, model=active_model)
+                run_step5_youtube(episode_id, guest_name=guest_val, dry_run=effective_dry_run, provider=selected_provider, model=clean_active_model)
                 # Step 6
                 st.toast("Running Step 6: Fake Credits...")
-                run_step6_credits(episode_id, podcast_episode_number=podcast_num_val, dry_run=effective_dry_run, provider=selected_provider, model=active_model)
+                run_step6_credits(episode_id, podcast_episode_number=podcast_num_val, guest_name=guest_val, dry_run=effective_dry_run, provider=selected_provider, model=clean_active_model)
                 # Step 7
                 st.toast("Running Step 7: Feed Sync...")
                 run_step7_feed_sync(episode_id, season=season_val, episode_number=episode_num_val, dry_run=effective_dry_run)
                 st.success("🎉 All pipeline steps executed successfully!")
                 st.rerun()
             except Exception as e:
-                st.error(f"Pipeline stopped on error: {e}")
+                st.error(f"❌ Pipeline halted on error: {e}")
+                for s_name in ["step2_reviews", "step5_youtube", "step6_credits"]:
+                    raw_path = ep_dir / f"llm_raw_{s_name}.txt"
+                    if raw_path.exists():
+                        try:
+                            with open(raw_path, "r", encoding="utf-8") as rf:
+                                r_txt = rf.read()
+                            if r_txt.strip():
+                                st.error(f"⚠️ Raw LLM Response for {s_name}:")
+                                st.code(r_txt, language="text")
+                        except Exception:
+                            pass
 
     if col_btn2.button("⟳ Refresh Status", use_container_width=True):
         st.rerun()
@@ -317,7 +325,7 @@ def render_mission_control():
                 rev_json = json.load(f)
             st.json(rev_json)
             # Run validator live
-            v_rev = validate_reviews_data(rev_json)
+            v_rev = validate_reviews_data(rev_json, guest_name=guest_val)
             if v_rev["passed"]:
                 st.success("✅ Quality Gate: Rating bounds & host coverage verified. No precision drift.")
             else:
@@ -325,8 +333,18 @@ def render_mission_control():
 
         c_s2_1, c_s2_2 = st.columns(2)
         if c_s2_1.button("Synthesize Reviews Across 3 Chunks", key="btn_s2"):
-            run_step2_reviews(episode_id, guest_name=guest_name, dry_run=dry_run_toggle, provider=selected_provider, model=active_model)
-            st.rerun()
+            try:
+                run_step2_reviews(episode_id, guest_name=guest_val, dry_run=dry_run_toggle, provider=selected_provider, model=clean_active_model)
+                st.rerun()
+            except Exception as e:
+                st.error(f"❌ Step 2 Synthesis Failed: {e}")
+                raw_err_file = ep_dir / "llm_raw_step2_reviews.txt"
+                if raw_err_file.exists():
+                    with open(raw_err_file, "r", encoding="utf-8") as f:
+                        raw_err_text = f.read()
+                    if raw_err_text.strip():
+                        st.error("⚠️ Raw LLM Response:")
+                        st.code(raw_err_text, language="text")
 
         with c_s2_2:
             s2_phrase = st.text_input("Confirmation Phrase for Step 2 Live Write", key="phrase_s2", placeholder="PUBLISH TO PRODUCTION")
@@ -335,7 +353,7 @@ def render_mission_control():
                     if is_test_id:
                         st.error("BLOCKED: Test episode IDs cannot write to live database.")
                     else:
-                        run_step2_reviews(episode_id, guest_name=guest_name, dry_run=False, provider=selected_provider, model=active_model)
+                        run_step2_reviews(episode_id, guest_name=guest_val, dry_run=False, provider=selected_provider, model=clean_active_model)
                         st.success("Host reviews pushed to Supabase!")
                         st.rerun()
                 else:
@@ -467,8 +485,18 @@ def render_mission_control():
                 st.warning(f"⚠️ Quality Gate Warnings: {v_yt['warnings']}")
 
         if st.button("Generate Description with Injected Chapters", key="btn_s5"):
-            run_step5_youtube(episode_id, guest_name=guest_name, dry_run=dry_run_toggle, provider=selected_provider, model=active_model)
-            st.rerun()
+            try:
+                run_step5_youtube(episode_id, guest_name=guest_val, dry_run=dry_run_toggle, provider=selected_provider, model=clean_active_model)
+                st.rerun()
+            except Exception as e:
+                st.error(f"❌ Step 5 Failed: {e}")
+                raw_err_file_s5 = ep_dir / "llm_raw_step5_youtube.txt"
+                if raw_err_file_s5.exists():
+                    with open(raw_err_file_s5, "r", encoding="utf-8") as f:
+                        raw_err_text_s5 = f.read()
+                    if raw_err_text_s5.strip():
+                        st.error("⚠️ Raw LLM Response:")
+                        st.code(raw_err_text_s5, language="text")
 
     # --- STEP 6 ---
     with st.expander("Step 6: Fake Credit Scroll", expanded=False):
@@ -511,8 +539,18 @@ def render_mission_control():
                     st.warning(f"⚠️ Quality Gate Warnings: {v_cr['warnings']}")
 
         if st.button("Generate Credit Scroll (Spelled-Out Typography)", key="btn_s6"):
-            run_step6_credits(episode_id, podcast_episode_number=podcast_num_val, dry_run=dry_run_toggle, provider=selected_provider, model=active_model)
-            st.rerun()
+            try:
+                run_step6_credits(episode_id, podcast_episode_number=podcast_num_val, guest_name=guest_val, dry_run=dry_run_toggle, provider=selected_provider, model=clean_active_model)
+                st.rerun()
+            except Exception as e:
+                st.error(f"❌ Step 6 Failed: {e}")
+                raw_err_file_s6 = ep_dir / "llm_raw_step6_credits.txt"
+                if raw_err_file_s6.exists():
+                    with open(raw_err_file_s6, "r", encoding="utf-8") as f:
+                        raw_err_text_s6 = f.read()
+                    if raw_err_text_s6.strip():
+                        st.error("⚠️ Raw LLM Response:")
+                        st.code(raw_err_text_s6, language="text")
 
     # --- STEP 7 ---
     with st.expander("Step 7: Podcast Feed Sync", expanded=False):
@@ -559,7 +597,7 @@ def render_mission_control():
                     # 1. Step 1 live
                     run_step1_metadata(episode_id, season_val, episode_num_val, dry_run=False)
                     # 2. Step 2 live
-                    run_step2_reviews(episode_id, guest_name=guest_name, dry_run=False, provider=selected_provider, model=active_model)
+                    run_step2_reviews(episode_id, guest_name=guest_val, dry_run=False, provider=selected_provider, model=clean_active_model)
                     # 3. Step 3 live
                     run_step3_transcript(episode_id, publish=True, dry_run=False)
                     # 4. Step 4 live

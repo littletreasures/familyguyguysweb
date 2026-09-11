@@ -17,7 +17,7 @@ from pipeline.state import get_episodes_dir, update_step_state, assert_safe_publ
 from pipeline.validators import validate_reviews_data
 
 
-def extract_chunk_review_signals(chunk_text: str, chunk_index: int, guest_name: str = "") -> Dict[str, Any]:
+def extract_chunk_review_signals(chunk_text: str, chunk_index: int, guest_name: Optional[str] = None) -> Dict[str, Any]:
     """
     Extracts ratings, commentary, and candidate quotes from an individual chunk.
     Works for Jason, Collin, Tyler, and optional guest.
@@ -68,7 +68,7 @@ def synthesize_reviews_from_chunks(
     chunk_3_text: str,
     episode_id: str,
     episode_title: str = "",
-    guest_name: str = "Tim",
+    guest_name: Optional[str] = None,
     provider: Optional[str] = None,
     model: Optional[str] = None,
     max_tokens: int = 4096,
@@ -78,20 +78,22 @@ def synthesize_reviews_from_chunks(
     1. Extracts chunk-level signals from Chunk 1, 2, and 3.
     2. Uses LLM to determine each speaker's FINAL stated rating,
        custom rating terminology unit, and Letterboxd-style review.
-    3. Handles both hosts (Jason, Collin, Tyler) and guest (e.g. Tim).
+    3. Handles both hosts (Jason, Collin, Tyler) and optional guest (e.g. Tim).
     """
     ep_dir = get_episodes_dir(episode_id)
+    g_name = guest_name.strip() if guest_name and guest_name.strip() else None
 
     # Chunk signals
-    c1_signals = extract_chunk_review_signals(chunk_1_text, 1, guest_name=guest_name)
-    c2_signals = extract_chunk_review_signals(chunk_2_text, 2, guest_name=guest_name)
-    c3_signals = extract_chunk_review_signals(chunk_3_text, 3, guest_name=guest_name)
+    c1_signals = extract_chunk_review_signals(chunk_1_text, 1, guest_name=g_name)
+    c2_signals = extract_chunk_review_signals(chunk_2_text, 2, guest_name=g_name)
+    c3_signals = extract_chunk_review_signals(chunk_3_text, 3, guest_name=g_name)
 
     # Prompt combining all 3 chunks signals
-    system_prompt = f"""You are the podcast editor for Family Guy Guys (Jason, Collin, Tyler, and guest {guest_name}).
+    if g_name:
+        system_prompt = f"""You are the podcast editor for Family Guy Guys (Jason, Collin, Tyler, and guest {g_name}).
 Analyze the discussion across all 3 transcript chunks.
 Extract each speaker's FINAL stated rating, custom rating unit, scale max, 2-5 sentence Letterboxd review, and verbatim pull quote.
-You MUST include an entry in 'reviews' for each of the four speakers: Jason, Collin, Tyler, and {guest_name}.
+You MUST include an entry in 'reviews' for each of the four speakers: Jason, Collin, Tyler, and {g_name}.
 Look across all 3 chunks for running bits, but extract the FINAL stated score (usually in chunk 3).
 Store ratings normalized to a 0.0 - 5.0 scale with full floating point precision (e.g. 4.75 for 95/100, do not round to 4.8).
 Keep the host's raw stated score verbatim in rating_source_note (e.g. 'Stated as ninety-five bikinied Lois out of one hundred').
@@ -102,7 +104,34 @@ Return ONLY a JSON object matching this schema:
   "episode_id": "{episode_id}",
   "reviews": [
     {{
-      "host_name": "Jason | Collin | Tyler | {guest_name}",
+      "host_name": "Jason | Collin | Tyler | {g_name}",
+      "rating": 4.75,
+      "rating_source_note": "verbatim quoted raw score...",
+      "rating_terminology": "unit...",
+      "rating_scale_max": 100,
+      "review": "review text...",
+      "pull_quote": "verbatim funniest line..."
+    }}
+  ]
+}}
+"""
+    else:
+        system_prompt = f"""You are the podcast editor for Family Guy Guys (Jason, Collin, Tyler).
+Analyze the discussion across all 3 transcript chunks.
+Extract each speaker's FINAL stated rating, custom rating unit, scale max, 2-5 sentence Letterboxd review, and verbatim pull quote.
+You MUST include an entry in 'reviews' for each of the three hosts: Jason, Collin, and Tyler.
+Do NOT include any guests or fourth speakers as there was no guest on this episode.
+Look across all 3 chunks for running bits, but extract the FINAL stated score (usually in chunk 3).
+Store ratings normalized to a 0.0 - 5.0 scale with full floating point precision (e.g. 4.75 for 95/100, do not round to 4.8).
+Keep the host's raw stated score verbatim in rating_source_note (e.g. 'Stated as ninety-five bikinied Lois out of one hundred').
+rating_scale_max is the host's stated scale (5 or 100).
+
+Return ONLY a JSON object matching this schema:
+{{
+  "episode_id": "{episode_id}",
+  "reviews": [
+    {{
+      "host_name": "Jason | Collin | Tyler",
       "rating": 4.75,
       "rating_source_note": "verbatim quoted raw score...",
       "rating_terminology": "unit...",
@@ -156,7 +185,7 @@ Return ONLY a JSON object matching this schema:
 
 def run_step2_reviews(
     episode_id: str,
-    guest_name: str = "Tim",
+    guest_name: Optional[str] = None,
     dry_run: bool = True,
     confirm_phrase: str = "",
     provider: Optional[str] = None,
@@ -165,16 +194,28 @@ def run_step2_reviews(
 ) -> Dict[str, Any]:
     """
     Executes Step 2:
-    1. Loads chunk_1.txt, chunk_2.txt, chunk_3.txt from episodes/<episode_id>/chunks/.
-    2. Runs per-chunk analysis and cross-chunk synthesis using specified LLM provider/model.
-    3. Validates review schema and host coverage.
-    4. Writes local artifact episodes/<episode_id>/reviews.json (including guest).
-    5. Filters guest reviews out of Supabase payload (hosts only).
-    6. Gated upsert to Supabase reviews table.
-    7. Updates state with per-step LLM provenance.
+    1. Cleans up any prior raw error file.
+    2. Loads chunk_1.txt, chunk_2.txt, chunk_3.txt from episodes/<episode_id>/chunks/.
+    3. Runs per-chunk analysis and cross-chunk synthesis using specified LLM provider/model.
+    4. Validates review schema and host coverage (hard-fails if unknown host appears when guest_name is None).
+    5. Writes local artifact episodes/<episode_id>/reviews.json (including guest).
+    6. Filters guest reviews out of Supabase payload (hosts only).
+    7. Gated upsert to Supabase reviews table.
+    8. Updates state with per-step LLM provenance.
     """
     prov_used = (provider or config.LLM_PROVIDER).lower().strip()
     model_used = model or config.DEFAULT_PROVIDER_MODELS.get(prov_used, "")
+    g_name = guest_name.strip() if guest_name and guest_name.strip() else None
+
+    ep_dir = get_episodes_dir(episode_id)
+
+    # Clean up any stale error file at the start of the run
+    raw_file = ep_dir / "llm_raw_step2_reviews.txt"
+    if raw_file.exists():
+        try:
+            raw_file.unlink()
+        except Exception:
+            pass
 
     update_step_state(
         episode_id,
@@ -185,7 +226,6 @@ def run_step2_reviews(
 
     assert_safe_publish(episode_id, dry_run)
 
-    ep_dir = get_episodes_dir(episode_id)
     c1_path = ep_dir / "chunks" / "chunk_1.txt"
     c2_path = ep_dir / "chunks" / "chunk_2.txt"
     c3_path = ep_dir / "chunks" / "chunk_3.txt"
@@ -208,14 +248,18 @@ def run_step2_reviews(
         chunk_2_text=c2_text,
         chunk_3_text=c3_text,
         episode_id=episode_id,
-        guest_name=guest_name,
+        guest_name=g_name,
         provider=prov_used,
         model=model_used,
         max_tokens=max_tokens,
     )
 
-    # 2. Automated machine validation
-    val_result = validate_reviews_data(reviews_data)
+    # 2. Automated machine validation (enforces guest_name)
+    val_result = validate_reviews_data(reviews_data, guest_name=g_name)
+    if not val_result["passed"]:
+        err_msg = f"Step 2 Quality Gate Failed: {val_result['errors']}"
+        update_step_state(episode_id, "step2_reviews", "error", logs=err_msg, validation=val_result)
+        raise ValueError(err_msg)
 
     # 3. Save local artifact: episodes/<episode_id>/reviews.json (PRESERVES GUEST)
     reviews_path = ep_dir / "reviews.json"

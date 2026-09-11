@@ -24,7 +24,7 @@ SKILL_PATH = Path(__file__).resolve().parent.parent / "skills" / "youtube_descri
 
 def run_step5_youtube(
     episode_id: str,
-    guest_name: str = "Tim",
+    guest_name: Optional[str] = None,
     cta_url: str = "https://familyguyguys.com",
     dry_run: bool = True,
     provider: Optional[str] = None,
@@ -44,6 +44,17 @@ def run_step5_youtube(
 
     prov_used = (provider or config.LLM_PROVIDER).lower().strip()
     model_used = model or config.DEFAULT_PROVIDER_MODELS.get(prov_used, "")
+    g_clean = guest_name.strip() if guest_name and guest_name.strip() else None
+
+    ep_dir = get_episodes_dir(episode_id)
+
+    # Clean up stale raw file at the start of the run
+    raw_file = ep_dir / "llm_raw_step5_youtube.txt"
+    if raw_file.exists():
+        try:
+            raw_file.unlink()
+        except Exception:
+            pass
 
     update_step_state(
         episode_id,
@@ -52,7 +63,6 @@ def run_step5_youtube(
         logs=f"Starting Step 5: YouTube Description Generation with {prov_used} ({model_used})..."
     )
 
-    ep_dir = get_episodes_dir(episode_id)
     metadata_path = ep_dir / "metadata.json"
     chapters_path = ep_dir / "chapters.txt"
     reviews_path = ep_dir / "reviews.json"
@@ -83,13 +93,15 @@ def run_step5_youtube(
         with open(SKILL_PATH, "r", encoding="utf-8") as f:
             skill_content = f.read()
 
+    guest_var_line = f"- guest_name: {g_clean}" if g_clean else "- guest_name: None (Regular 3-host episode: Jason, Collin, Tyler)"
+
     prompt = f"""{skill_content}
 
 ## Input Variables
 - episode_title: {title}
 - season_episode: Season {season}, Episode {ep_num}
 - primary_keyphrase: {primary_phrase}
-- guest_name: {guest_name}
+{guest_var_line}
 - call_to_action_url: {cta_url}
 - chapters_list:
 {chapters_text}
@@ -126,9 +138,16 @@ Generate the YouTube description adhering strictly to the required section struc
             f.write(raw_output)
         log_audit_event("GENERATE_YOUTUBE_DESC", episode_id, "FALLBACK_WRITER", f"{e}. Raw output saved to {raw_file}")
         # High quality offline fallback passing all strict humanizer rules
-        description_text = f"""{primary_phrase} podcast review: Jason, Collin, Tyler, and special guest {guest_name} kick off Season 2 with Lois's sudden Newport inheritance.
+        if g_clean:
+            lead_in = f"{primary_phrase} podcast review: Jason, Collin, Tyler, and special guest {g_clean} kick off Season 2 with Lois's sudden Newport inheritance."
+            ratings_lead = f"Collin and {g_clean} hand out four and a half Super Bowls, Jason matches with his own four and a half, and Tyler drops ninety-five Bikinied Loises out of one hundred."
+        else:
+            lead_in = f"{primary_phrase} podcast review: Jason, Collin, and Tyler kick off Season 2 with Lois's sudden Newport inheritance."
+            ratings_lead = "Collin hands out four and a half Super Bowls, Jason matches with his own four and a half, and Tyler drops ninety-five Bikinied Loises out of one hundred."
 
-We break down Peter's disastrous transformation into Lord Griffin, the frantic hundred million dollar charity auction bid, and whether the musical number "This House Is Freakin' Sweet" marks the turning point where the series found its real rhythm. Collin and {guest_name} hand out four and a half Super Bowls, Jason matches with his own four and a half, and Tyler drops ninety-five Bikinied Loises out of one hundred.
+        description_text = f"""{lead_in}
+
+We break down Peter's disastrous transformation into Lord Griffin, the frantic hundred million dollar charity auction bid, and whether the musical number "This House Is Freakin' Sweet" marks the turning point where the series found its real rhythm. {ratings_lead}
 
 Family Guy Guys is an episode-by-episode comedy breakdown covering every single Griffin family misadventure in broadcast order.
 
@@ -166,7 +185,7 @@ Did Peter's high-society musical number hold up better than the Newport art frau
         f"Step 5 Complete:\n"
         f"- Model used: {prov_used} ({model_used})\n"
         f"- Target episode: {primary_phrase}\n"
-        f"- Guest included: {guest_name}\n"
+        f"- Guest included: {g_clean or 'None (Hosts Only)'}\n"
         f"- Chapters injected: {len(chapters_text.splitlines())} timestamps\n"
         f"- Validation status: {'PASSED' if validation_res['passed'] else 'FAILED'}\n"
         f"- Errors: {validation_res['errors']}\n"
