@@ -27,6 +27,9 @@ family-guy-guys.html
 .wrangler/
 thumbnail-import-results.json
 
-# Private transcript sources and drafts (Never commit raw audio transcripts or working drafts)
+# Private transcript sources, state, and drafts (Never commit raw audio transcripts, state, or working drafts)
 admin-tools/sources/
 admin-tools/drafts/
+admin-tools/state/
+admin-tools/__pycache__/
+episodes/

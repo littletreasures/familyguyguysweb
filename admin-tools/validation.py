@@ -129,6 +129,12 @@ def validate_review_dict(data: Dict[str, Any], allowed_cohosts: Dict[str, str]) 
         except (TypeError, ValueError) as e:
             raise ValueError(f"Invalid rating value '{rating}': {e}")
 
+    scale_max_val = data.get("rating_scale_max", 5)
+    try:
+        scale_max = int(round(float(scale_max_val))) if scale_max_val is not None else 5
+    except (TypeError, ValueError):
+        scale_max = 5
+
     return {
         "episode_id": ep_id,
         "cohost_id": cohost_id,
@@ -137,5 +143,5 @@ def validate_review_dict(data: Dict[str, Any], allowed_cohosts: Dict[str, str]) 
         "pull_quote": str(data.get("pull_quote", "")).strip(),
         "draft_source": str(data.get("draft_source", "transcript")).strip(),
         "rating_terminology": str(data.get("rating_terminology", "Quahogs")).strip(),
-        "rating_scale_max": float(data.get("rating_scale_max", 5.0)),
+        "rating_scale_max": scale_max,
     }

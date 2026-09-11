@@ -3,7 +3,9 @@ llm_client.py — Provider-agnostic wrapper. Same skill prompt + schema,
 different backend model. Switch providers via LLM_PROVIDER in .env.
 """
 import json
+import os
 import re
+from typing import Optional
 import config
 
 
@@ -16,13 +18,19 @@ def _extract_json(text: str) -> dict:
     return json.loads(text)
 
 
-def _load_skill_prompt() -> str:
-    with open(config.SKILL_FILE_PATH, "r") as f:
+def _load_skill_prompt(skill_path: Optional[str] = None) -> str:
+    path = skill_path or config.SKILL_FILE_PATH
+    with open(path, "r", encoding="utf-8") as f:
         return f.read()
 
 
-def _build_prompt(episode_id: str, episode_title: str, transcript: str) -> str:
-    skill = _load_skill_prompt()
+def _build_prompt(
+    episode_id: str,
+    episode_title: str,
+    transcript: str,
+    skill_path: Optional[str] = None
+) -> str:
+    skill = _load_skill_prompt(skill_path)
     return f"""{skill}
 
 ## Actual input
@@ -38,45 +46,42 @@ transcript:
 Return ONLY the JSON object described above, nothing else."""
 
 
-def generate_review_json(episode_id: str, episode_title: str, transcript: str) -> dict:
-    prompt = _build_prompt(episode_id, episode_title, transcript)
+def generate_text(prompt: str, max_tokens: int = 4096) -> str:
+    """Generates raw text from the configured LLM provider without JSON extraction."""
     provider = config.LLM_PROVIDER
 
     if provider == "gemini":
-        return _call_gemini(prompt)
+        from google import genai
+        client = genai.Client(api_key=config.GEMINI_API_KEY) if config.GEMINI_API_KEY else genai.Client()
+        response = client.models.generate_content(
+            model=config.GEMINI_MODEL,
+            contents=prompt,
+        )
+        return response.text or ""
     elif provider == "openai":
-        return _call_openai(prompt)
+        from openai import OpenAI
+        client = OpenAI(api_key=config.OPENAI_API_KEY)
+        response = client.chat.completions.create(
+            model=config.OPENAI_MODEL,
+            messages=[{"role": "user", "content": prompt}],
+            max_tokens=max_tokens,
+            temperature=0.3,
+        )
+        return response.choices[0].message.content or ""
     elif provider == "anthropic":
-        return _call_anthropic(prompt)
+        import anthropic
+        client = anthropic.Anthropic(api_key=config.ANTHROPIC_API_KEY)
+        response = client.messages.create(
+            model=config.ANTHROPIC_MODEL,
+            max_tokens=max_tokens,
+            messages=[{"role": "user", "content": prompt}],
+        )
+        return response.content[0].text or ""
     else:
         raise ValueError(f"Unknown LLM_PROVIDER: {provider}")
 
 
-def _call_gemini(prompt: str) -> dict:
-    import google.generativeai as genai
-    genai.configure(api_key=config.GEMINI_API_KEY)
-    model = genai.GenerativeModel(config.GEMINI_MODEL)
-    response = model.generate_content(prompt)
-    return _extract_json(response.text)
-
-
-def _call_openai(prompt: str) -> dict:
-    from openai import OpenAI
-    client = OpenAI(api_key=config.OPENAI_API_KEY)
-    response = client.chat.completions.create(
-        model=config.OPENAI_MODEL,
-        messages=[{"role": "user", "content": prompt}],
-        temperature=0.3,
-    )
-    return _extract_json(response.choices[0].message.content)
-
-
-def _call_anthropic(prompt: str) -> dict:
-    import anthropic
-    client = anthropic.Anthropic(api_key=config.ANTHROPIC_API_KEY)
-    response = client.messages.create(
-        model=config.ANTHROPIC_MODEL,
-        max_tokens=2048,
-        messages=[{"role": "user", "content": prompt}],
-    )
-    return _extract_json(response.content[0].text)
+def generate_review_json(episode_id: str, episode_title: str, transcript: str, skill_path: Optional[str] = None) -> dict:
+    prompt = _build_prompt(episode_id, episode_title, transcript, skill_path)
+    raw_text = generate_text(prompt, max_tokens=4096)
+    return _extract_json(raw_text)

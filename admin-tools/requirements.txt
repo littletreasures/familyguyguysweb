@@ -2,8 +2,9 @@ requests
 supabase
 python-dotenv
 streamlit
-google-generativeai
+google-genai
 openai
 anthropic
+cloudinary
 pydantic>=2.0.0
 

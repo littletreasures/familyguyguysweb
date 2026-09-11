@@ -11,7 +11,7 @@ ENVIRONMENT = os.getenv("ENVIRONMENT", "development").lower()
 LLM_PROVIDER = os.getenv("LLM_PROVIDER", "gemini").lower()
 
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
-GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-1.5-pro")
+GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-3.7-flash")
 
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
 OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-4o")
@@ -23,6 +23,11 @@ ANTHROPIC_MODEL = os.getenv("ANTHROPIC_MODEL", "claude-3-5-sonnet-20241022")
 OMDB_API_KEY = os.getenv("OMDB_API_KEY", "")
 OMDB_BASE_URL = "https://www.omdbapi.com/"
 SHOW_TITLE = "Family Guy"
+
+# Cloudinary configuration (for episode thumbnail uploads)
+CLOUDINARY_CLOUD_NAME = os.getenv("CLOUDINARY_CLOUD_NAME", "").strip()
+CLOUDINARY_API_KEY = os.getenv("CLOUDINARY_API_KEY", "").strip()
+CLOUDINARY_API_SECRET = os.getenv("CLOUDINARY_API_SECRET", "").strip()
 
 # Supabase Server Credentials (strict server-only, no fallback to client VITE_* or anon keys)
 SUPABASE_URL = os.getenv("SUPABASE_URL", "").strip()
