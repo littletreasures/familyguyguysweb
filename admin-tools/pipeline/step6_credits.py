@@ -7,6 +7,7 @@ Four escalating tiers, real Tier 1, both required disclaimers.
 import json
 import os
 import re
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Dict, Any, Optional
 
@@ -84,7 +85,10 @@ def sanitize_scroll_body_digits(text: str) -> str:
 def run_step6_credits(
     episode_id: str,
     podcast_episode_number: int = 8,
-    dry_run: bool = True
+    dry_run: bool = True,
+    provider: Optional[str] = None,
+    model: Optional[str] = None,
+    max_tokens: int = 4096,
 ) -> Dict[str, Any]:
     """
     Executes Step 6:
@@ -94,9 +98,19 @@ def run_step6_credits(
     4. Enforces zero digits in scroll body.
     5. Validates via validate_credit_scroll.
     6. Saves artifact to episodes/<episode_id>/credits.md.
-    7. Updates state.
+    7. Updates state with per-step LLM provenance.
     """
-    update_step_state(episode_id, "step6_credits", "running", logs="Starting Step 6: Credit Scroll Generation...")
+    import config
+
+    prov_used = (provider or config.LLM_PROVIDER).lower().strip()
+    model_used = model or config.DEFAULT_PROVIDER_MODELS.get(prov_used, "")
+
+    update_step_state(
+        episode_id,
+        "step6_credits",
+        "running",
+        logs=f"Starting Step 6: Credit Scroll Generation with {prov_used} ({model_used})..."
+    )
 
     ep_dir = get_episodes_dir(episode_id)
     metadata_path = ep_dir / "metadata.json"
@@ -108,25 +122,32 @@ def run_step6_credits(
 
     title = metadata.get("title", "Peter, Peter, Caviar Eater")
     season = metadata.get("season", 2)
-    ep_num = metadata.get("episode_number", 1)
+    ep_num = metadata.get("episode", 1)
 
+    # 1. Countdown calculation
     episodes_remaining = 461 - podcast_episode_number
     spelled_countdown = number_to_words(episodes_remaining)
 
-    skill_prompt = ""
+    # 2. Build prompt
+    skill_content = ""
     if SKILL_PATH.exists():
         with open(SKILL_PATH, "r", encoding="utf-8") as f:
-            skill_prompt = f.read()
+            skill_content = f.read()
 
-    prompt = f"""{skill_prompt}
+    prompt = f"""{skill_content}
 
-## Episode Input Context
-- Episode: Season {season}, Episode {ep_num}: "{title}"
-- Podcast Episode Number: {podcast_episode_number}
-- Episodes Remaining Countdown: {spelled_countdown} Episodes Remaining (calculated as 461 minus {podcast_episode_number} = {episodes_remaining})
-- Podcast Conversation Bits (PRIMARY FOCUS for Tier 3):
-  - Cold open discussion about smoking cigarettes while listening to the Red Hot Chili Peppers
-  - Special guest Tim wearing cool sunglasses during the recording
+## Input Variables
+- podcast_episode_number: {podcast_episode_number}
+- episode_title: {title}
+- episodes_remaining: {episodes_remaining}
+- spelled_countdown: {spelled_countdown}
+- season_episode: Season {season}, Episode {ep_num}
+
+## Actual Episode Riffs to Incorporate into Tier 3
+- Primary Conversation Bits from this recording:
+  - Tim's cool sunglasses and relaxed posture while podcasting
+  - Collin's obsession with sweet corn
+  - The Red Hot Chili Peppers cigarette smoke debate
   - Jason sitting in "the good chair" for the first time
   - Rating units: Collin's Four and a Half Super Bowls of Corn vs Tyler's Ninety-Five Bikinied Loises
   - Tyler praising Jason's podcast hosting skills
@@ -145,8 +166,9 @@ Countdown must read exactly: "{spelled_countdown} Episodes Remaining".
 """
 
     credits_text = ""
+    raw_output = ""
     try:
-        raw_output = generate_text(prompt, max_tokens=2048)
+        raw_output = generate_text(prompt, max_tokens=max_tokens, provider=prov_used, model=model_used)
         clean_text = raw_output.strip()
         if clean_text.startswith("```markdown"):
             clean_text = clean_text[len("```markdown"):].strip()
@@ -156,7 +178,10 @@ Countdown must read exactly: "{spelled_countdown} Episodes Remaining".
             clean_text = clean_text[:-3].strip()
         credits_text = clean_text
     except Exception as e:
-        log_audit_event("GENERATE_CREDITS", episode_id, "FALLBACK_WRITER", str(e))
+        raw_file = ep_dir / "llm_raw_step6_credits.txt"
+        with open(raw_file, "w", encoding="utf-8") as f:
+            f.write(raw_output)
+        log_audit_event("GENERATE_CREDITS", episode_id, "FALLBACK_WRITER", f"{e}. Raw output saved to {raw_file}")
         # Pristine fallback adhering strictly to all 4 tiers, item counts, and typography rule
         credits_text = f"""FAMILY GUY GUYS
 Episode Number Eight: "{title}"
@@ -252,6 +277,7 @@ Stay Freakin' Sweet."""
 
     log_msg = (
         f"Step 6 Complete:\n"
+        f"- Model used: {prov_used} ({model_used})\n"
         f"- Target episode: Episode #{podcast_episode_number} (Season {season}, Episode {ep_num}: \"{title}\")\n"
         f"- Countdown: 461 - {podcast_episode_number} = {episodes_remaining} (Spelled: '{spelled_countdown} Episodes Remaining')\n"
         f"- Digits detected in scroll body: {len(body_digits)} (TYPOGRAPHY RULE: {'PASSED' if len(body_digits) == 0 else 'FAILED'})\n"
@@ -263,6 +289,12 @@ Stay Freakin' Sweet."""
         f"- Artifact saved: {out_path}"
     )
 
+    llm_provenance = {
+        "provider": prov_used,
+        "model": model_used,
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+    }
+
     update_step_state(
         episode_id,
         "step6_credits",
@@ -271,6 +303,7 @@ Stay Freakin' Sweet."""
         artifacts=artifacts,
         validation=validation_res,
         approved=validation_res["passed"],
+        llm_provenance=llm_provenance,
     )
 
     return {

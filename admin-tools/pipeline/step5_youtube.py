@@ -10,6 +10,7 @@ Injects Step 6b chapters into the TIMESTAMPS section and runs automated validati
 import json
 import os
 import re
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Dict, Any, Optional
 
@@ -25,7 +26,10 @@ def run_step5_youtube(
     episode_id: str,
     guest_name: str = "Tim",
     cta_url: str = "https://familyguyguys.com",
-    dry_run: bool = True
+    dry_run: bool = True,
+    provider: Optional[str] = None,
+    model: Optional[str] = None,
+    max_tokens: int = 4096,
 ) -> Dict[str, Any]:
     """
     Executes Step 5:
@@ -34,9 +38,19 @@ def run_step5_youtube(
     3. Prompts LLM to generate description with chapters injected.
     4. Runs automated validators.
     5. Saves artifact to episodes/<episode_id>/youtube_description.txt.
-    6. Updates state.
+    6. Updates state with per-step LLM provenance.
     """
-    update_step_state(episode_id, "step5_youtube", "running", logs="Starting Step 5: YouTube Description Generation...")
+    import config
+
+    prov_used = (provider or config.LLM_PROVIDER).lower().strip()
+    model_used = model or config.DEFAULT_PROVIDER_MODELS.get(prov_used, "")
+
+    update_step_state(
+        episode_id,
+        "step5_youtube",
+        "running",
+        logs=f"Starting Step 5: YouTube Description Generation with {prov_used} ({model_used})..."
+    )
 
     ep_dir = get_episodes_dir(episode_id)
     metadata_path = ep_dir / "metadata.json"
@@ -61,32 +75,31 @@ def run_step5_youtube(
 
     title = metadata.get("title", "Peter, Peter, Caviar Eater")
     season = metadata.get("season", 2)
-    ep_num = metadata.get("episode_number", 1)
+    ep_num = metadata.get("episode", metadata.get("episode_number", 1))
     primary_phrase = f'Family Guy Season {season} Episode {ep_num} "{title}"'
 
-    skill_prompt = ""
+    skill_content = ""
     if SKILL_PATH.exists():
         with open(SKILL_PATH, "r", encoding="utf-8") as f:
-            skill_prompt = f.read()
+            skill_content = f.read()
 
-    # Formulate generation prompt
-    prompt = f"""{skill_prompt}
+    prompt = f"""{skill_content}
 
-## Episode Input Facts
-- Video Format: Podcast episode recap / review
-- Channel Name: Family Guy Guys
-- Primary Search Phrase: {primary_phrase}
-- Hosts: Jason Hackett, Collin Brown, Tyler Simpson
-- Special Guest: {guest_name}
-- Episode Plot: When Lois's wealthy aunt dies, she leaves the Griffin family Cherrywood Manor in Newport. Peter tries to fit into Newport high society, bids $100 million at a charity auction, and attempts to prove historical art fraud to save the estate.
-- Ratings Context: Collin and guest {guest_name} give it 4.5 Super Bowls, Jason revises up to 4.5 Super Bowls, and Tyler awards 95 Bikinied Loises out of 100 (4.75 Quahogs).
-- CTA URL: {cta_url}
-- TIMESTAMPS:
+## Input Variables
+- episode_title: {title}
+- season_episode: Season {season}, Episode {ep_num}
+- primary_keyphrase: {primary_phrase}
+- guest_name: {guest_name}
+- call_to_action_url: {cta_url}
+- chapters_list:
 {chapters_text}
 
-Write a publish-ready YouTube description adhering strictly to the template and rules in the skill:
-1. Search-first hook starting with the primary search phrase in the first sentence.
-2. Short paragraph covering the actual discussion beats and verdicts.
+## Host and Guest Review Context
+{json.dumps(reviews, indent=2)}
+
+Generate the YouTube description adhering strictly to the required section structure:
+1. Hook paragraph with the primary keyphrase in the first sentence.
+2. 2-3 body paragraphs covering episode discussion, host/guest ratings and comedic units.
 3. Show identity in 1 sentence.
 4. TIMESTAMPS section with the exact timestamps provided above.
 5. One specific call to action with the full URL.
@@ -95,8 +108,9 @@ Write a publish-ready YouTube description adhering strictly to the template and 
 """
 
     description_text = ""
+    raw_output = ""
     try:
-        raw_output = generate_text(prompt, max_tokens=2048)
+        raw_output = generate_text(prompt, max_tokens=max_tokens, provider=prov_used, model=model_used)
         # Clean any markdown wrapper blocks if returned
         clean_text = raw_output.strip()
         if clean_text.startswith("```markdown"):
@@ -107,7 +121,10 @@ Write a publish-ready YouTube description adhering strictly to the template and 
             clean_text = clean_text[:-3].strip()
         description_text = clean_text
     except Exception as e:
-        log_audit_event("GENERATE_YOUTUBE_DESC", episode_id, "FALLBACK_WRITER", str(e))
+        raw_file = ep_dir / "llm_raw_step5_youtube.txt"
+        with open(raw_file, "w", encoding="utf-8") as f:
+            f.write(raw_output)
+        log_audit_event("GENERATE_YOUTUBE_DESC", episode_id, "FALLBACK_WRITER", f"{e}. Raw output saved to {raw_file}")
         # High quality offline fallback passing all strict humanizer rules
         description_text = f"""{primary_phrase} podcast review: Jason, Collin, Tyler, and special guest {guest_name} kick off Season 2 with Lois's sudden Newport inheritance.
 
@@ -147,6 +164,7 @@ Did Peter's high-society musical number hold up better than the Newport art frau
 
     log_msg = (
         f"Step 5 Complete:\n"
+        f"- Model used: {prov_used} ({model_used})\n"
         f"- Target episode: {primary_phrase}\n"
         f"- Guest included: {guest_name}\n"
         f"- Chapters injected: {len(chapters_text.splitlines())} timestamps\n"
@@ -156,6 +174,12 @@ Did Peter's high-society musical number hold up better than the Newport art frau
         f"- Artifact saved: {out_path}"
     )
 
+    llm_provenance = {
+        "provider": prov_used,
+        "model": model_used,
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+    }
+
     update_step_state(
         episode_id,
         "step5_youtube",
@@ -164,6 +188,7 @@ Did Peter's high-society musical number hold up better than the Newport art frau
         artifacts=artifacts,
         validation=validation_res,
         approved=validation_res["passed"],
+        llm_provenance=llm_provenance,
     )
 
     return {
