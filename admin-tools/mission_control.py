@@ -211,7 +211,7 @@ def render_mission_control():
                 run_step4_thumbnails(episode_id, episode_title=episode_title, season=season_val, dry_run=effective_dry_run)
                 # Step 6b
                 st.toast("Running Step 6b: Chapters...")
-                run_step6b_chapters(episode_id, dry_run=effective_dry_run)
+                run_step6b_chapters(episode_id, dry_run=effective_dry_run, provider=selected_provider, model=clean_active_model)
                 # Step 5
                 st.toast("Running Step 5: YouTube Description...")
                 run_step5_youtube(episode_id, guest_name=guest_val, dry_run=effective_dry_run, provider=selected_provider, model=clean_active_model)
@@ -294,7 +294,7 @@ def render_mission_control():
                     if is_test_id:
                         st.error("BLOCKED: Test episode IDs cannot write to live database.")
                     else:
-                        run_step1_metadata(episode_id, season_val, episode_num_val, dry_run=False)
+                        run_step1_metadata(episode_id, season_val, episode_num_val, dry_run=False, confirm_phrase=s1_phrase)
                         st.success("Metadata pushed to Supabase!")
                         st.rerun()
                 else:
@@ -353,7 +353,7 @@ def render_mission_control():
                     if is_test_id:
                         st.error("BLOCKED: Test episode IDs cannot write to live database.")
                     else:
-                        run_step2_reviews(episode_id, guest_name=guest_val, dry_run=False, provider=selected_provider, model=clean_active_model)
+                        run_step2_reviews(episode_id, guest_name=guest_val, dry_run=False, confirm_phrase=s2_phrase, provider=selected_provider, model=clean_active_model)
                         st.success("Host reviews pushed to Supabase!")
                         st.rerun()
                 else:
@@ -431,6 +431,9 @@ def render_mission_control():
     with st.expander("Step 6b: Chapter Derivation (from alignment.json)", expanded=False):
         s6b_info = steps_state.get("step6b_chapters", {})
         st.write(f"**Status:** `{s6b_info.get('status', 'pending')}` | **Updated:** `{s6b_info.get('updated_at')}`")
+        prov_s6b = s6b_info.get("llm_provenance")
+        if prov_s6b:
+            st.caption(f"🧠 **Model Provenance:** Generated with `{prov_s6b.get('provider')}` / `{prov_s6b.get('model')}` at {prov_s6b.get('generated_at')}")
         if s6b_info.get("logs"):
             st.code(s6b_info["logs"], language="text")
 
@@ -439,10 +442,14 @@ def render_mission_control():
         if chap_file.exists():
             with open(chap_file) as f:
                 chap_content = f.read()
-            st.text_area("Proposed YouTube Chapters (00:00 start, strictly ascending)", value=chap_content, height=180, key="txt_chapters")
+            new_chap = st.text_area("Proposed YouTube Chapters (00:00 start, strictly ascending)", value=chap_content, height=180, key="txt_chapters")
+            if new_chap != chap_content:
+                with open(chap_file, "w") as f:
+                    f.write(new_chap)
+                chap_content = new_chap
 
         if st.button("Derive Chapters from Alignment (Confidence >= 0.9)", key="btn_s6b"):
-            run_step6b_chapters(episode_id, dry_run=dry_run_toggle)
+            run_step6b_chapters(episode_id, dry_run=dry_run_toggle, provider=selected_provider, model=clean_active_model)
             st.rerun()
 
     # --- STEP 5 ---
@@ -595,9 +602,9 @@ def render_mission_control():
             with st.spinner("Executing full production publish replay..."):
                 try:
                     # 1. Step 1 live
-                    run_step1_metadata(episode_id, season_val, episode_num_val, dry_run=False)
+                    run_step1_metadata(episode_id, season_val, episode_num_val, dry_run=False, confirm_phrase=global_phrase)
                     # 2. Step 2 live
-                    run_step2_reviews(episode_id, guest_name=guest_val, dry_run=False, provider=selected_provider, model=clean_active_model)
+                    run_step2_reviews(episode_id, guest_name=guest_val, dry_run=False, confirm_phrase=global_phrase, provider=selected_provider, model=clean_active_model)
                     # 3. Step 3 live
                     run_step3_transcript(episode_id, publish=True, dry_run=False)
                     # 4. Step 4 live
