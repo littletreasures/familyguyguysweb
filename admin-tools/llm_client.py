@@ -12,7 +12,7 @@ import config
 def _extract_json(text: str) -> dict:
     """LLMs sometimes wrap JSON in markdown fences; strip those."""
     text = text.strip()
-    match = re.search(r"```(?:json)?\s*(.*?)\s*```", text, re.DOTALL)
+    match = re.search(r"```(?:json)?\s*(.*?)\s*```", text, re.DOTALL | re.IGNORECASE)
     if match:
         text = match.group(1).strip()
     try:
