@@ -129,6 +129,24 @@ class TestTranscriptPipeline(unittest.TestCase):
         row = build_transcript_row(updated_data, existing_db_row=existing_row)
         self.assertEqual(row["published_at"], "2020-01-01T00:00:00Z")
 
+    def test_step6_credits_gracefully_proceeds_without_chunk_1(self):
+        """Verifies Step 6 credit scroll generation gracefully proceeds when chunks/chunk_1.txt is absent."""
+        import tempfile
+        from pathlib import Path
+        from unittest.mock import patch
+        from pipeline.step6_credits import run_step6_credits
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmp_path = Path(tmpdir)
+            with patch("pipeline.step6_credits.get_episodes_dir", return_value=tmp_path), \
+                 patch("pipeline.step6_credits.update_step_state"), \
+                 patch("pipeline.step6_credits.generate_text", side_effect=Exception("LLM offline")):
+                res = run_step6_credits("s99e99_test", podcast_episode_number=12, dry_run=True)
+                self.assertEqual(res["status"], "done")
+                self.assertTrue((tmp_path / "credits.md").exists())
+                self.assertEqual(res["body_digits_count"], 0)
+                self.assertIn("Twelve", res["credits"])
+
 
 if __name__ == "__main__":
     unittest.main()

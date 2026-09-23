@@ -1,9 +1,13 @@
 """
 test_chapters.py — Unit tests for chapter derivation, typography sanitization, timestamp ordering, and dynamic fallback.
 """
+import json
 import os
 import sys
+import tempfile
 import unittest
+from pathlib import Path
+from unittest.mock import patch
 
 sys.path.insert(0, os.path.dirname(__file__))
 
@@ -12,7 +16,9 @@ from pipeline.step6b_chapters import (
     clean_chapter_title,
     _get_dynamic_fallback_beats,
     derive_chapters_from_alignment,
+    run_step6b_chapters,
 )
+
 
 
 class TestChapterHelpers(unittest.TestCase):
@@ -151,5 +157,83 @@ class TestDeriveChaptersFromAlignment(unittest.TestCase):
             )
 
 
+class TestChaptersGuardrail(unittest.TestCase):
+    """Unit tests for the 70% match rate guardrail in run_step6b_chapters."""
+
+    @patch("pipeline.step6b_chapters.update_step_state")
+    @patch("pipeline.step6b_chapters.get_episodes_dir")
+    def test_refuses_auto_generation_when_match_rate_below_70(self, mock_get_dir, mock_update_state):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmp_path = Path(tmpdir)
+            mock_get_dir.return_value = tmp_path
+            alignment_file = tmp_path / "alignment.json"
+            alignment_data = {
+                "summary": {
+                    "match_percentage": 48.8,
+                    "matched_segments": 100,
+                    "unmatched_segments": 105,
+                },
+                "segments": [
+                    {
+                        "segment_id": 1,
+                        "matched": True,
+                        "srt_start_seconds": 0.0,
+                        "confidence": 0.95,
+                        "text": "Intro",
+                    },
+                    {
+                        "segment_id": 2,
+                        "matched": True,
+                        "srt_start_seconds": 600.0,
+                        "confidence": 0.95,
+                        "text": "Discussion",
+                    },
+                ],
+            }
+            with open(alignment_file, "w", encoding="utf-8") as f:
+                json.dump(alignment_data, f)
+
+            with self.assertRaises(ValueError) as ctx:
+                run_step6b_chapters("s01e99_test", dry_run=True)
+
+            self.assertIn("below the 70.0% guardrail (incomplete map)", str(ctx.exception))
+            self.assertIn("48.8%", str(ctx.exception))
+            mock_update_state.assert_called_with(
+                "s01e99_test",
+                "step6b_chapters",
+                "error",
+                logs=str(ctx.exception),
+            )
+
+    @patch("pipeline.step6b_chapters.update_step_state")
+    @patch("pipeline.step6b_chapters.get_episodes_dir")
+    def test_allows_custom_chapters_when_match_rate_below_70(self, mock_get_dir, mock_update_state):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmp_path = Path(tmpdir)
+            mock_get_dir.return_value = tmp_path
+            alignment_file = tmp_path / "alignment.json"
+            alignment_data = {
+                "summary": {
+                    "match_percentage": 48.8,
+                    "matched_segments": 100,
+                    "unmatched_segments": 105,
+                },
+                "segments": [],
+            }
+            with open(alignment_file, "w", encoding="utf-8") as f:
+                json.dump(alignment_data, f)
+
+            custom_chapters = [
+                {"timestamp": "00:00", "time_seconds": 0.0, "title": "Cold Open"},
+                {"timestamp": "05:00", "time_seconds": 300.0, "title": "Act I"},
+            ]
+            result = run_step6b_chapters("s01e99_test", dry_run=True, custom_chapters=custom_chapters)
+            self.assertEqual(result["status"], "done")
+            self.assertEqual(result["source_mode"], "custom")
+            self.assertEqual(len(result["chapters"]), 2)
+            self.assertTrue((tmp_path / "chapters.txt").exists())
+
+
 if __name__ == "__main__":
     unittest.main()
+

@@ -12,7 +12,7 @@ from pathlib import Path
 from typing import Dict, Any, Optional
 
 from llm_client import generate_text
-from pipeline.state import get_episodes_dir, update_step_state
+from pipeline.state import get_episodes_dir, update_step_state, load_step_state
 from pipeline.validators import validate_credit_scroll
 from validation import log_audit_event
 
@@ -128,12 +128,28 @@ def run_step6_credits(
 
     metadata = {}
     if metadata_path.exists():
-        with open(metadata_path, "r", encoding="utf-8") as f:
-            metadata = json.load(f)
+        try:
+            with open(metadata_path, "r", encoding="utf-8") as f:
+                metadata = json.load(f)
+        except Exception:
+            metadata = {}
 
-    title = metadata.get("title", "Peter, Peter, Caviar Eater")
-    season = metadata.get("season", 2)
-    ep_num = metadata.get("episode", 1)
+    state_data = load_step_state(episode_id)
+
+    title = metadata.get("title") or state_data.get("episode_title") or "Peter, Peter, Caviar Eater"
+    season = metadata.get("season") or state_data.get("season") or 2
+    ep_num = metadata.get("episode") or state_data.get("episode") or 1
+
+    # Gracefully check for chunks/chunk_1.txt for recording context if available
+    chunk_1_path = ep_dir / "chunks" / "chunk_1.txt"
+    chunk_1_context = ""
+    if chunk_1_path.exists():
+        try:
+            with open(chunk_1_path, "r", encoding="utf-8", errors="replace") as f:
+                c1_lines = [line.strip() for line in f if line.strip() and not line.startswith("=")]
+                chunk_1_context = "\n".join(c1_lines[:30])[:1500]
+        except Exception:
+            chunk_1_context = ""
 
     # 1. Countdown calculation
     episodes_remaining = 461 - podcast_episode_number
@@ -154,6 +170,8 @@ def run_step6_credits(
         tier3_fallback_guest = """Host Chemistry and Banter Coordinator
 Jason Hackett, Tyler Simpson, Collin Brown"""
 
+    chunk_notes = f"\n  - Recording transcript excerpt:\n{chunk_1_context}" if chunk_1_context else ""
+
     prompt = f"""{skill_content}
 
 ## Input Variables
@@ -170,7 +188,7 @@ Jason Hackett, Tyler Simpson, Collin Brown"""
   - The Red Hot Chili Peppers cigarette smoke debate
   - Jason sitting in "the good chair" for the first time
   - Rating units: Collin's Four and a Half Super Bowls of Corn vs Tyler's Ninety-Five Bikinied Loises
-  - Tyler praising Jason's podcast hosting skills
+  - Tyler praising Jason's podcast hosting skills{chunk_notes}
 - Episode Plot Seasoning (secondary):
   - Lois inheriting Cherrywood Manor from Aunt Marguerite
   - Peter bidding One Hundred Million Dollars at the charity auction
@@ -204,7 +222,7 @@ Countdown must read exactly: "{spelled_countdown} Episodes Remaining".
         log_audit_event("GENERATE_CREDITS", episode_id, "FALLBACK_WRITER", f"{e}. Raw output saved to {raw_file}")
         # Pristine fallback adhering strictly to all 4 tiers, item counts, and typography rule
         credits_text = f"""FAMILY GUY GUYS
-Episode Number Eight: "{title}"
+Episode Number {number_to_words(podcast_episode_number)}: "{title}"
 
 ---
 

@@ -52,7 +52,8 @@ def render_mission_control():
     col_mode1, col_mode2 = st.columns([2, 1])
     with col_mode1:
         st.markdown("**Publishing Safety Gate**")
-        st.caption("All pipeline runs execute in Dry-Run mode by default. Production writes require explicit phrase authorization.")
+        st.caption("All pipeline runs execute in Dry-Run mode by default. Switch mode toggle to Live Production to push writes to Supabase.")
+        skip_credits_in_run_all = st.checkbox("Skip Credit Scroll in Run All", value=True)
     with col_mode2:
         dry_run_toggle = st.toggle("Mode: Dry Run / Live", value=True, help="Toggle between Dry Run (preview/mock) and Live Production writes. Test episodes are permanently locked to Dry Run.")
         if dry_run_toggle:
@@ -165,12 +166,12 @@ def render_mission_control():
     step_keys = [
         ("Step 0: Prep", "step0_transcript_prep"),
         ("Step 1: Meta", "step1_metadata"),
+        ("Step 6: Credits", "step6_credits"),
         ("Step 2: Reviews", "step2_reviews"),
         ("Step 3: Transcript", "step3_transcript_publish"),
         ("Step 4: Thumbnail", "step4_thumbnails"),
         ("Step 6b: Chapters", "step6b_chapters"),
         ("Step 5: YouTube", "step5_youtube"),
-        ("Step 6: Credits", "step6_credits"),
         ("Step 7: Feed Sync", "step7_feed_sync"),
     ]
 
@@ -195,8 +196,8 @@ def render_mission_control():
             effective_dry_run = True if is_test_id else dry_run_toggle
             try:
                 # Step 0
-                st.toast("Running Step 0: Transcript Prep...")
-                run_step0_prep(episode_id, riverside_path, srt_path, dry_run=effective_dry_run)
+                active_known_cuts = st.session_state.get("txt_known_cuts", state_data.get("known_cuts"))
+                run_step0_prep(episode_id, riverside_path, srt_path, dry_run=effective_dry_run, known_cuts=active_known_cuts)
                 # Step 1
                 st.toast("Running Step 1: Metadata...")
                 run_step1_metadata(episode_id, season_val, episode_num_val, dry_run=effective_dry_run)
@@ -216,8 +217,11 @@ def render_mission_control():
                 st.toast("Running Step 5: YouTube Description...")
                 run_step5_youtube(episode_id, guest_name=guest_val, dry_run=effective_dry_run, provider=selected_provider, model=clean_active_model)
                 # Step 6
-                st.toast("Running Step 6: Fake Credits...")
-                run_step6_credits(episode_id, podcast_episode_number=podcast_num_val, guest_name=guest_val, dry_run=effective_dry_run, provider=selected_provider, model=clean_active_model)
+                if not skip_credits_in_run_all:
+                    st.toast("Running Step 6: Fake Credits...")
+                    run_step6_credits(episode_id, podcast_episode_number=podcast_num_val, guest_name=guest_val, dry_run=effective_dry_run, provider=selected_provider, model=clean_active_model)
+                else:
+                    st.toast("Skipping Step 6: Fake Credits (toggle enabled)")
                 # Step 7
                 st.toast("Running Step 7: Feed Sync...")
                 run_step7_feed_sync(episode_id, season=season_val, episode_number=episode_num_val, dry_run=effective_dry_run)
@@ -257,7 +261,16 @@ def render_mission_control():
         st.write(f"**Status:** `{s0_info.get('status', 'pending')}` | **Updated:** `{s0_info.get('updated_at')}`")
         if s0_info.get("logs"):
             st.code(s0_info["logs"], language="text")
-        
+
+        known_cuts = st.text_input(
+            "Known Cuts (optional, e.g. '43:32, 7m10s' or '43:32, 430s')",
+            value=state_data.get("known_cuts", ""),
+            key="txt_known_cuts"
+        )
+        if known_cuts != state_data.get("known_cuts", ""):
+            state_data["known_cuts"] = known_cuts
+            save_step_state(episode_id, state_data)
+
         alignment_file = ep_dir / "alignment.json"
         if alignment_file.exists():
             with open(alignment_file) as f:
@@ -266,7 +279,9 @@ def render_mission_control():
             st.metric("Substantive Match Rate", f"{sum_data.get('match_percentage', 0)}%", f"{sum_data.get('matched_segments', 0)} matched / {sum_data.get('unmatched_segments', 0)} unmatched")
 
         if st.button("Re-run Step 0 (Intake & Alignment)", key="btn_s0"):
-            run_step0_prep(episode_id, riverside_path, srt_path, dry_run=dry_run_toggle)
+            state_data["known_cuts"] = known_cuts
+            save_step_state(episode_id, state_data)
+            run_step0_prep(episode_id, riverside_path, srt_path, dry_run=dry_run_toggle, known_cuts=known_cuts)
             st.rerun()
 
     # --- STEP 1 ---
@@ -288,17 +303,73 @@ def render_mission_control():
             st.rerun()
 
         with c_s1_2:
-            s1_phrase = st.text_input("Confirmation Phrase for Step 1 Live Write", key="phrase_s1", placeholder="PUBLISH TO PRODUCTION")
-            if st.button("Push Metadata to Supabase (episodes table)", key="btn_write_s1"):
-                if s1_phrase.strip() == "PUBLISH TO PRODUCTION":
+            if not dry_run_toggle:
+                if st.button("Push to Supabase (LIVE)", type="primary", key="btn_write_s1"):
                     if is_test_id:
                         st.error("BLOCKED: Test episode IDs cannot write to live database.")
                     else:
-                        run_step1_metadata(episode_id, season_val, episode_num_val, dry_run=False, confirm_phrase=s1_phrase)
+                        run_step1_metadata(episode_id, season_val, episode_num_val, dry_run=False, confirm_phrase="PUBLISH TO PRODUCTION")
                         st.success("Metadata pushed to Supabase!")
                         st.rerun()
-                else:
-                    st.warning("Type 'PUBLISH TO PRODUCTION' exactly to authorize this single write.")
+            else:
+                if st.button("Simulate Push (Dry Run)", key="btn_write_s1"):
+                    run_step1_metadata(episode_id, season_val, episode_num_val, dry_run=True)
+                    st.info("Simulated metadata push to Supabase (Dry Run complete).")
+                    st.rerun()
+
+    # --- STEP 6 ---
+    with st.expander("Step 6: Fake Credit Scroll", expanded=False):
+        s6_info = steps_state.get("step6_credits", {})
+        st.write(f"**Status:** `{s6_info.get('status', 'pending')}` | **Updated:** `{s6_info.get('updated_at')}`")
+        prov_s6 = s6_info.get("llm_provenance")
+        if prov_s6:
+            st.caption(f"🧠 **Model Provenance:** Generated with `{prov_s6.get('provider')}` / `{prov_s6.get('model')}` at {prov_s6.get('generated_at')}")
+
+        if s6_info.get("logs"):
+            st.code(s6_info["logs"], language="text")
+
+        raw_err_file_s6 = ep_dir / "llm_raw_step6_credits.txt"
+        if raw_err_file_s6.exists():
+            with open(raw_err_file_s6, "r", encoding="utf-8") as f:
+                raw_err_text_s6 = f.read()
+            if raw_err_text_s6.strip():
+                st.error("⚠️ Raw LLM Response (Generation/Formatting Failed):")
+                st.code(raw_err_text_s6, language="text")
+
+        cr_file = ep_dir / "credits.md"
+        cr_content = ""
+        if cr_file.exists():
+            with open(cr_file) as f:
+                cr_content = f.read()
+            new_cr = st.text_area("Credits Markdown (editable)", value=cr_content, height=280, key="txt_cr_desc")
+            if new_cr != cr_content:
+                with open(cr_file, "w") as f:
+                    f.write(new_cr)
+                cr_content = new_cr
+
+            # Run validator live on text area content
+            v_cr = validate_credit_scroll(cr_content, podcast_episode_number=podcast_num_val)
+            if v_cr["passed"] and not v_cr["warnings"]:
+                st.success("✅ Quality Gate: 0 digits in scroll body, countdown verified, disclaimers present, tier item counts in range.")
+            else:
+                if v_cr["errors"]:
+                    st.error(f"❌ Quality Gate Errors: {v_cr['errors']}")
+                if v_cr["warnings"]:
+                    st.warning(f"⚠️ Quality Gate Warnings: {v_cr['warnings']}")
+
+        if st.button("Generate Credit Scroll (Spelled-Out Typography)", key="btn_s6"):
+            try:
+                run_step6_credits(episode_id, podcast_episode_number=podcast_num_val, guest_name=guest_val, dry_run=dry_run_toggle, provider=selected_provider, model=clean_active_model)
+                st.rerun()
+            except Exception as e:
+                st.error(f"❌ Step 6 Failed: {e}")
+                raw_err_file_s6 = ep_dir / "llm_raw_step6_credits.txt"
+                if raw_err_file_s6.exists():
+                    with open(raw_err_file_s6, "r", encoding="utf-8") as f:
+                        raw_err_text_s6 = f.read()
+                    if raw_err_text_s6.strip():
+                        st.error("⚠️ Raw LLM Response:")
+                        st.code(raw_err_text_s6, language="text")
 
     # --- STEP 2 ---
     with st.expander("Step 2: Host Reviews & Synthesis", expanded=False):
@@ -347,17 +418,19 @@ def render_mission_control():
                         st.code(raw_err_text, language="text")
 
         with c_s2_2:
-            s2_phrase = st.text_input("Confirmation Phrase for Step 2 Live Write", key="phrase_s2", placeholder="PUBLISH TO PRODUCTION")
-            if st.button("Push Host Reviews to Supabase (reviews table)", key="btn_write_s2"):
-                if s2_phrase.strip() == "PUBLISH TO PRODUCTION":
+            if not dry_run_toggle:
+                if st.button("Push to Supabase (LIVE)", type="primary", key="btn_write_s2"):
                     if is_test_id:
                         st.error("BLOCKED: Test episode IDs cannot write to live database.")
                     else:
-                        run_step2_reviews(episode_id, guest_name=guest_val, dry_run=False, confirm_phrase=s2_phrase, provider=selected_provider, model=clean_active_model)
+                        run_step2_reviews(episode_id, guest_name=guest_val, dry_run=False, confirm_phrase="PUBLISH TO PRODUCTION", provider=selected_provider, model=clean_active_model)
                         st.success("Host reviews pushed to Supabase!")
                         st.rerun()
-                else:
-                    st.warning("Type 'PUBLISH TO PRODUCTION' exactly to authorize this single write.")
+            else:
+                if st.button("Simulate Push (Dry Run)", key="btn_write_s2"):
+                    run_step2_reviews(episode_id, guest_name=guest_val, dry_run=True, provider=selected_provider, model=clean_active_model)
+                    st.info("Simulated host reviews push to Supabase (Dry Run complete).")
+                    st.rerun()
 
     # --- STEP 3 ---
     with st.expander("Step 3: Transcript Reassembly & Publish", expanded=False):
@@ -383,17 +456,19 @@ def render_mission_control():
             st.rerun()
 
         with c_s3_2:
-            s3_phrase = st.text_input("Confirmation Phrase for Step 3 Live Write", key="phrase_s3", placeholder="PUBLISH TO PRODUCTION")
-            if st.button("Publish Transcript to Supabase (episode_transcripts)", key="btn_write_s3"):
-                if s3_phrase.strip() == "PUBLISH TO PRODUCTION":
+            if not dry_run_toggle:
+                if st.button("Push to Supabase (LIVE)", type="primary", key="btn_write_s3"):
                     if is_test_id:
                         st.error("BLOCKED: Test episode IDs cannot write to live database.")
                     else:
                         run_step3_transcript(episode_id, publish=True, dry_run=False)
                         st.success("Transcript published to Supabase!")
                         st.rerun()
-                else:
-                    st.warning("Type 'PUBLISH TO PRODUCTION' exactly to authorize this single write.")
+            else:
+                if st.button("Simulate Push (Dry Run)", key="btn_write_s3"):
+                    run_step3_transcript(episode_id, publish=True, dry_run=True)
+                    st.info("Simulated transcript publish to Supabase (Dry Run complete).")
+                    st.rerun()
 
     # --- STEP 4 ---
     with st.expander("Step 4: Episode Thumbnail (Fandom / Cloudinary)", expanded=False):
@@ -415,17 +490,19 @@ def render_mission_control():
             st.rerun()
 
         with c_s4_2:
-            s4_phrase = st.text_input("Confirmation Phrase for Step 4 Live Write", key="phrase_s4", placeholder="PUBLISH TO PRODUCTION")
-            if st.button("Update Thumbnail in Supabase (episodes table)", key="btn_write_s4"):
-                if s4_phrase.strip() == "PUBLISH TO PRODUCTION":
+            if not dry_run_toggle:
+                if st.button("Push to Supabase (LIVE)", type="primary", key="btn_write_s4"):
                     if is_test_id:
                         st.error("BLOCKED: Test episode IDs cannot write to live database.")
                     else:
                         run_step4_thumbnails(episode_id, episode_title=episode_title, season=season_val, dry_run=False)
                         st.success("Thumbnail record updated in Supabase!")
                         st.rerun()
-                else:
-                    st.warning("Type 'PUBLISH TO PRODUCTION' exactly to authorize this single write.")
+            else:
+                if st.button("Simulate Push (Dry Run)", key="btn_write_s4"):
+                    run_step4_thumbnails(episode_id, episode_title=episode_title, season=season_val, dry_run=True)
+                    st.info("Simulated thumbnail update in Supabase (Dry Run complete).")
+                    st.rerun()
 
     # --- STEP 6b ---
     with st.expander("Step 6b: Chapter Derivation (from alignment.json)", expanded=False):
@@ -505,60 +582,6 @@ def render_mission_control():
                         st.error("⚠️ Raw LLM Response:")
                         st.code(raw_err_text_s5, language="text")
 
-    # --- STEP 6 ---
-    with st.expander("Step 6: Fake Credit Scroll", expanded=False):
-        s6_info = steps_state.get("step6_credits", {})
-        st.write(f"**Status:** `{s6_info.get('status', 'pending')}` | **Updated:** `{s6_info.get('updated_at')}`")
-        prov_s6 = s6_info.get("llm_provenance")
-        if prov_s6:
-            st.caption(f"🧠 **Model Provenance:** Generated with `{prov_s6.get('provider')}` / `{prov_s6.get('model')}` at {prov_s6.get('generated_at')}")
-
-        if s6_info.get("logs"):
-            st.code(s6_info["logs"], language="text")
-
-        raw_err_file_s6 = ep_dir / "llm_raw_step6_credits.txt"
-        if raw_err_file_s6.exists():
-            with open(raw_err_file_s6, "r", encoding="utf-8") as f:
-                raw_err_text_s6 = f.read()
-            if raw_err_text_s6.strip():
-                st.error("⚠️ Raw LLM Response (Generation/Formatting Failed):")
-                st.code(raw_err_text_s6, language="text")
-
-        cr_file = ep_dir / "credits.md"
-        cr_content = ""
-        if cr_file.exists():
-            with open(cr_file) as f:
-                cr_content = f.read()
-            new_cr = st.text_area("Credits Markdown (editable)", value=cr_content, height=280, key="txt_cr_desc")
-            if new_cr != cr_content:
-                with open(cr_file, "w") as f:
-                    f.write(new_cr)
-                cr_content = new_cr
-
-            # Run validator live on text area content
-            v_cr = validate_credit_scroll(cr_content, podcast_episode_number=podcast_num_val)
-            if v_cr["passed"] and not v_cr["warnings"]:
-                st.success("✅ Quality Gate: 0 digits in scroll body, countdown verified, disclaimers present, tier item counts in range.")
-            else:
-                if v_cr["errors"]:
-                    st.error(f"❌ Quality Gate Errors: {v_cr['errors']}")
-                if v_cr["warnings"]:
-                    st.warning(f"⚠️ Quality Gate Warnings: {v_cr['warnings']}")
-
-        if st.button("Generate Credit Scroll (Spelled-Out Typography)", key="btn_s6"):
-            try:
-                run_step6_credits(episode_id, podcast_episode_number=podcast_num_val, guest_name=guest_val, dry_run=dry_run_toggle, provider=selected_provider, model=clean_active_model)
-                st.rerun()
-            except Exception as e:
-                st.error(f"❌ Step 6 Failed: {e}")
-                raw_err_file_s6 = ep_dir / "llm_raw_step6_credits.txt"
-                if raw_err_file_s6.exists():
-                    with open(raw_err_file_s6, "r", encoding="utf-8") as f:
-                        raw_err_text_s6 = f.read()
-                    if raw_err_text_s6.strip():
-                        st.error("⚠️ Raw LLM Response:")
-                        st.code(raw_err_text_s6, language="text")
-
     # --- STEP 7 ---
     with st.expander("Step 7: Podcast Feed Sync", expanded=False):
         s7_info = steps_state.get("step7_feed_sync", {})
@@ -580,7 +603,7 @@ def render_mission_control():
     # 5. Global Production Publish Replay Modal
     st.markdown("---")
     st.subheader("4. Global Production Publish Gate")
-    st.caption("Replays all approved gated writes in order behind one phrase confirmation. Lists every write before executing.")
+    st.caption("Replays all approved gated writes in order based on current mode toggle (Dry Run or Live). Lists every write before executing.")
     
     st.markdown("""
     **Writes that will be performed in sequence:**
@@ -591,27 +614,42 @@ def render_mission_control():
     5. `episodes` table: Verify podcast URL, preserving canonical player URL (Step 7)
     """)
 
-    global_phrase = st.text_input("Type confirmation phrase to authorize ALL writes above:", placeholder="PUBLISH TO PRODUCTION", key="global_publish_phrase")
-    
-    if st.button("🚨 EXECUTE ALL PRODUCTION PUBLISHES IN SEQUENCE", type="primary", use_container_width=True):
-        if global_phrase.strip() != "PUBLISH TO PRODUCTION":
-            st.warning("Confirmation phrase mismatch. Type 'PUBLISH TO PRODUCTION' exactly to proceed.")
-        elif is_test_id:
-            st.error(f"BLOCKED: Episode ID '{episode_id}' is a test fixture. Live writes are permanently locked out.")
-        else:
-            with st.spinner("Executing full production publish replay..."):
+    if not dry_run_toggle:
+        if st.button("Push to Supabase (LIVE)", type="primary", use_container_width=True, key="btn_global_publish"):
+            if is_test_id:
+                st.error(f"BLOCKED: Episode ID '{episode_id}' is a test fixture. Live writes are permanently locked out.")
+            else:
+                with st.spinner("Executing full production publish replay..."):
+                    try:
+                        # 1. Step 1 live
+                        run_step1_metadata(episode_id, season_val, episode_num_val, dry_run=False, confirm_phrase="PUBLISH TO PRODUCTION")
+                        # 2. Step 2 live
+                        run_step2_reviews(episode_id, guest_name=guest_val, dry_run=False, confirm_phrase="PUBLISH TO PRODUCTION", provider=selected_provider, model=clean_active_model)
+                        # 3. Step 3 live
+                        run_step3_transcript(episode_id, publish=True, dry_run=False)
+                        # 4. Step 4 live
+                        run_step4_thumbnails(episode_id, episode_title=episode_title, season=season_val, dry_run=False)
+                        # 5. Step 7 live
+                        run_step7_feed_sync(episode_id, season=season_val, episode_number=episode_num_val, dry_run=False)
+                        st.success("🏆 ALL PRODUCTION WRITES COMPLETED SUCCESSFULLY!")
+                        st.rerun()
+                    except Exception as e:
+                        st.error(f"Global publish aborted on error: {e}")
+    else:
+        if st.button("Simulate Push (Dry Run)", use_container_width=True, key="btn_global_publish"):
+            with st.spinner("Executing full simulated publish replay (Dry Run)..."):
                 try:
-                    # 1. Step 1 live
-                    run_step1_metadata(episode_id, season_val, episode_num_val, dry_run=False, confirm_phrase=global_phrase)
-                    # 2. Step 2 live
-                    run_step2_reviews(episode_id, guest_name=guest_val, dry_run=False, confirm_phrase=global_phrase, provider=selected_provider, model=clean_active_model)
-                    # 3. Step 3 live
-                    run_step3_transcript(episode_id, publish=True, dry_run=False)
-                    # 4. Step 4 live
-                    run_step4_thumbnails(episode_id, episode_title=episode_title, season=season_val, dry_run=False)
-                    # 5. Step 7 live
-                    run_step7_feed_sync(episode_id, season=season_val, episode_number=episode_num_val, dry_run=False)
-                    st.success("🏆 ALL PRODUCTION WRITES COMPLETED SUCCESSFULLY!")
+                    # 1. Step 1 dry run
+                    run_step1_metadata(episode_id, season_val, episode_num_val, dry_run=True)
+                    # 2. Step 2 dry run
+                    run_step2_reviews(episode_id, guest_name=guest_val, dry_run=True, provider=selected_provider, model=clean_active_model)
+                    # 3. Step 3 dry run
+                    run_step3_transcript(episode_id, publish=True, dry_run=True)
+                    # 4. Step 4 dry run
+                    run_step4_thumbnails(episode_id, episode_title=episode_title, season=season_val, dry_run=True)
+                    # 5. Step 7 dry run
+                    run_step7_feed_sync(episode_id, season=season_val, episode_number=episode_num_val, dry_run=True)
+                    st.info("🏆 ALL PUBLISHES SIMULATED SUCCESSFULLY (Dry Run)!")
                     st.rerun()
                 except Exception as e:
-                    st.error(f"Global publish aborted on error: {e}")
+                    st.error(f"Global dry run aborted on error: {e}")

@@ -322,6 +322,17 @@ def run_step6b_chapters(
     with open(alignment_path, "r", encoding="utf-8") as f:
         alignment_data = json.load(f)
 
+    sum_data = alignment_data.get("summary", {})
+    match_pct = sum_data.get("match_percentage", 0.0)
+    if match_pct < 70.0 and not custom_chapters:
+        err_msg = (
+            f"Alignment match rate ({match_pct:.1f}%) is below the 70.0% guardrail (incomplete map). "
+            f"Step 6b refuses to auto-generate chapters to prevent emitting partial or distorted chapters. "
+            f"Please review cut alignment in Step 0 or provide custom chapters."
+        )
+        update_step_state(episode_id, "step6b_chapters", "error", logs=err_msg)
+        raise ValueError(err_msg)
+
     meta = {}
     if metadata_path.exists():
         try:
