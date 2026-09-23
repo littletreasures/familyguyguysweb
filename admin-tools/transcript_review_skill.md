@@ -38,9 +38,11 @@ This skill covers two related editorial pipelines:
 6. **Pull quote = the single funniest or most quotable line that host said**
    in this segment, verbatim (light cleanup of filler words like "um"/
    "yeah, yeah" is OK, but don't rewrite the joke itself).
-7. **Review text should read like a finished Letterboxd review**: 2–5
-   sentences, in the host's voice, referencing specifics from the episode
-   discussion (not generic filler), suitable to publish as-is.
+7. **Review text MUST be written in the FIRST PERSON ('I', 'me', 'my', 'myself')**:
+   - The review should read like a finished Letterboxd review written by the host themselves (2–5 sentences), summarizing their actual thoughts, jokes, and words from the episode discussion.
+   - **STRICT PROHIBITION ON THIRD PERSON**: Never write about the host in the third person. Do NOT write "Jason felt...", "Collin thought...", "Tyler noted...", "Owning his contrarian take...", "left him cold", or "his initial score".
+   - If another co-host is referenced, do so strictly from the reviewer's first-person perspective (e.g. "I agreed with Collin that..." rather than "Jason agreed with Collin that...").
+   - Reviews must be grounded strictly in what they said in the episode; do not invent opinions.
 
 ### Review Output Schema
 
@@ -54,7 +56,7 @@ This skill covers two related editorial pipelines:
       "rating_source_note": "Brief note on how the score was derived/converted, e.g. 'stated directly as four out of five' or 'converted from 74/100 gigades'",
       "rating_terminology": "The specific custom terminology used by the host (e.g. 'Paul Reisers', 'Giggitys', 'Baby Teeth')",
       "rating_scale_max": 5,
-      "review": "Finished, publishable review text in the host's voice, 2-5 sentences, grounded strictly in what they said.",
+      "review": "Finished, publishable review text written strictly in FIRST PERSON ('I', 'my') in the host's voice, 2-5 sentences, grounded strictly in what they said.",
       "pull_quote": "Verbatim funniest/most quotable line from this host in this segment."
     }
   ]

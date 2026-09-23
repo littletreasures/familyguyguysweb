@@ -232,12 +232,78 @@ def extract_quoted_score(note: str, scale_max: float) -> Optional[float]:
     return None
 
 
+def check_first_person_review(host: str, review_text: str) -> List[str]:
+    """
+    Checks that a host review is written in first-person POV ('I', 'me', 'my')
+    and not phrased in third-person describing the host ('Jason felt', 'Collin thought', etc.).
+    Returns a list of error strings.
+    """
+    if not host or not review_text:
+        return []
+
+    errors = []
+    text = review_text.strip()
+    h_esc = re.escape(host)
+
+    # 1. Host name followed by attributive/reporting verbs (including adverbs)
+    # e.g., "Jason felt", "Jason originally leaned", "Collin fully embraced", "Tyler found"
+    attrib_verbs = (
+        r"(?:(?:also|fully|originally|clearly|genuinely|definitely|personally|somewhat)\s+)?"
+        r"(?:felt|feels|thought|thinks|found|finds|enjoyed|enjoys|noted|notes|stated|states|"
+        r"appreciated|appreciates|called|calls|agreed|agrees|admitted|admits|wanted|wants|"
+        r"believed|believes|argued|argues|pointed|points|hated|hates|loved|loves|liked|likes|"
+        r"leaned|leans|wished|wishes|preferred|prefers|embraced|embraces|acknowledged|acknowledges|"
+        r"observed|observes|was|is|did|does|had|has|related|relates|owned|owning)"
+    )
+    if re.search(rf"\b{h_esc}\s+{attrib_verbs}\b", text, re.IGNORECASE):
+        errors.append(
+            f"Review for {host} is written in the third person describing {host} (e.g. '{host} felt/thought/agreed'). "
+            "Host reviews must be written in the first person ('I', 'my') as if the host wrote it themselves."
+        )
+
+    # 2. Review starts with the host's own name as the subject (excluding common multi-word names)
+    if re.search(rf"^\s*{h_esc}\b(?!\s+(?:Voorhees|Bourne|Bateman|Mraz|Derulo|Sudeikis|Biggs|Priestley|Statham|Segel))\b", text, re.IGNORECASE):
+        msg = (
+            f"Review for {host} begins with the host's own name in the third person. "
+            "Host reviews must be written in the first person ('I', 'my') as if the host wrote it themselves."
+        )
+        if msg not in errors and not any(f"Review for {host}" in e for e in errors):
+            errors.append(msg)
+
+    # 3. Third person possessive describing host's review, take, or score
+    # e.g. "Jason's take", "his contrarian take", "his initial score", "left him cold"
+    if re.search(rf"\b{h_esc}'s\s+(?:take|review|score|rating|perspective|view|opinion|sentiment|gut)\b", text, re.IGNORECASE):
+        errors.append(
+            f"Review for {host} contains third-person phrasing ('{host}'s take/review/score'). "
+            "Must be written in the first person ('my take', 'my initial score')."
+        )
+    if re.search(r"\b(?:his|her)\s+(?:contrarian take|initial score|gut score|review|perception|rating)\b", text, re.IGNORECASE):
+        errors.append(
+            f"Review for {host} contains third-person framing ('his/her take/score/review'). "
+            "Must be written in the first person ('my take', 'my score', 'my review')."
+        )
+    if re.search(r"\b(?:left|keeps)\s+(?:him|her)\s+(?:cold|from)\b", text, re.IGNORECASE):
+        errors.append(
+            f"Review for {host} contains third-person narrator phrasing ('left/keeps him/her ...'). "
+            "Must be written in the first person ('left me cold', 'keeps me from ...')."
+        )
+
+    # 4. Review begins with third-person pronoun subject ("He felt...", "He loved...", "She thought...")
+    if re.search(rf"^\s*(?:he|she)\s+{attrib_verbs}\b", text, re.IGNORECASE):
+        errors.append(
+            f"Review for {host} begins with a third-person pronoun ('He/She ...'). "
+            "Host reviews must be written in the first person ('I ...')."
+        )
+
+    return errors
+
+
 def validate_reviews_data(reviews_data: Dict[str, Any], guest_name: Optional[str] = None) -> Dict[str, Any]:
     """
     Validates reviews dictionary:
     - Non-empty reviews array
     - Rating bounds (0.0 - 5.0)
-    - Review text completeness
+    - Review text completeness and first-person POV
     - Spoken rating consistency vs rating_source_note
     - Canonical host coverage (Jason, Collin, Tyler)
     - Rejects fabricated/unexpected guests when guest_name is None
@@ -288,8 +354,12 @@ def validate_reviews_data(reviews_data: Dict[str, Any], guest_name: Optional[str
             except (ValueError, TypeError):
                 errors.append(f"Invalid rating value '{rating}' for {host}.")
 
-        if not r.get("review", "").strip():
+        rev_text = r.get("review", "").strip()
+        if not rev_text:
             errors.append(f"Review text for {host} is empty.")
+        else:
+            errors.extend(check_first_person_review(host, rev_text))
+
         if not r.get("pull_quote", "").strip():
             warnings.append(f"Pull quote for {host} is empty.")
 

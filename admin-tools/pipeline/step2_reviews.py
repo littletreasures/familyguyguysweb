@@ -99,6 +99,12 @@ Store ratings normalized to a 0.0 - 5.0 scale with full floating point precision
 Keep the host's raw stated score verbatim in rating_source_note (e.g. 'Stated as ninety-five bikinied Lois out of one hundred').
 rating_scale_max is the host's stated scale (5 or 100).
 
+MANDATORY FIRST-PERSON (POV) REQUIREMENT:
+Every review MUST be written in the FIRST PERSON ('I', 'me', 'my', 'myself') from that specific speaker's own perspective, as if they personally wrote down their thoughts for a Letterboxd review. Summarize their actual thoughts, jokes, and words from the episode discussion.
+NEVER use third-person phrasing to describe the reviewing host or guest.
+- DO NOT write 'Jason felt...', 'Collin thought...', 'Tyler was not sold...', '{g_name} enjoyed...', 'his take', or 'left him cold'.
+- If referencing another co-host, do so strictly from the reviewer's first-person perspective (e.g. 'I agreed with Collin that...' rather than 'Jason agreed with Collin that...').
+
 Return ONLY a JSON object matching this schema:
 {{
   "episode_id": "{episode_id}",
@@ -109,7 +115,7 @@ Return ONLY a JSON object matching this schema:
       "rating_source_note": "verbatim quoted raw score...",
       "rating_terminology": "unit...",
       "rating_scale_max": 100,
-      "review": "review text...",
+      "review": "2-5 sentence review written strictly in FIRST PERSON ('I', 'my') in this speaker's voice, summarizing their actual thoughts and words from the episode as if they wrote it themselves...",
       "pull_quote": "verbatim funniest line..."
     }}
   ]
@@ -126,6 +132,12 @@ Store ratings normalized to a 0.0 - 5.0 scale with full floating point precision
 Keep the host's raw stated score verbatim in rating_source_note (e.g. 'Stated as ninety-five bikinied Lois out of one hundred').
 rating_scale_max is the host's stated scale (5 or 100).
 
+MANDATORY FIRST-PERSON (POV) REQUIREMENT:
+Every review MUST be written in the FIRST PERSON ('I', 'me', 'my', 'myself') from that specific speaker's own perspective, as if they personally wrote down their thoughts for a Letterboxd review. Summarize their actual thoughts, jokes, and words from the episode discussion.
+NEVER use third-person phrasing to describe the reviewing host.
+- DO NOT write 'Jason felt...', 'Collin thought...', 'Tyler was not sold...', 'his take', or 'left him cold'.
+- If referencing another co-host, do so strictly from the reviewer's first-person perspective (e.g. 'I agreed with Collin that...' rather than 'Jason agreed with Collin that...').
+
 Return ONLY a JSON object matching this schema:
 {{
   "episode_id": "{episode_id}",
@@ -136,7 +148,7 @@ Return ONLY a JSON object matching this schema:
       "rating_source_note": "verbatim quoted raw score...",
       "rating_terminology": "unit...",
       "rating_scale_max": 100,
-      "review": "review text...",
+      "review": "2-5 sentence review written strictly in FIRST PERSON ('I', 'my') in this host's voice, summarizing their actual thoughts and words from the episode as if they wrote it themselves...",
       "pull_quote": "verbatim funniest line..."
     }}
   ]
