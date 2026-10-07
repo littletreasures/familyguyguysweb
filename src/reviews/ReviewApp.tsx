@@ -257,6 +257,11 @@ const demoDataset = createDemoDataset();
 
 // schemaTemplate removed
 
+function formatRating(val: number): string {
+  const rounded = Math.round((val + Number.EPSILON) * 100) / 100;
+  return String(rounded);
+}
+
 function App() {
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -909,7 +914,7 @@ function EpisodePage({
                   Average
                 </p>
                 <p className="mt-1 text-3xl font-black text-black">
-                  {average === null ? '--' : average.toFixed(1)} / {dataset.ratingScale.max}
+                  {average === null ? '--' : formatRating(average)} / {dataset.ratingScale.max}
                 </p>
                 <p className="text-xs font-bold text-gray-500">{dataset.ratingScale.label}</p>
               </div>
@@ -1102,7 +1107,7 @@ function HostReviewRow({
                   />
                 </div>
                 <span className="bg-black text-white font-black text-[10px] px-1.5 py-0.5 border border-white leading-none">
-                  {ratingVal.toFixed(0)}/100 {terminology}
+                  {formatRating(ratingVal)}/100 {terminology}
                 </span>
               </div>
             ) : (
@@ -1116,7 +1121,7 @@ function HostReviewRow({
                   />
                 ))}
                 <span className="bg-black text-white font-black text-[10px] px-1.5 py-0.5 ml-1 border border-white leading-none">
-                  {ratingVal.toFixed(1)}/5 {terminology}
+                  {formatRating(ratingVal)}/5 {terminology}
                 </span>
               </div>
             )}

@@ -386,7 +386,7 @@ describe('Phase 2 Prerendering Modules & Safety Gates', () => {
           },
           {
             cohost_id: '0a3dfd13-90b2-47db-b0af-2e0c0df21cff',
-            rating: 3.5,
+            rating: 2.75,
             review: '__FGG_FIXTURE__ Review text for Collin.',
             pullQuote: '__FGG_FIXTURE__ Pull quote for Collin.',
             rating_terminology: 'Quahogs',
@@ -407,9 +407,9 @@ describe('Phase 2 Prerendering Modules & Safety Gates', () => {
       expect(markup).toMatch(/COLLIN(&#x27;|')S METRIC/);
 
       // Ratings & terminology
-      expect(markup).toContain('4.0/5 Quahogs');
+      expect(markup).toContain('4/5 Quahogs');
       expect(markup).toContain('4.5/5 Quahogs');
-      expect(markup).toContain('3.5/5 Quahogs');
+      expect(markup).toContain('2.75/5 Quahogs');
 
       // Pull quotes
       expect(markup).toContain('&quot;__FGG_FIXTURE__ Pull quote for Jason.&quot;');
