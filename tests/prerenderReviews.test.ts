@@ -386,7 +386,7 @@ describe('Phase 2 Prerendering Modules & Safety Gates', () => {
           },
           {
             cohost_id: '0a3dfd13-90b2-47db-b0af-2e0c0df21cff',
-            rating: 3.5,
+            rating: 2.75,
             review: '__FGG_FIXTURE__ Review text for Collin.',
             pullQuote: '__FGG_FIXTURE__ Pull quote for Collin.',
             rating_terminology: 'Quahogs',
@@ -407,9 +407,9 @@ describe('Phase 2 Prerendering Modules & Safety Gates', () => {
       expect(markup).toMatch(/COLLIN(&#x27;|')S METRIC/);
 
       // Ratings & terminology
-      expect(markup).toContain('4.0/5 Quahogs');
+      expect(markup).toContain('4/5 Quahogs');
       expect(markup).toContain('4.5/5 Quahogs');
-      expect(markup).toContain('3.5/5 Quahogs');
+      expect(markup).toContain('2.75/5 Quahogs');
 
       // Pull quotes
       expect(markup).toContain('&quot;__FGG_FIXTURE__ Pull quote for Jason.&quot;');
@@ -771,6 +771,12 @@ describe('Phase 2 Prerendering Modules & Safety Gates', () => {
         expect(html).toContain('https://player.rss.com/fgg-fixture/90000');
         expect(html).toContain('loading="lazy"');
         expect(html).toContain('Open on RSS.com ↗');
+
+        // Verify favicon and theme-color tags
+        expect(html).toContain('<link rel="icon" href="/favicon.ico" sizes="any">');
+        expect(html).toContain('<link rel="icon" type="image/svg+xml" href="/favicon.svg">');
+        expect(html).toContain('<link rel="apple-touch-icon" href="/favicon-192.png">');
+        expect(html).toContain('<meta name="theme-color" content="#ff72c7">');
 
         // Verify visitor reviews island mount point & noscript progressive enhancement fallback
         expect(html).toContain(`<div id="visitor-reviews-root" data-episode-id="${epId}">`);

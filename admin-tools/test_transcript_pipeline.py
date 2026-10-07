@@ -147,6 +147,202 @@ class TestTranscriptPipeline(unittest.TestCase):
                 self.assertEqual(res["body_digits_count"], 0)
                 self.assertIn("Twelve", res["credits"])
 
+    def _setup_mock_chunks(self, base_dir: Path):
+        chunks_dir = base_dir / "chunks"
+        chunks_dir.mkdir(parents=True, exist_ok=True)
+        (chunks_dir / "chunk_1.txt").write_text("Jason (00:01.0)\nCold open discussion starts here.\n", encoding="utf-8")
+        (chunks_dir / "chunk_2.txt").write_text("Collin (01:00.0)\nAct two discussion and analysis.\n", encoding="utf-8")
+        (chunks_dir / "chunk_3.txt").write_text("Tyler (02:00.0)\nFinal ratings and wrap up.\n", encoding="utf-8")
+        return chunks_dir
+
+    def test_intro_and_seo_description_survive_run_step3_transcript(self):
+        from pathlib import Path
+        from unittest.mock import patch
+        import json
+        from pipeline.step3_transcript import run_step3_transcript
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmp_path = Path(tmpdir)
+            chunks_dir = self._setup_mock_chunks(tmp_path)
+            with patch("pipeline.step3_transcript.get_episodes_dir", return_value=tmp_path), \
+                 patch("pipeline.step3_transcript.update_step_state"), \
+                 patch("pipeline.step3_transcript.upsert_transcript"):
+                res = run_step3_transcript(
+                    "s02e05",
+                    publish=False,
+                    dry_run=True,
+                    chunks_dir=str(chunks_dir),
+                    intro="A detailed editorial introduction describing the episode stakes and bits.",
+                    seo_description="A natural meta description covering the review discussion.",
+                )
+                self.assertEqual(res["status"], "done")
+                artifact_path = tmp_path / "transcript.json"
+                self.assertTrue(artifact_path.exists())
+                with open(artifact_path, "r", encoding="utf-8") as f:
+                    data = json.load(f)
+                self.assertEqual(data["intro"], "A detailed editorial introduction describing the episode stakes and bits.")
+                self.assertEqual(data["seo_description"], "A natural meta description covering the review discussion.")
+
+    def test_live_publish_with_blank_intro_fails(self):
+        from pathlib import Path
+        from unittest.mock import patch
+        from pipeline.step3_transcript import run_step3_transcript
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmp_path = Path(tmpdir)
+            chunks_dir = self._setup_mock_chunks(tmp_path)
+            with patch("pipeline.step3_transcript.get_episodes_dir", return_value=tmp_path), \
+                 patch("pipeline.step3_transcript.update_step_state"), \
+                 patch("pipeline.step3_transcript.upsert_transcript"):
+                with self.assertRaises(ValueError) as ctx:
+                    run_step3_transcript(
+                        "s02e05",
+                        publish=True,
+                        dry_run=False,
+                        chunks_dir=str(chunks_dir),
+                        intro="",
+                        seo_description="Join Collin, Tyler, and Jason as they review Family Guy episode 5 with ratings and in-depth discussion breakdown.",
+                    )
+                self.assertIn("Transcript intro is required for a live publish", str(ctx.exception))
+
+    def test_live_publish_with_blank_seo_description_fails(self):
+        from pathlib import Path
+        from unittest.mock import patch
+        from pipeline.step3_transcript import run_step3_transcript
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmp_path = Path(tmpdir)
+            chunks_dir = self._setup_mock_chunks(tmp_path)
+            with patch("pipeline.step3_transcript.get_episodes_dir", return_value=tmp_path), \
+                 patch("pipeline.step3_transcript.update_step_state"), \
+                 patch("pipeline.step3_transcript.upsert_transcript"):
+                with self.assertRaises(ValueError) as ctx:
+                    run_step3_transcript(
+                        "s02e05",
+                        publish=True,
+                        dry_run=False,
+                        chunks_dir=str(chunks_dir),
+                        intro="A full editorial intro describing the episode discussions and recurring jokes.",
+                        seo_description="",
+                    )
+                self.assertIn("SEO description is required for a live publish", str(ctx.exception))
+
+    def test_dry_run_transcript_assembly_succeeds_without_editorial_metadata(self):
+        from pathlib import Path
+        from unittest.mock import patch
+        import json
+        from pipeline.step3_transcript import run_step3_transcript
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmp_path = Path(tmpdir)
+            chunks_dir = self._setup_mock_chunks(tmp_path)
+            with patch("pipeline.step3_transcript.get_episodes_dir", return_value=tmp_path), \
+                 patch("pipeline.step3_transcript.update_step_state"), \
+                 patch("pipeline.step3_transcript.upsert_transcript"):
+                res = run_step3_transcript(
+                    "s02e05",
+                    publish=False,
+                    dry_run=True,
+                    chunks_dir=str(chunks_dir),
+                    intro="",
+                    seo_description="",
+                )
+                self.assertEqual(res["status"], "done")
+                artifact_path = tmp_path / "transcript.json"
+                self.assertTrue(artifact_path.exists())
+                with open(artifact_path, "r", encoding="utf-8") as f:
+                    data = json.load(f)
+                self.assertIsNone(data["intro"])
+                self.assertIsNone(data["seo_description"])
+
+    def test_custom_section_headings_appear_in_emitted_json(self):
+        from pathlib import Path
+        from unittest.mock import patch
+        import json
+        from pipeline.step3_transcript import run_step3_transcript
+
+        custom_headings = [
+            "Part 1: The Grand Opening",
+            "Part 2: Deep Dive Discussion",
+            "Part 3: Final Scores and Outro",
+        ]
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmp_path = Path(tmpdir)
+            chunks_dir = self._setup_mock_chunks(tmp_path)
+            with patch("pipeline.step3_transcript.get_episodes_dir", return_value=tmp_path), \
+                 patch("pipeline.step3_transcript.update_step_state"), \
+                 patch("pipeline.step3_transcript.upsert_transcript"):
+                res = run_step3_transcript(
+                    "s02e05",
+                    publish=False,
+                    dry_run=True,
+                    chunks_dir=str(chunks_dir),
+                    section_headings=custom_headings,
+                )
+                self.assertEqual(res["status"], "done")
+                artifact_path = tmp_path / "transcript.json"
+                with open(artifact_path, "r", encoding="utf-8") as f:
+                    data = json.load(f)
+                headings = [s["heading"] for s in data["sections"]]
+                self.assertEqual(headings, custom_headings)
+
+    def test_valid_intro_and_seo_survive_build_transcript_row(self):
+        from transcript_upsert import build_transcript_row
+
+        raw_data = {
+            "episode_id": "s02e05",
+            "status": "draft",
+            "intro": "Editorial context intro",
+            "seo_description": "Custom SEO meta description",
+            "sections": [
+                {
+                    "id": "sec-1",
+                    "heading": "Part 1",
+                    "start_seconds": 0.0,
+                    "end_seconds": 20.0,
+                    "entries": [
+                        {"start_seconds": 0.0, "end_seconds": 10.0, "speaker": "Jason", "text": "Speech"}
+                    ]
+                }
+            ]
+        }
+        row = build_transcript_row(raw_data)
+        self.assertEqual(row["intro"], "Editorial context intro")
+        self.assertEqual(row["seo_description"], "Custom SEO meta description")
+
+    def test_validate_transcript_editorial_metadata_helper(self):
+        from pipeline.step3_transcript import validate_transcript_editorial_metadata
+
+        # Empty fields fail
+        v_empty = validate_transcript_editorial_metadata("", "")
+        self.assertFalse(v_empty["passed"])
+        self.assertEqual(len(v_empty["errors"]), 2)
+
+        # Word count warning on intro
+        v_short_intro = validate_transcript_editorial_metadata(
+            "Short intro with only eight words right here.",
+            "A" * 150,
+        )
+        self.assertTrue(v_short_intro["passed"])
+        self.assertTrue(any("recommended range is 100–200" in w for w in v_short_intro["warnings"]))
+
+        # Character count warning on SEO
+        v_short_seo = validate_transcript_editorial_metadata(
+            "Word " * 120,
+            "Too short SEO description",
+        )
+        self.assertTrue(v_short_seo["passed"])
+        self.assertTrue(any("recommended range is 140–160" in w for w in v_short_seo["warnings"]))
+
+        # Ideal ranges pass cleanly with no warnings
+        v_ideal = validate_transcript_editorial_metadata(
+            "Word " * 120,
+            "X" * 150,
+        )
+        self.assertTrue(v_ideal["passed"])
+        self.assertEqual(len(v_ideal["errors"]), 0)
+        self.assertEqual(len(v_ideal["warnings"]), 0)
+
 
 if __name__ == "__main__":
     unittest.main()

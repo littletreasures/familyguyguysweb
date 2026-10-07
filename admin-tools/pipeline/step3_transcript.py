@@ -74,6 +74,35 @@ def reassemble_transcript_sections(
     return parsed_sections
 
 
+def validate_transcript_editorial_metadata(
+    intro: str,
+    seo_description: str,
+) -> Dict[str, Any]:
+    errors = []
+    warnings = []
+    intro_clean = (intro or "").strip()
+    seo_clean = (seo_description or "").strip()
+    intro_words = len(intro_clean.split())
+    seo_length = len(seo_clean)
+    if not intro_clean:
+        errors.append("Transcript intro is required for a live publish.")
+    elif intro_words < 100 or intro_words > 200:
+        warnings.append(
+            f"Transcript intro is {intro_words} words; recommended range is 100–200."
+        )
+    if not seo_clean:
+        errors.append("SEO description is required for a live publish.")
+    elif seo_length < 140 or seo_length > 160:
+        warnings.append(
+            f"SEO description is {seo_length} characters; recommended range is 140–160."
+        )
+    return {
+        "passed": not errors,
+        "errors": errors,
+        "warnings": warnings,
+    }
+
+
 def run_step3_transcript(
     episode_id: str,
     publish: bool = False,
@@ -136,7 +165,16 @@ def run_step3_transcript(
     with open(out_path, "w", encoding="utf-8") as f:
         json.dump(row, f, indent=2)
 
-    # 5. Database upsert (dry-run or live)
+    # 5. Validate editorial metadata and execute gated database upsert
+    editorial_validation = validate_transcript_editorial_metadata(
+        intro,
+        seo_description,
+    )
+    if publish and not dry_run and not editorial_validation["passed"]:
+        raise ValueError(
+            "Cannot publish transcript: " + "; ".join(editorial_validation["errors"])
+        )
+
     upsert_transcript(row, allow_live_write=not dry_run, dry_run=dry_run)
 
     # 6. Build section summary for audit and logs
@@ -176,7 +214,7 @@ def run_step3_transcript(
         "done",
         logs=log_msg,
         artifacts=artifacts,
-        validation={"passed": True, "errors": [], "warnings": []},
+        validation=editorial_validation,
         approved=True,
     )
 
@@ -186,5 +224,6 @@ def run_step3_transcript(
         "logs": log_msg,
         "sections": section_summary,
         "word_count": row["word_count"],
-        "schema_validation": "passed"
+        "schema_validation": "passed",
+        "validation": editorial_validation,
     }

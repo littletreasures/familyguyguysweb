@@ -83,6 +83,16 @@ def render_mission_control():
     raw_guest_name = col_meta2.text_input("Guest Name (leave blank if none)", value=state_data.get("guest_name") or "")
     guest_val = raw_guest_name.strip() if raw_guest_name and raw_guest_name.strip() else None
 
+    canonical_podcast_url = st.text_input(
+        "Canonical RSS.com Episode Page URL",
+        value=state_data.get("canonical_podcast_url", ""),
+        placeholder="https://rss.com/podcasts/family-guy-guys/3215265/",
+        help=(
+            "Paste the public RSS.com episode page URL with its numeric RSS.com ID. "
+            "Do not paste the .mp3 enclosure URL and do not use the internal episode ID."
+        ),
+    ).strip()
+
     col_files1, col_files2 = st.columns(2)
     default_riverside = "/Volumes/RetroSSD/SSD-Family-Guy-Guys-Storage/Episode Vault/s2e1/s2e1.txt"
     default_srt = "/Users/jrhackett/models/whisper/transcripts/S2E1Final.srt"
@@ -148,6 +158,7 @@ def render_mission_control():
     state_data["podcast_episode_number"] = podcast_num_val
     state_data["episode_title"] = episode_title
     state_data["guest_name"] = guest_val or ""
+    state_data["canonical_podcast_url"] = canonical_podcast_url
     state_data["riverside_transcript_path"] = riverside_path
     state_data["srt_path"] = srt_path
     state_data["llm_provider"] = selected_provider
@@ -206,7 +217,22 @@ def render_mission_control():
                 run_step2_reviews(episode_id, guest_name=guest_val, dry_run=effective_dry_run, provider=selected_provider, model=clean_active_model)
                 # Step 3
                 st.toast("Running Step 3: Transcript...")
-                run_step3_transcript(episode_id, publish=False, dry_run=effective_dry_run)
+                default_section_headings = [
+                    "Part 1: Cold Open & Act I",
+                    "Part 2: Act II & Discussion",
+                    "Part 3: Final Ratings & Closing",
+                ]
+                cur_intro = state_data.get("transcript_intro", "")
+                cur_seo = state_data.get("transcript_seo_description", "")
+                cur_headings = state_data.get("section_headings") or default_section_headings
+                run_step3_transcript(
+                    episode_id,
+                    publish=False,
+                    dry_run=effective_dry_run,
+                    section_headings=cur_headings,
+                    intro=cur_intro,
+                    seo_description=cur_seo,
+                )
                 # Step 4
                 st.toast("Running Step 4: Thumbnails...")
                 run_step4_thumbnails(episode_id, episode_title=episode_title, season=season_val, dry_run=effective_dry_run)
@@ -224,7 +250,13 @@ def render_mission_control():
                     st.toast("Skipping Step 6: Fake Credits (toggle enabled)")
                 # Step 7
                 st.toast("Running Step 7: Feed Sync...")
-                run_step7_feed_sync(episode_id, season=season_val, episode_number=episode_num_val, dry_run=effective_dry_run)
+                run_step7_feed_sync(
+                    episode_id,
+                    season=season_val,
+                    episode_number=episode_num_val,
+                    canonical_podcast_url=canonical_podcast_url,
+                    dry_run=effective_dry_run,
+                )
                 st.success("🎉 All pipeline steps executed successfully!")
                 st.rerun()
             except Exception as e:
@@ -439,20 +471,64 @@ def render_mission_control():
         if s3_info.get("logs"):
             st.code(s3_info["logs"], language="text")
 
+        intro = st.text_area(
+            "Transcript Introduction",
+            value=state_data.get("transcript_intro", ""),
+            height=180,
+            help=(
+                "Write 100–200 words of editorial context for the transcript page. "
+                "This should describe the actual discussion, recurring bits, and episode-specific stakes."
+            ),
+            key="mc_transcript_intro",
+        ).strip()
+        seo_description = st.text_area(
+            "SEO Description",
+            value=state_data.get("transcript_seo_description", ""),
+            height=90,
+            max_chars=160,
+            help=(
+                "Write a natural 140–160-character meta description. "
+                "Use the episode title and real discussion details; do not keyword-stuff."
+            ),
+            key="mc_transcript_seo_description",
+        ).strip()
+
+        state_data["transcript_intro"] = intro
+        state_data["transcript_seo_description"] = seo_description
+
+        default_section_headings = [
+            "Part 1: Cold Open & Act I",
+            "Part 2: Act II & Discussion",
+            "Part 3: Final Ratings & Closing",
+        ]
+
         tr_file = ep_dir / "transcript.json"
+        sec_headings = []
         if tr_file.exists():
             with open(tr_file) as f:
                 tr_json = json.load(f)
             st.write(f"**Total Words:** {tr_json.get('word_count'):,} | **Sections:** {len(tr_json.get('sections', []))}")
             # Editable section headings preview
-            sec_headings = []
             for s_i, sec in enumerate(tr_json.get("sections", [])):
-                h_val = st.text_input(f"Section {s_i+1} Heading ({sec.get('id')})", value=sec.get("heading"), key=f"head_sec_{s_i}")
+                default_h = sec.get("heading") or (default_section_headings[s_i] if s_i < len(default_section_headings) else f"Part {s_i+1}")
+                h_val = st.text_input(f"Section {s_i+1} Heading ({sec.get('id')})", value=default_h, key=f"head_sec_{s_i}")
                 sec_headings.append(h_val)
+        else:
+            sec_headings = list(default_section_headings)
+
+        state_data["section_headings"] = sec_headings
+        save_step_state(episode_id, state_data)
 
         c_s3_1, c_s3_2 = st.columns(2)
         if c_s3_1.button("Reassemble & Validate Transcript", key="btn_s3"):
-            run_step3_transcript(episode_id, publish=False, dry_run=dry_run_toggle)
+            run_step3_transcript(
+                episode_id,
+                publish=False,
+                dry_run=dry_run_toggle,
+                section_headings=sec_headings,
+                intro=intro,
+                seo_description=seo_description,
+            )
             st.rerun()
 
         with c_s3_2:
@@ -461,12 +537,26 @@ def render_mission_control():
                     if is_test_id:
                         st.error("BLOCKED: Test episode IDs cannot write to live database.")
                     else:
-                        run_step3_transcript(episode_id, publish=True, dry_run=False)
+                        run_step3_transcript(
+                            episode_id,
+                            publish=True,
+                            dry_run=False,
+                            section_headings=sec_headings,
+                            intro=intro,
+                            seo_description=seo_description,
+                        )
                         st.success("Transcript published to Supabase!")
                         st.rerun()
             else:
                 if st.button("Simulate Push (Dry Run)", key="btn_write_s3"):
-                    run_step3_transcript(episode_id, publish=True, dry_run=True)
+                    run_step3_transcript(
+                        episode_id,
+                        publish=True,
+                        dry_run=True,
+                        section_headings=sec_headings,
+                        intro=intro,
+                        seo_description=seo_description,
+                    )
                     st.info("Simulated transcript publish to Supabase (Dry Run complete).")
                     st.rerun()
 
@@ -594,10 +684,20 @@ def render_mission_control():
             with open(feed_file) as f:
                 feed_json = json.load(f)
             st.json(feed_json)
-            st.info("🛡️ Semantic Check: Canonical RSS.com episode page URL preserved. Player embed iframe protected.")
+            resolved_url = feed_json.get("resolved_canonical_podcast_url")
+            if resolved_url:
+                st.success(f"Canonical RSS.com episode page URL resolved: `{resolved_url}` (source: `{feed_json.get('canonical_url_source')}`)")
+            else:
+                st.warning("No valid canonical RSS.com episode page URL resolved.")
 
         if st.button("Run Feed Sync Check", key="btn_s7"):
-            run_step7_feed_sync(episode_id, season=season_val, episode_number=episode_num_val, dry_run=dry_run_toggle)
+            run_step7_feed_sync(
+                episode_id,
+                season=season_val,
+                episode_number=episode_num_val,
+                canonical_podcast_url=canonical_podcast_url,
+                dry_run=dry_run_toggle,
+            )
             st.rerun()
 
     # 5. Global Production Publish Replay Modal
@@ -614,6 +714,15 @@ def render_mission_control():
     5. `episodes` table: Verify podcast URL, preserving canonical player URL (Step 7)
     """)
 
+    cur_intro = state_data.get("transcript_intro", "")
+    cur_seo = state_data.get("transcript_seo_description", "")
+    default_section_headings = [
+        "Part 1: Cold Open & Act I",
+        "Part 2: Act II & Discussion",
+        "Part 3: Final Ratings & Closing",
+    ]
+    cur_headings = state_data.get("section_headings") or default_section_headings
+
     if not dry_run_toggle:
         if st.button("Push to Supabase (LIVE)", type="primary", use_container_width=True, key="btn_global_publish"):
             if is_test_id:
@@ -626,11 +735,24 @@ def render_mission_control():
                         # 2. Step 2 live
                         run_step2_reviews(episode_id, guest_name=guest_val, dry_run=False, confirm_phrase="PUBLISH TO PRODUCTION", provider=selected_provider, model=clean_active_model)
                         # 3. Step 3 live
-                        run_step3_transcript(episode_id, publish=True, dry_run=False)
+                        run_step3_transcript(
+                            episode_id,
+                            publish=True,
+                            dry_run=False,
+                            section_headings=cur_headings,
+                            intro=cur_intro,
+                            seo_description=cur_seo,
+                        )
                         # 4. Step 4 live
                         run_step4_thumbnails(episode_id, episode_title=episode_title, season=season_val, dry_run=False)
                         # 5. Step 7 live
-                        run_step7_feed_sync(episode_id, season=season_val, episode_number=episode_num_val, dry_run=False)
+                        run_step7_feed_sync(
+                            episode_id,
+                            season=season_val,
+                            episode_number=episode_num_val,
+                            canonical_podcast_url=canonical_podcast_url,
+                            dry_run=False,
+                        )
                         st.success("🏆 ALL PRODUCTION WRITES COMPLETED SUCCESSFULLY!")
                         st.rerun()
                     except Exception as e:
@@ -644,11 +766,24 @@ def render_mission_control():
                     # 2. Step 2 dry run
                     run_step2_reviews(episode_id, guest_name=guest_val, dry_run=True, provider=selected_provider, model=clean_active_model)
                     # 3. Step 3 dry run
-                    run_step3_transcript(episode_id, publish=True, dry_run=True)
+                    run_step3_transcript(
+                        episode_id,
+                        publish=True,
+                        dry_run=True,
+                        section_headings=cur_headings,
+                        intro=cur_intro,
+                        seo_description=cur_seo,
+                    )
                     # 4. Step 4 dry run
                     run_step4_thumbnails(episode_id, episode_title=episode_title, season=season_val, dry_run=True)
                     # 5. Step 7 dry run
-                    run_step7_feed_sync(episode_id, season=season_val, episode_number=episode_num_val, dry_run=True)
+                    run_step7_feed_sync(
+                        episode_id,
+                        season=season_val,
+                        episode_number=episode_num_val,
+                        canonical_podcast_url=canonical_podcast_url,
+                        dry_run=True,
+                    )
                     st.info("🏆 ALL PUBLISHES SIMULATED SUCCESSFULLY (Dry Run)!")
                     st.rerun()
                 except Exception as e:

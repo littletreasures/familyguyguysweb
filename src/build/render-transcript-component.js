@@ -11,6 +11,12 @@ import { deriveRssEmbed } from './rss-embed.js';
 
 const e = React.createElement;
 
+function formatRating(val) {
+  // Display up to 2 decimals, trim trailing zeros; kills float noise (56.00000000000001).
+  const rounded = Math.round((val + Number.EPSILON) * 100) / 100;
+  return String(rounded);
+}
+
 const COHOST_NAME_MAP = {
   '01201e1a-dafd-424a-b596-ff9ece65f1aa': {
     name: 'Jason Hackett',
@@ -339,7 +345,7 @@ export function RenderEpisodeReviewPage({ episode, transcript, cohosts }) {
                           e(
                             'span',
                             { className: 'score-pill' },
-                            `${ratingVal.toFixed(0)}/100 ${terminology}`
+                            `${formatRating(ratingVal)}/100 ${terminology}`
                           )
                         )
                       : e(
@@ -349,7 +355,7 @@ export function RenderEpisodeReviewPage({ episode, transcript, cohosts }) {
                           e(
                             'span',
                             { className: 'score-pill' },
-                            `${ratingVal.toFixed(1)}/5 ${terminology}`
+                            `${formatRating(ratingVal)}/5 ${terminology}`
                           )
                         )
                 )
