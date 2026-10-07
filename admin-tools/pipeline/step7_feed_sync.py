@@ -5,6 +5,8 @@ to prevent breaking the prerendered player embed iframe on static review pages.
 """
 import json
 import os
+import re
+from urllib.parse import urlparse
 import xml.etree.ElementTree as ET
 from pathlib import Path
 from typing import Dict, Any, List, Optional
@@ -14,6 +16,26 @@ from pipeline.state import get_episodes_dir, update_step_state, assert_safe_publ
 from sync_feed import PODCAST_FEED_URL, NAMESPACES
 from validation import log_audit_event
 
+RSS_CANONICAL_RE = re.compile(
+    r"^https://rss\.com/podcasts/([^/]+)/(\d+)/?$",
+    re.IGNORECASE,
+)
+
+
+def normalize_rss_canonical_url(value: str) -> Optional[str]:
+    """
+    Validates and normalizes an RSS.com canonical episode page URL.
+    Requires numeric episode ID: https://rss.com/podcasts/<slug>/<numeric-id>/
+    Accepts missing final slash and normalizes with trailing slash.
+    Rejects internal IDs (s02e05), MP3 enclosures, player embeds, etc.
+    """
+    clean = (value or "").strip()
+    match = RSS_CANONICAL_RE.fullmatch(clean)
+    if not match:
+        return None
+    slug, numeric_episode_id = match.groups()
+    return f"https://rss.com/podcasts/{slug}/{numeric_episode_id}/"
+
 
 def parse_podcast_feed(url: str = PODCAST_FEED_URL) -> List[Dict[str, Any]]:
     """Fetches and parses the RSS feed from RSS.com / Riverside."""
@@ -21,7 +43,7 @@ def parse_podcast_feed(url: str = PODCAST_FEED_URL) -> List[Dict[str, Any]]:
         resp = requests.get(url, timeout=15)
         resp.raise_for_status()
         root = ET.fromstring(resp.content)
-    except Exception as e:
+    except Exception:
         # Fallback for sandbox / offline mode
         return []
 
@@ -34,21 +56,20 @@ def parse_podcast_feed(url: str = PODCAST_FEED_URL) -> List[Dict[str, Any]]:
     for item in items:
         title_el = item.find("title")
         title = title_el.text if title_el is not None else ""
-        
+
         enclosure = item.find("enclosure")
         media_url = enclosure.attrib.get("url") if enclosure is not None else None
-        
+
         link_el = item.find("link")
         link_url = link_el.text if link_el is not None else None
 
         season_el = item.find("itunes:season", NAMESPACES)
         episode_el = item.find("itunes:episode", NAMESPACES)
-        
+
         season = int(season_el.text) if season_el is not None else None
         episode_num = int(episode_el.text) if episode_el is not None else None
 
         if season is None or episode_num is None:
-            import re
             m = re.search(r"[sS](\d+)\s*[eE](\d+)", title)
             if m:
                 season = int(m.group(1))
@@ -68,17 +89,18 @@ def run_step7_feed_sync(
     episode_id: str,
     season: Optional[int] = None,
     episode_number: Optional[int] = None,
-    dry_run: bool = True
+    canonical_podcast_url: str = "",
+    dry_run: bool = True,
 ) -> Dict[str, Any]:
     """
     Executes Step 7:
     1. Reads metadata to identify season and episode_number.
-    2. Inspects podcast RSS feed for this episode.
-    3. Checks current Supabase `podcast_url` value:
-       - If it contains a canonical RSS.com page URL, SKIPS overwrite to preserve player embed iframe!
-    4. Gated database write (respects assert_safe_publish).
-    5. Saves artifact to episodes/<episode_id>/feed_sync.json.
-    6. Updates state.
+    2. Validates and normalizes operator canonical_podcast_url.
+    3. Inspects podcast RSS feed for matching episode.
+    4. Resolves canonical URL (operator input takes precedence, then feed canonical link).
+    5. Gated database write (respects assert_safe_publish, dry_run, and validation passes).
+    6. Saves artifact to episodes/<episode_id>/feed_sync.json.
+    7. Updates state.
     """
     update_step_state(episode_id, "step7_feed_sync", "running", logs="Starting Step 7: Podcast Feed Sync...")
 
@@ -100,12 +122,7 @@ def run_step7_feed_sync(
         except Exception:
             pass
 
-    # 1. Check current database state if possible
-    canonical_preserved = True
-    current_db_url = f"https://rss.com/podcasts/family-guy-guys/{episode_id}/"
-    action_taken = "PRESERVED_CANONICAL"
-
-    # 2. Parse feed
+    # 1. Parse feed items
     feed_items = parse_podcast_feed()
     matching_feed_item = None
     for item in feed_items:
@@ -113,49 +130,95 @@ def run_step7_feed_sync(
             matching_feed_item = item
             break
 
-    # If offline or test fixture
-    if not matching_feed_item:
-        matching_feed_item = {
-            "title": f"Family Guy Guys - S{ep_season}E{ep_num}",
-            "season": ep_season,
-            "episode_number": ep_num,
-            "enclosure_url": f"https://media.rss.com/family-guy-guys/episodes/{episode_id}.mp3",
-            "canonical_link": f"https://rss.com/podcasts/family-guy-guys/{episode_id}/",
-            "is_mock": True
-        }
+    # 2. Normalize and resolve canonical URL
+    operator_url = normalize_rss_canonical_url(canonical_podcast_url)
+    feed_url = None
+    if matching_feed_item:
+        feed_url = normalize_rss_canonical_url(
+            matching_feed_item.get("canonical_link", "")
+        )
 
-    # Semantic check on podcast_url
-    log_audit_event(
-        "FEED_SYNC",
-        episode_id,
-        "DRY_RUN" if dry_run else "LIVE",
-        f"Preserved canonical RSS.com player URL: {current_db_url}"
+    resolved_canonical_url = operator_url or feed_url
+    url_source = (
+        "operator_input" if operator_url else "rss_feed_link" if feed_url else None
     )
+
+    warnings: List[str] = []
+    errors: List[str] = []
+
+    if canonical_podcast_url and not operator_url:
+        warnings.append(
+            f"Provided canonical URL '{canonical_podcast_url}' is not a valid numeric RSS.com page URL."
+        )
+
+    if operator_url and feed_url and operator_url != feed_url:
+        warnings.append(
+            f"Operator canonical URL '{operator_url}' differs from feed canonical URL '{feed_url}'. Preferring operator-entered URL."
+        )
+
+    if not resolved_canonical_url:
+        errors.append(
+            "No valid canonical RSS.com episode page URL found. Please provide a valid URL (e.g. https://rss.com/podcasts/family-guy-guys/3215265/)."
+        )
+
+    validation_passed = resolved_canonical_url is not None
 
     feed_sync_payload = {
         "episode_id": episode_id,
         "season": ep_season,
         "episode_number": ep_num,
-        "current_podcast_url": current_db_url,
-        "feed_enclosure_url": matching_feed_item.get("enclosure_url"),
-        "feed_canonical_url": matching_feed_item.get("canonical_link"),
-        "semantic_guard": "PRESERVED_CANONICAL_RSS_PAGE",
-        "notes": "Canonical RSS.com episode page URL preserved. Raw audio enclosure overwrite skipped to prevent player embed breakage.",
+        "operator_canonical_podcast_url": operator_url,
+        "feed_canonical_url": feed_url,
+        "resolved_canonical_podcast_url": resolved_canonical_url,
+        "canonical_url_source": url_source,
+        "feed_enclosure_url": matching_feed_item.get("enclosure_url") if matching_feed_item else None,
+        "validation": {
+            "passed": validation_passed,
+            "warnings": warnings,
+            "errors": errors,
+        },
+        "notes": (
+            "The canonical RSS.com page URL is retained for player embed derivation. "
+            "The MP3 enclosure URL is informational only and is never written to podcast_url."
+        ),
         "dry_run": dry_run,
     }
+
+    # Live Supabase write only if: not dry_run AND resolved_canonical_url is not None AND validation passed
+    if not dry_run and resolved_canonical_url is not None and validation_passed:
+        import config
+        from supabase import create_client
+        config.require_supabase_credentials()
+        client = create_client(config.SUPABASE_URL, config.SUPABASE_SERVICE_KEY)
+        query = client.table("episodes").update({"podcast_url": resolved_canonical_url})
+        if ep_season is not None and ep_num is not None:
+            query = query.eq("season", ep_season).eq("episode_number", ep_num)
+        else:
+            query = query.eq("id", episode_id)
+        query.execute()
+        log_audit_event("FEED_SYNC", episode_id, "LIVE", f"Updated podcast_url to {resolved_canonical_url}")
+    else:
+        log_audit_event(
+            "FEED_SYNC",
+            episode_id,
+            "DRY_RUN" if dry_run else "VALIDATION_SKIPPED",
+            f"Resolved URL: {resolved_canonical_url} (dry_run={dry_run}, passed={validation_passed})"
+        )
 
     out_path = ep_dir / "feed_sync.json"
     with open(out_path, "w", encoding="utf-8") as f:
         json.dump(feed_sync_payload, f, indent=2)
 
     mode_label = "DRY RUN" if dry_run else "LIVE WRITE"
+    status_label = "PASSED" if validation_passed else "FAILED / INCOMPLETE"
     log_msg = (
         f"Step 7 Complete ({mode_label}):\n"
         f"- Episode: {episode_id} (Season {ep_season}, Episode {ep_num})\n"
-        f"- Canonical Player URL: {current_db_url}\n"
-        f"- Enclosure Audio URL: {matching_feed_item.get('enclosure_url')}\n"
-        f"- Safety check: PASSED (Preserved canonical RSS.com URL, preventing iframe embed breakage)\n"
-        f"- Database write simulated (0 destructive overwrites)\n"
+        f"- Resolved Canonical URL: {resolved_canonical_url or 'None'}\n"
+        f"- Source: {url_source or 'None'}\n"
+        f"- Enclosure Audio URL: {matching_feed_item.get('enclosure_url') if matching_feed_item else 'None'}\n"
+        f"- Validation: {status_label}\n"
+        f"- Warnings: {len(warnings)}, Errors: {len(errors)}\n"
         f"- Artifact saved: {out_path}"
     )
 
@@ -163,18 +226,19 @@ def run_step7_feed_sync(
         "feed_sync": str(out_path)
     }
 
+    step_status = "done" if validation_passed else "error"
     update_step_state(
         episode_id,
         "step7_feed_sync",
-        "done",
+        step_status,
         logs=log_msg,
         artifacts=artifacts,
-        validation={"passed": True, "errors": [], "warnings": []},
-        approved=True,
+        validation=feed_sync_payload["validation"],
+        approved=validation_passed,
     )
 
     return {
-        "status": "done",
+        "status": step_status,
         "artifacts": artifacts,
         "logs": log_msg,
         "feed_sync": feed_sync_payload

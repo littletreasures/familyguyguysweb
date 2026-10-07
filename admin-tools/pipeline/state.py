@@ -79,8 +79,11 @@ def create_initial_state(
     episode_title: str = "",
     guest_name: str = "",
     youtube_url: str = "",
+    canonical_podcast_url: str = "",
     riverside_transcript_path: str = "",
     srt_path: str = "",
+    transcript_intro: str = "",
+    transcript_seo_description: str = "",
     dry_run: bool = True,
     llm_provider: Optional[str] = None,
     llm_model: Optional[str] = None,
@@ -115,8 +118,11 @@ def create_initial_state(
         "episode_title": episode_title,
         "guest_name": guest_name,
         "youtube_url": youtube_url,
+        "canonical_podcast_url": canonical_podcast_url,
         "riverside_transcript_path": riverside_transcript_path,
         "srt_path": srt_path,
+        "transcript_intro": transcript_intro,
+        "transcript_seo_description": transcript_seo_description,
         "dry_run": dry_run,
         "llm_provider": default_prov,
         "llm_model": default_mod,
@@ -138,6 +144,9 @@ def load_episode_state(episode_id: str) -> Dict[str, Any]:
             # Enforce test fixture lock
             if is_test_episode_id(clean_id):
                 state["dry_run"] = True
+            state.setdefault("canonical_podcast_url", "")
+            state.setdefault("transcript_intro", "")
+            state.setdefault("transcript_seo_description", "")
             if "steps" not in state:
                 state["steps"] = {}
             for step in STEP_NAMES:

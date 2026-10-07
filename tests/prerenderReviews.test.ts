@@ -772,6 +772,12 @@ describe('Phase 2 Prerendering Modules & Safety Gates', () => {
         expect(html).toContain('loading="lazy"');
         expect(html).toContain('Open on RSS.com ↗');
 
+        // Verify favicon and theme-color tags
+        expect(html).toContain('<link rel="icon" href="/favicon.ico" sizes="any">');
+        expect(html).toContain('<link rel="icon" type="image/svg+xml" href="/favicon.svg">');
+        expect(html).toContain('<link rel="apple-touch-icon" href="/favicon-192.png">');
+        expect(html).toContain('<meta name="theme-color" content="#ff72c7">');
+
         // Verify visitor reviews island mount point & noscript progressive enhancement fallback
         expect(html).toContain(`<div id="visitor-reviews-root" data-episode-id="${epId}">`);
         expect(html).toContain('<noscript>');

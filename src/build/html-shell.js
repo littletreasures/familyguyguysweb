@@ -33,6 +33,12 @@ export function assemblePrerenderedHtml({
   // Canonical Link
   headInjects.push(`<link rel="canonical" href="${escapeHtml(metadata.canonicalUrl)}">`);
 
+  // Favicon & Theme Color
+  headInjects.push('<link rel="icon" href="/favicon.ico" sizes="any">');
+  headInjects.push('<link rel="icon" type="image/svg+xml" href="/favicon.svg">');
+  headInjects.push('<link rel="apple-touch-icon" href="/favicon-192.png">');
+  headInjects.push('<meta name="theme-color" content="#ff72c7">');
+
   // Meta Description
   headInjects.push(`<meta name="description" content="${escapeHtml(metadata.description)}">`);
 
@@ -70,7 +76,9 @@ export function assemblePrerenderedHtml({
     .replace(/<meta name="description"[^>]*>/gi, '')
     .replace(/<meta property="og:[^"]*"[^>]*>/gi, '')
     .replace(/<meta property="twitter:[^"]*"[^>]*>/gi, '')
-    .replace(/<link rel="canonical"[^>]*>/gi, '');
+    .replace(/<link rel="canonical"[^>]*>/gi, '')
+    .replace(/<link rel="(icon|apple-touch-icon)"[^>]*>/gi, '')
+    .replace(/<meta name="theme-color"[^>]*>/gi, '');
 
   // Inject our customized tags right before </head>
   html = html.replace('</head>', `  ${headInjects.join('\n  ')}\n</head>`);
