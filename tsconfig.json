@@ -22,5 +22,12 @@
       "@/*": ["src/*"]
     }
   },
-  "include": ["src/reviews/**/*.ts", "src/reviews/**/*.tsx", "vite.config.ts"]
+  "include": [
+    "src/reviews/**/*.ts",
+    "src/reviews/**/*.tsx",
+    "src/data/**/*.ts",
+    "src/glossary/**/*.ts",
+    "src/glossary/**/*.tsx",
+    "vite.config.ts"
+  ]
 }

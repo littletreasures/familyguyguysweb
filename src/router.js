@@ -7,6 +7,7 @@ function getPages() {
     reviews: document.getElementById('page-reviews'),
     headersGaggs: document.getElementById('page-headers-gaggs'),
     prerenderedReview: document.getElementById('page-prerendered-review'),
+    glossary: document.getElementById('page-glossary'),
   };
 }
 
@@ -16,8 +17,97 @@ const ROUTE_TITLES = {
   contact: 'Contact Us — Family Guy Guys',
   reviews: 'Episode Reviews — Family Guy Guys',
   headersGaggs: 'The Headers-Gaggs Test — Family Guy Guys',
+  glossary: 'Glossary — Family Guy Guys',
   notFound: '404 Page Not Found — Family Guy Guys',
 };
+
+const ROUTE_DESCRIPTIONS = {
+  home: 'Join Collin, Tyler, and Jason as they watch and review every single episode of Family Guy in chronological order. Live reaction logs, host ratings, and transcript breakdowns.',
+  episodes: 'Episode Feed — Family Guy Guys',
+  contact: 'Contact Us — Family Guy Guys',
+  reviews: 'Episode Reviews — Family Guy Guys',
+  headersGaggs: 'The Headers-Gaggs Test — Family Guy Guys',
+  glossary:
+    'The official Family Guy Guys glossary: Structurehead, Gagger, Stewie Gay Watch, Arbitrary Rating Units, and every bit of lore from the podcast.',
+};
+
+function updateMetadata(activePage, path, isNotFound) {
+  if (typeof document === 'undefined') return;
+  if (activePage === 'prerenderedReview') return;
+
+  // Update document title per route
+  if (isNotFound) {
+    document.title = ROUTE_TITLES.notFound;
+  } else {
+    document.title = ROUTE_TITLES[activePage] || ROUTE_TITLES.home;
+  }
+
+  // Update meta description
+  const metaDesc = document.querySelector('meta[name="description"]');
+  if (metaDesc) {
+    const desc =
+      !isNotFound && ROUTE_DESCRIPTIONS[activePage]
+        ? ROUTE_DESCRIPTIONS[activePage]
+        : ROUTE_DESCRIPTIONS.home;
+    metaDesc.setAttribute('content', desc);
+  }
+
+  // Update canonical link
+  let canonicalLink = document.querySelector('link[rel="canonical"]');
+  if (!isNotFound) {
+    const canonicalUrl = `https://familyguyguys.com${path === '/' ? '' : path}`;
+    if (!canonicalLink) {
+      canonicalLink = document.createElement('link');
+      canonicalLink.setAttribute('rel', 'canonical');
+      document.head.appendChild(canonicalLink);
+    }
+    canonicalLink.setAttribute('href', canonicalUrl);
+  }
+
+  // Synchronize Open Graph & Twitter metadata
+  const ogTitle = document.querySelector('meta[property="og:title"]');
+  if (ogTitle) ogTitle.setAttribute('content', document.title);
+  const twitterTitle = document.querySelector('meta[property="twitter:title"]');
+  if (twitterTitle) twitterTitle.setAttribute('content', document.title);
+
+  if (!isNotFound) {
+    const pageUrl = `https://familyguyguys.com${path === '/' ? '' : path}`;
+    const ogUrl = document.querySelector('meta[property="og:url"]');
+    if (ogUrl) ogUrl.setAttribute('content', pageUrl);
+    const twitterUrl = document.querySelector('meta[property="twitter:url"]');
+    if (twitterUrl) twitterUrl.setAttribute('content', pageUrl);
+  }
+
+  if (metaDesc) {
+    const currentDesc = metaDesc.getAttribute('content');
+    const ogDesc = document.querySelector('meta[property="og:description"]');
+    if (ogDesc && currentDesc) ogDesc.setAttribute('content', currentDesc);
+    const twitterDesc = document.querySelector('meta[property="twitter:description"]');
+    if (twitterDesc && currentDesc) twitterDesc.setAttribute('content', currentDesc);
+  }
+
+  // Synchronize glossary JSON-LD structured data lifecycle
+  const glossaryJsonLd = document.getElementById('glossary-jsonld');
+  if (activePage === 'glossary') {
+    if (!glossaryJsonLd) {
+      const script = document.createElement('script');
+      script.id = 'glossary-jsonld';
+      script.type = 'application/ld+json';
+      script.text = JSON.stringify({
+        '@context': 'https://schema.org',
+        '@type': 'DefinedTermSet',
+        '@id': 'https://familyguyguys.com/glossary#term-set',
+        url: 'https://familyguyguys.com/glossary',
+        name: 'Family Guy Guys Official Podcast Glossary',
+        description:
+          'The official glossary of critical frameworks, segments, and lore from Family Guy Guys: The Podcast.',
+      });
+      document.head.appendChild(script);
+    }
+  } else if (glossaryJsonLd) {
+    glossaryJsonLd.remove();
+  }
+}
 
 export function initRouter() {
   // Bind all nav links and navigation handlers with strict non-app link filtering
@@ -73,8 +163,17 @@ export function navigateTo(path) {
 }
 
 function handleLocation() {
-  const rawPath = window.location.pathname;
+  if (typeof window === 'undefined') return;
+  const rawPath = window.location.pathname || '/';
   const path = rawPath.endsWith('/') && rawPath.length > 1 ? rawPath.slice(0, -1) : rawPath;
+
+  // Preserve query parameters and hash fragments when normalizing trailing slashes
+  if (rawPath !== path && window.history && window.history.replaceState) {
+    const search = window.location.search || '';
+    const hash = window.location.hash || '';
+    window.history.replaceState(window.history.state, '', path + search + hash);
+  }
+
   let activePage = 'home';
   let routeParams = null;
   let isNotFound = false;
@@ -87,6 +186,8 @@ function handleLocation() {
     activePage = 'contact';
   } else if (path === '/headers-gaggs') {
     activePage = 'headersGaggs';
+  } else if (path === '/glossary') {
+    activePage = 'glossary';
   } else if (path.startsWith('/reviews')) {
     const isEpisodePath =
       /^\/reviews\/[a-zA-Z0-9_-]+$/i.test(path) &&
@@ -122,12 +223,8 @@ function handleLocation() {
     isNotFound = true;
   }
 
-  // Update document title per route
-  if (isNotFound) {
-    document.title = ROUTE_TITLES.notFound;
-  } else {
-    document.title = ROUTE_TITLES[activePage] || ROUTE_TITLES.home;
-  }
+  // Update page-specific metadata (title, meta description, canonical link)
+  updateMetadata(activePage, path, isNotFound);
 
   // Update page visibility and nav links with View Transitions support
   const updateDOM = () => {
@@ -172,7 +269,7 @@ function handleLocation() {
     }
 
     // Update active state in nav links
-    document.querySelectorAll('.nav-links a').forEach((a) => {
+    document.querySelectorAll('.nav-links a, .mobile-nav a').forEach((a) => {
       const href = a.getAttribute('href');
       const isHome =
         (href === '/' || href === '#' || href === '/home') && activePage === 'home' && !isNotFound;
@@ -203,6 +300,10 @@ function handleLocation() {
     })
   );
 
-  // Scroll to top on navigation
-  window.scrollTo(0, 0);
+  // Scroll to top on navigation, unless navigating to /glossary with a hash fragment
+  // (the glossary fragment coordinator handles anchor scrolling)
+  const isGlossaryWithHash = activePage === 'glossary' && !!window.location.hash;
+  if (!isGlossaryWithHash) {
+    window.scrollTo(0, 0);
+  }
 }

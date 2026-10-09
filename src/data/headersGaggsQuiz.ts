@@ -1,6 +1,17 @@
 export type Axis = 'gag' | 'struct' | 'hat' | 'cherry';
 export type ResultCode = 'G-H' | 'G-C' | 'S-H' | 'S-C';
 
+export interface QuizResult {
+  code: ResultCode;
+  name: string;
+  axes: {
+    taste: string;
+    resolution: string;
+  };
+  hostMatch: string;
+  body: string[];
+}
+
 export type QuizOption = {
   id: string;
   text: string;

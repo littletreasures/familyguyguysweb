@@ -80,6 +80,79 @@ if (typeof window !== 'undefined' && typeof document !== 'undefined') {
     }
   });
 
+  // Lazy load the React glossary app when visiting /glossary
+  let glossaryMounted = false;
+  let glossaryMountPromise = null;
+
+  const loadGlossaryApp = async () => {
+    const container = document.getElementById('glossary-app');
+    if (!container) return;
+
+    if (glossaryMounted) {
+      // Already mounted; coordinate fragment navigation for current hash
+      try {
+        const { coordinateFragmentNavigation } = await import('./glossary/mount.tsx');
+        coordinateFragmentNavigation({ isInitialLoad: false });
+      } catch (err) {
+        console.error('Failed to coordinate glossary fragment navigation:', err);
+      }
+      return;
+    }
+
+    if (glossaryMountPromise) {
+      return glossaryMountPromise;
+    }
+
+    const showGlossaryError = (err) => {
+      console.error('Failed to load glossary app:', err);
+      container.innerHTML = `
+        <div style="padding: 2.5rem 1rem; text-align: center; max-width: 480px; margin: 0 auto;">
+          <p style="color: #b91c1c; font-weight: 500; margin-bottom: 1rem;">Failed to load the Official Podcast Glossary.</p>
+          <button id="retry-glossary-btn" class="btn-orange" style="display: inline-block; cursor: pointer; padding: 0.5rem 1.25rem;">Retry Loading</button>
+        </div>
+      `;
+      const retryBtn = document.getElementById('retry-glossary-btn');
+      if (retryBtn) {
+        retryBtn.addEventListener(
+          'click',
+          () => {
+            glossaryMountPromise = null;
+            loadGlossaryApp();
+          },
+          { once: true }
+        );
+      }
+    };
+
+    glossaryMountPromise = (async () => {
+      try {
+        const { mountGlossary } = await import('./glossary/mount.tsx');
+        await mountGlossary(container);
+        glossaryMounted = true;
+      } catch (err) {
+        glossaryMounted = false;
+        showGlossaryError(err);
+      } finally {
+        glossaryMountPromise = null;
+      }
+    })();
+
+    return glossaryMountPromise;
+  };
+
+  window.addEventListener('routechange', (e) => {
+    const { page } = e.detail;
+    if (page === 'glossary') {
+      loadGlossaryApp();
+    }
+  });
+
+  // Direct load on initial startup if already on /glossary
+  const initialPath = window.location.pathname.replace(/\/$/, '') || '/';
+  if (initialPath === '/glossary') {
+    loadGlossaryApp();
+  }
+
   // Mount Headers-Gaggs Test app & homepage CTA
   let headersGaggsAppMounted = false;
   let headersGaggsCtaMounted = false;

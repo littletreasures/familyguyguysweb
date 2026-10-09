@@ -38,6 +38,7 @@ Required:
 
 Useful:
 
+- The final subtitle or caption file (SRT/VTT) for the published edit. Treat it as the source of truth for both content and timestamps; raw transcript exports are reference only and may be split, incomplete, or from an untrimmed recording.
 - Video title
 - Exact timestamps
 - Website, playlist, episode, sponsor, and social links
@@ -66,7 +67,8 @@ Use this order unless the user has a strong existing format.
 
 2. **What the episode covers, 1 short paragraph**
    - Name the hosts or participants when useful.
-   - Include the most distinctive beats, takes, ratings, or running jokes.
+   - Include the most distinctive beats, takes, or running jokes.
+   - Do not include ratings or numeric scores. Tease verdicts or omit them entirely; the score reveal is a reason to watch, so never list it in the copy.
    - Use concrete details from the source material instead of broad claims such as "hilarious discussion" or "deep dive."
 
 3. **Show identity, 1 or 2 sentences**
@@ -157,7 +159,8 @@ Before returning the result, verify all of the following:
 - [ ] The first two lines name the video subject and format.
 - [ ] The primary phrase appears naturally near the top.
 - [ ] The description includes episode-specific details rather than generic claims.
-- [ ] Every rating, joke, host name, plot point, and disclaimer remains accurate.
+- [ ] Every joke, host name, plot point, and disclaimer remains accurate.
+- [ ] No rating, numeric score, or final verdict appears in the description.
 - [ ] There is one clear CTA.
 - [ ] Chapters are accurate or intentionally omitted.
 - [ ] Hashtags are relevant and number 15 or fewer.
