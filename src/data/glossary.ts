@@ -69,9 +69,49 @@ export const GLOSSARY_ENTRIES: GlossaryEntry[] = [
         note: 'debated heavily',
       },
       {
+        season: 1,
+        episode: 5,
+      },
+      {
+        season: 1,
+        episode: 6,
+      },
+      {
+        season: 1,
+        episode: 7,
+      },
+      {
+        season: 2,
+        episode: 1,
+      },
+      {
+        season: 2,
+        episode: 2,
+      },
+      {
+        season: 2,
+        episode: 3,
+      },
+      {
+        season: 2,
+        episode: 4,
+      },
+      {
+        season: 2,
+        episode: 5,
+      },
+      {
         season: 2,
         episode: 6,
         note: 'revisited/expanded',
+      },
+      {
+        season: 2,
+        episode: 7,
+      },
+      {
+        season: 2,
+        episode: 9,
       },
     ],
   },
@@ -90,7 +130,51 @@ export const GLOSSARY_ENTRIES: GlossaryEntry[] = [
     references: [
       {
         season: 1,
+        episode: 4,
+      },
+      {
+        season: 1,
         episode: 5,
+      },
+      {
+        season: 1,
+        episode: 6,
+      },
+      {
+        season: 1,
+        episode: 7,
+      },
+      {
+        season: 2,
+        episode: 1,
+      },
+      {
+        season: 2,
+        episode: 2,
+      },
+      {
+        season: 2,
+        episode: 3,
+      },
+      {
+        season: 2,
+        episode: 4,
+      },
+      {
+        season: 2,
+        episode: 5,
+      },
+      {
+        season: 2,
+        episode: 6,
+      },
+      {
+        season: 2,
+        episode: 7,
+      },
+      {
+        season: 2,
+        episode: 9,
       },
     ],
   },
@@ -130,7 +214,52 @@ export const GLOSSARY_ENTRIES: GlossaryEntry[] = [
       season: 1,
       episode: 1,
     },
-    references: [],
+    references: [
+      {
+        season: 1,
+        episode: 1,
+      },
+      {
+        season: 1,
+        episode: 3,
+      },
+      {
+        season: 1,
+        episode: 4,
+      },
+      {
+        season: 1,
+        episode: 5,
+      },
+      {
+        season: 1,
+        episode: 6,
+      },
+      {
+        season: 1,
+        episode: 7,
+      },
+      {
+        season: 2,
+        episode: 3,
+      },
+      {
+        season: 2,
+        episode: 4,
+      },
+      {
+        season: 2,
+        episode: 6,
+      },
+      {
+        season: 2,
+        episode: 7,
+      },
+      {
+        season: 2,
+        episode: 9,
+      },
+    ],
   },
   {
     id: 'continuity-error-alert',
@@ -142,7 +271,36 @@ export const GLOSSARY_ENTRIES: GlossaryEntry[] = [
       season: 1,
       episode: 6,
     },
-    references: [],
+    references: [
+      {
+        season: 1,
+        episode: 6,
+      },
+      {
+        season: 1,
+        episode: 7,
+      },
+      {
+        season: 2,
+        episode: 1,
+      },
+      {
+        season: 2,
+        episode: 2,
+      },
+      {
+        season: 2,
+        episode: 3,
+      },
+      {
+        season: 2,
+        episode: 6,
+      },
+      {
+        season: 2,
+        episode: 9,
+      },
+    ],
   },
   {
     id: 'breaking-guy-guys-news',
@@ -155,7 +313,20 @@ export const GLOSSARY_ENTRIES: GlossaryEntry[] = [
       season: 1,
       episode: 6,
     },
-    references: [],
+    references: [
+      {
+        season: 1,
+        episode: 6,
+      },
+      {
+        season: 2,
+        episode: 4,
+      },
+      {
+        season: 2,
+        episode: 7,
+      },
+    ],
   },
   {
     id: 'oof-of-the-ep',
@@ -168,7 +339,36 @@ export const GLOSSARY_ENTRIES: GlossaryEntry[] = [
       season: 2,
       episode: 5,
     },
-    references: [],
+    references: [
+      {
+        season: 2,
+        episode: 2,
+      },
+      {
+        season: 2,
+        episode: 3,
+      },
+      {
+        season: 2,
+        episode: 5,
+      },
+      {
+        season: 2,
+        episode: 6,
+      },
+      {
+        season: 2,
+        episode: 7,
+      },
+      {
+        season: 2,
+        episode: 8,
+      },
+      {
+        season: 2,
+        episode: 9,
+      },
+    ],
   },
   {
     id: 'dud-or-stud',
@@ -196,8 +396,24 @@ export const GLOSSARY_ENTRIES: GlossaryEntry[] = [
     },
     references: [
       {
+        season: 1,
+        episode: 5,
+      },
+      {
         season: 2,
         episode: 3,
+      },
+      {
+        season: 2,
+        episode: 4,
+      },
+      {
+        season: 2,
+        episode: 5,
+      },
+      {
+        season: 2,
+        episode: 9,
       },
     ],
   },
@@ -212,7 +428,36 @@ export const GLOSSARY_ENTRIES: GlossaryEntry[] = [
       season: 1,
       episode: 3,
     },
-    references: [],
+    references: [
+      {
+        season: 1,
+        episode: 3,
+      },
+      {
+        season: 1,
+        episode: 4,
+      },
+      {
+        season: 1,
+        episode: 5,
+      },
+      {
+        season: 1,
+        episode: 7,
+      },
+      {
+        season: 2,
+        episode: 2,
+      },
+      {
+        season: 2,
+        episode: 5,
+      },
+      {
+        season: 2,
+        episode: 8,
+      },
+    ],
   },
   {
     id: 'brians-dog-pound',
@@ -252,7 +497,28 @@ export const GLOSSARY_ENTRIES: GlossaryEntry[] = [
     definition:
       "Jason's editor catchphrase whenever a bit derails, audio drops, or a transition fails, promising to clean or sweeten the raw tape in Logic Pro.",
     origin: null,
-    references: [],
+    references: [
+      {
+        season: 1,
+        episode: 4,
+      },
+      {
+        season: 1,
+        episode: 5,
+      },
+      {
+        season: 1,
+        episode: 6,
+      },
+      {
+        season: 2,
+        episode: 3,
+      },
+      {
+        season: 2,
+        episode: 9,
+      },
+    ],
   },
   {
     id: 'were-pervert',
@@ -283,9 +549,34 @@ export const GLOSSARY_ENTRIES: GlossaryEntry[] = [
     term: 'Brian Style / Going Brian Style',
     categoryId: 'personas',
     definition:
-      "Acting like a dog or doing something socially grotesque, referencing Brian Griffin's dog habits.",
+      "1. Acting like a dog or doing something socially grotesque, referencing Brian Griffin's dog habits.\n2. Making sweet tender love in the doggystyle position. You know, because Brian Griffin is a dog? It’s pretty straight forward.",
     origin: null,
-    references: [],
+    references: [
+      {
+        season: 2,
+        episode: 1,
+      },
+      {
+        season: 2,
+        episode: 3,
+      },
+      {
+        season: 2,
+        episode: 4,
+      },
+      {
+        season: 2,
+        episode: 5,
+      },
+      {
+        season: 2,
+        episode: 6,
+      },
+      {
+        season: 2,
+        episode: 9,
+      },
+    ],
   },
   {
     id: 'family-guy-guys-guy',
@@ -321,6 +612,22 @@ export const GLOSSARY_ENTRIES: GlossaryEntry[] = [
     origin: null,
     references: [
       {
+        season: 1,
+        episode: 4,
+      },
+      {
+        season: 1,
+        episode: 5,
+      },
+      {
+        season: 1,
+        episode: 7,
+      },
+      {
+        season: 2,
+        episode: 4,
+      },
+      {
         season: 2,
         episode: 6,
       },
@@ -333,7 +640,20 @@ export const GLOSSARY_ENTRIES: GlossaryEntry[] = [
     definition:
       "Review metrics for joke callbacks. Bang Bang: a joke or callback that lands two consecutive hits in quick succession. Tut Tut: a disapproving 'Structurehead' reaction to broken joke mechanics or missed third beats.",
     origin: null,
-    references: [],
+    references: [
+      {
+        season: 2,
+        episode: 5,
+      },
+      {
+        season: 2,
+        episode: 6,
+      },
+      {
+        season: 2,
+        episode: 9,
+      },
+    ],
   },
   {
     id: 'gaggers-delight',
@@ -432,12 +752,32 @@ export const GLOSSARY_ENTRIES: GlossaryEntry[] = [
     term: 'Hit It Brian Style',
     categoryId: 'aliases',
     definition:
-      "The show's signature call-to-action urging listeners to hit the subscribe button like Brian Griffin.",
+      "The show's signature call-to-action urging listeners to hit the subscribe button like Brian Griffin.\nJust kidding! It means hitting it from the back a.k.a. doggystyle! Woof woof!",
     origin: null,
     references: [
       {
         season: 2,
+        episode: 1,
+      },
+      {
+        season: 2,
+        episode: 3,
+      },
+      {
+        season: 2,
+        episode: 4,
+      },
+      {
+        season: 2,
+        episode: 5,
+      },
+      {
+        season: 2,
         episode: 6,
+      },
+      {
+        season: 2,
+        episode: 9,
       },
     ],
   },

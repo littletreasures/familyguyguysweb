@@ -80,7 +80,7 @@ describe('GlossaryApp Component (SSR & Static Markup)', () => {
     // Entry with published origin (s1e1 in stewie-gay-watch)
     const $stewieCard = $('#stewie-gay-watch');
     expect($stewieCard.length).toBe(1);
-    const $stewieLinkChip = $stewieCard.find('.episode-chip-link');
+    const $stewieLinkChip = $stewieCard.find('.glossary-origin-row .episode-chip-link');
     expect($stewieLinkChip.length).toBe(1);
     expect($stewieLinkChip.text().trim()).toBe('S1E1');
     expect($stewieLinkChip.attr('href')).toBe('/reviews/s1e1');
@@ -101,14 +101,12 @@ describe('GlossaryApp Component (SSR & Static Markup)', () => {
     expect($councilStaticChip.text().trim()).toBe('S2E6');
 
     // Entry references: s1e4 is published (/reviews/s1e4), s2e6 is unreleased (static)
-    const $refLinkChip = $structureheadCard.find('.glossary-references-row .episode-chip-link');
+    const $refLinkChip = $structureheadCard.find('.glossary-references-row a[href="/reviews/s1e4"]');
     expect($refLinkChip.length).toBe(1);
     expect($refLinkChip.text().trim()).toBe('S1E4');
-    expect($refLinkChip.attr('href')).toBe('/reviews/s1e4');
 
     const $refStaticChip = $structureheadCard.find('.glossary-references-row .episode-chip-static');
-    expect($refStaticChip.length).toBe(1);
-    expect($refStaticChip.text().trim()).toBe('S2E6');
+    expect($refStaticChip.text()).toContain('S2E6');
 
     // Inline note check
     const notesText = $structureheadCard.find('.glossary-references-row').text();
@@ -134,7 +132,9 @@ describe('GlossaryApp Component (SSR & Static Markup)', () => {
     expect($s2e6Chip.length).toBe(1);
 
     // But S1E4 (not in dynamicCatalog) should now be static!
-    const $s1e4Static = $cat('#structurehead .glossary-references-row .episode-chip-static');
+    const $s1e4Static = $cat('#structurehead .glossary-references-row .episode-chip-static').filter(
+      (_, el) => $cat(el).text().trim() === 'S1E4'
+    );
     expect($s1e4Static.length).toBe(1);
     expect($s1e4Static.text().trim()).toBe('S1E4');
 
@@ -152,7 +152,7 @@ describe('GlossaryApp Component (SSR & Static Markup)', () => {
     expect($s2e6Custom.length).toBe(1);
 
     // S1E1 is null/unreleased under custom resolver
-    const $s1e1Static = $res('#stewie-gay-watch .episode-chip-static');
+    const $s1e1Static = $res('#stewie-gay-watch .glossary-origin-row .episode-chip-static');
     expect($s1e1Static.length).toBe(1);
     expect($s1e1Static.text().trim()).toBe('S1E1');
   });

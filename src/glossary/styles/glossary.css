@@ -276,6 +276,7 @@
   color: #222222;
   margin: 0;
   flex-grow: 1;
+  white-space: pre-line;
 }
 
 /* Origin & Reference Rows */
