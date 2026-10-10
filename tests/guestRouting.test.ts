@@ -235,7 +235,7 @@ describe('Guest Route Resolution', () => {
     expect(guestPage?.classList.contains('active')).toBe(true);
     expect(homePage?.classList.contains('active')).toBe(false);
     expect(window.location.pathname).toBe('/guest');
-    expect(document.title).toBe('Be a Guest | Family Guy Guys');
+    expect(document.title).toBe('Be our Guest | Family Guy Guys');
     expect(metaDesc?.getAttribute('content')).toContain('Guest information, recording details, and booking');
   });
 
@@ -258,6 +258,6 @@ describe('Guest Route Resolution', () => {
     const homePage = document.getElementById('page-home');
     expect(guestPage?.classList.contains('active')).toBe(true);
     expect(homePage?.classList.contains('active')).toBe(false);
-    expect(document.title).toBe('Be a Guest | Family Guy Guys');
+    expect(document.title).toBe('Be our Guest | Family Guy Guys');
   });
 });

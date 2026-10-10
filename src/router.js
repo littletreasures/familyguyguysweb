@@ -19,7 +19,7 @@ const ROUTE_TITLES = {
   reviews: 'Episode Reviews — Family Guy Guys',
   headersGaggs: 'The Headers-Gaggs Test — Family Guy Guys',
   glossary: 'Glossary — Family Guy Guys',
-  guest: 'Be a Guest | Family Guy Guys',
+  guest: 'Be our Guest | Family Guy Guys',
   notFound: '404 Page Not Found — Family Guy Guys',
 };
 
