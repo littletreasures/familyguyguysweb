@@ -2488,14 +2488,15 @@ details.transcript-collapse[open] .transcript-expand-icon {
 
 @font-face {
   font-family: 'Hit and Run';
-  src: local('Hit and Run'),
-       local('HitAndRun'),
-       url('/fonts/Hit-and-Run.woff2') format('woff2'),
-       url('/fonts/Hit-and-Run.otf') format('opentype'),
-       url('/fonts/Hit-and-Run.ttf') format('truetype'),
-       url('/fonts/hit-and-run.woff2') format('woff2'),
-       url('/fonts/hit-and-run.otf') format('opentype'),
-       url('/fonts/hit-and-run.ttf') format('truetype');
+  src:
+    local('Hit and Run'),
+    local('HitAndRun'),
+    url('/fonts/Hit-and-Run.woff2') format('woff2'),
+    url('/fonts/Hit-and-Run.otf') format('opentype'),
+    url('/fonts/Hit-and-Run.ttf') format('truetype'),
+    url('/fonts/hit-and-run.woff2') format('woff2'),
+    url('/fonts/hit-and-run.otf') format('opentype'),
+    url('/fonts/hit-and-run.ttf') format('truetype');
   font-weight: normal;
   font-style: normal;
   font-display: swap;
