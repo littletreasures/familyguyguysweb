@@ -2,6 +2,7 @@
 import './styles/main.css';
 import { initRouter } from './router.js';
 import { initAudioPlayer } from './audio-player.js';
+import { trackGuestEvent } from './lib/guestAnalytics.ts';
 
 // Setup mobile nav toggling
 if (typeof document !== 'undefined') {
@@ -151,6 +152,45 @@ if (typeof window !== 'undefined' && typeof document !== 'undefined') {
   const initialPath = window.location.pathname.replace(/\/$/, '') || '/';
   if (initialPath === '/glossary') {
     loadGlossaryApp();
+  }
+
+  // Track guest page view on route change
+  window.addEventListener('routechange', (e) => {
+    const { page } = e.detail;
+    if (page === 'guest') {
+      trackGuestEvent('guest_page_view');
+    }
+  });
+
+  // Track guest page view on direct startup
+  if (initialPath === '/guest') {
+    trackGuestEvent('guest_page_view');
+  }
+
+  // Delegate click events on #page-guest
+  const guestPageContainer = document.getElementById('page-guest');
+  if (guestPageContainer) {
+    guestPageContainer.addEventListener('click', (e) => {
+      const bookingLink = e.target.closest('.guest-cta-booking');
+      if (bookingLink) {
+        const location = bookingLink.dataset.analyticsLocation || 'hero';
+        trackGuestEvent('guest_booking_click', { location });
+        return;
+      }
+
+      const emailLink = e.target.closest('.guest-cta-email');
+      if (emailLink) {
+        const location = emailLink.dataset.analyticsLocation || 'hero';
+        trackGuestEvent('guest_email_click', { location });
+        return;
+      }
+
+      const releaseLink = e.target.closest('.guest-release-btn');
+      if (releaseLink) {
+        trackGuestEvent('guest_release_click', { location: 'already_booked' });
+        return;
+      }
+    });
   }
 
   // Mount Headers-Gaggs Test app & homepage CTA

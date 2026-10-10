@@ -5,9 +5,15 @@
   "observability": {
     "enabled": true
   },
-
   "build": {
-    "command": "npm run build:cf"
+    "command": "PRERENDER_DATA_MODE=production npm run build:cf"
+  },
+  "env": {
+    "preview": {
+      "build": {
+        "command": "PRERENDER_DATA_MODE=fixture npm run build:cf"
+      }
+    }
   },
   "assets": {
     "directory": "./dist",

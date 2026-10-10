@@ -8,6 +8,7 @@ function getPages() {
     headersGaggs: document.getElementById('page-headers-gaggs'),
     prerenderedReview: document.getElementById('page-prerendered-review'),
     glossary: document.getElementById('page-glossary'),
+    guest: document.getElementById('page-guest'),
   };
 }
 
@@ -18,6 +19,7 @@ const ROUTE_TITLES = {
   reviews: 'Episode Reviews — Family Guy Guys',
   headersGaggs: 'The Headers-Gaggs Test — Family Guy Guys',
   glossary: 'Glossary — Family Guy Guys',
+  guest: 'Be our Guest | Family Guy Guys',
   notFound: '404 Page Not Found — Family Guy Guys',
 };
 
@@ -29,6 +31,8 @@ const ROUTE_DESCRIPTIONS = {
   headersGaggs: 'The Headers-Gaggs Test — Family Guy Guys',
   glossary:
     'The official Family Guy Guys glossary: Structurehead, Gagger, Stewie Gay Watch, Arbitrary Rating Units, and every bit of lore from the podcast.',
+  guest:
+    'Guest information, recording details, and booking for Family Guy Guys — three men performing the most profane act of all time: doing a podcast about the animated TV show Family Guy.',
 };
 
 function updateMetadata(activePage, path, isNotFound) {
@@ -188,6 +192,8 @@ function handleLocation() {
     activePage = 'headersGaggs';
   } else if (path === '/glossary') {
     activePage = 'glossary';
+  } else if (path === '/guest') {
+    activePage = 'guest';
   } else if (path.startsWith('/reviews')) {
     const isEpisodePath =
       /^\/reviews\/[a-zA-Z0-9_-]+$/i.test(path) &&
