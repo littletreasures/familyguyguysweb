@@ -6,6 +6,11 @@
 :root {
   --glossary-nav-top: var(--site-header-height, 60px);
   --glossary-nav-height: 48px;
+  --glossary-color-frameworks: #a164eb;
+  --glossary-color-segments: #63d2ff;
+  --glossary-color-personas: #ffca36;
+  --glossary-color-terminology: #f7bfcc;
+  --glossary-color-aliases: #f89b22;
 }
 
 /* Responsive anchor offsets for sticky headers */
@@ -454,4 +459,324 @@
   .glossary-card {
     padding: 1rem;
   }
+}
+
+/* ===== SECTION-SPECIFIC CARD COLOR PALETTE ===== */
+
+/* 1. Critical & Comedic Frameworks — Lavender (#a164eb) */
+#category-frameworks .glossary-category-title {
+  border-bottom-color: var(--glossary-color-frameworks, #a164eb);
+}
+
+#category-frameworks .glossary-card {
+  background: var(--glossary-color-frameworks, #a164eb);
+  color: #ffffff;
+}
+
+#category-frameworks .glossary-card .glossary-term {
+  color: #ffffff;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
+}
+
+#category-frameworks .glossary-card .glossary-aka {
+  color: #ffe66d;
+  font-weight: 700;
+}
+
+#category-frameworks .glossary-card .glossary-definition {
+  color: #ffffff;
+  font-weight: 450;
+}
+
+#category-frameworks .glossary-card .glossary-origin-row,
+#category-frameworks .glossary-card .glossary-references-row {
+  border-top-color: rgba(255, 255, 255, 0.4);
+}
+
+#category-frameworks .glossary-card .glossary-meta-label {
+  color: #f3e8ff;
+  font-weight: 700;
+}
+
+#category-frameworks .glossary-card .episode-note {
+  color: #f3e8ff;
+}
+
+#category-frameworks .glossary-card .episode-chip-link {
+  background: #ffffff;
+  color: #1a1a1a;
+  border-color: #1a1a1a;
+}
+
+#category-frameworks .glossary-card .episode-chip-link:hover {
+  background: #1a1a1a;
+  color: #ffffff;
+}
+
+#category-frameworks .glossary-card .episode-chip-static {
+  background: rgba(255, 255, 255, 0.85);
+  color: #1a1a1a;
+  border-color: #1a1a1a;
+}
+
+/* 2. Recurring Segments & Review Metrics — Vivid Azure (#63d2ff) */
+#category-segments .glossary-category-title {
+  border-bottom-color: var(--glossary-color-segments, #63d2ff);
+}
+
+#category-segments .glossary-card {
+  background: var(--glossary-color-segments, #63d2ff);
+  color: #1a1a1a;
+}
+
+#category-segments .glossary-card .glossary-term {
+  color: #1a1a1a;
+}
+
+#category-segments .glossary-card .glossary-aka {
+  color: #0b3954;
+  font-weight: 700;
+}
+
+#category-segments .glossary-card .glossary-definition {
+  color: #1a1a1a;
+}
+
+#category-segments .glossary-card .glossary-origin-row,
+#category-segments .glossary-card .glossary-references-row {
+  border-top-color: rgba(26, 26, 26, 0.35);
+}
+
+#category-segments .glossary-card .glossary-meta-label {
+  color: #1a1a1a;
+  font-weight: 700;
+}
+
+#category-segments .glossary-card .episode-note {
+  color: #1a1a1a;
+  font-weight: 500;
+}
+
+#category-segments .glossary-card .episode-chip-link {
+  background: #ffffff;
+  color: #1a1a1a;
+  border-color: #1a1a1a;
+}
+
+#category-segments .glossary-card .episode-chip-link:hover {
+  background: #1a1a1a;
+  color: #ffffff;
+}
+
+#category-segments .glossary-card .episode-chip-static {
+  background: rgba(255, 255, 255, 0.75);
+  color: #1a1a1a;
+  border-color: #1a1a1a;
+}
+
+/* 3. Host Personas, Inside Jokes & Production Slang — Yellow (#ffca36) */
+#category-personas .glossary-category-title {
+  border-bottom-color: var(--glossary-color-personas, #ffca36);
+}
+
+#category-personas .glossary-card {
+  background: var(--glossary-color-personas, #ffca36);
+  color: #1a1a1a;
+}
+
+#category-personas .glossary-card .glossary-term {
+  color: #1a1a1a;
+}
+
+#category-personas .glossary-card .glossary-aka {
+  color: #5c3b00;
+  font-weight: 700;
+}
+
+#category-personas .glossary-card .glossary-definition {
+  color: #1a1a1a;
+}
+
+#category-personas .glossary-card .glossary-origin-row,
+#category-personas .glossary-card .glossary-references-row {
+  border-top-color: rgba(26, 26, 26, 0.35);
+}
+
+#category-personas .glossary-card .glossary-meta-label {
+  color: #1a1a1a;
+  font-weight: 700;
+}
+
+#category-personas .glossary-card .episode-note {
+  color: #1a1a1a;
+  font-weight: 500;
+}
+
+#category-personas .glossary-card .episode-chip-link {
+  background: #ffffff;
+  color: #1a1a1a;
+  border-color: #1a1a1a;
+}
+
+#category-personas .glossary-card .episode-chip-link:hover {
+  background: #1a1a1a;
+  color: #ffffff;
+}
+
+#category-personas .glossary-card .episode-chip-static {
+  background: rgba(255, 255, 255, 0.75);
+  color: #1a1a1a;
+  border-color: #1a1a1a;
+}
+
+/* 4. Advanced Comedic Terminology — Pink (#f7bfcc) */
+#category-terminology .glossary-category-title {
+  border-bottom-color: var(--glossary-color-terminology, #f7bfcc);
+}
+
+#category-terminology .glossary-card {
+  background: var(--glossary-color-terminology, #f7bfcc);
+  color: #1a1a1a;
+}
+
+#category-terminology .glossary-card .glossary-term {
+  color: #1a1a1a;
+}
+
+#category-terminology .glossary-card .glossary-aka {
+  color: #5c182a;
+  font-weight: 700;
+}
+
+#category-terminology .glossary-card .glossary-definition {
+  color: #1a1a1a;
+}
+
+#category-terminology .glossary-card .glossary-origin-row,
+#category-terminology .glossary-card .glossary-references-row {
+  border-top-color: rgba(26, 26, 26, 0.35);
+}
+
+#category-terminology .glossary-card .glossary-meta-label {
+  color: #1a1a1a;
+  font-weight: 700;
+}
+
+#category-terminology .glossary-card .episode-note {
+  color: #1a1a1a;
+  font-weight: 500;
+}
+
+#category-terminology .glossary-card .episode-chip-link {
+  background: #ffffff;
+  color: #1a1a1a;
+  border-color: #1a1a1a;
+}
+
+#category-terminology .glossary-card .episode-chip-link:hover {
+  background: #1a1a1a;
+  color: #ffffff;
+}
+
+#category-terminology .glossary-card .episode-chip-static {
+  background: rgba(255, 255, 255, 0.75);
+  color: #1a1a1a;
+  border-color: #1a1a1a;
+}
+
+/* 5. Host Aliases & Meta-Lore — Orange (#f89b22) */
+#category-aliases .glossary-category-title {
+  border-bottom-color: var(--glossary-color-aliases, #f89b22);
+}
+
+#category-aliases .glossary-card {
+  background: var(--glossary-color-aliases, #f89b22);
+  color: #1a1a1a;
+}
+
+#category-aliases .glossary-card .glossary-term {
+  color: #1a1a1a;
+}
+
+#category-aliases .glossary-card .glossary-aka {
+  color: #4a1800;
+  font-weight: 700;
+}
+
+#category-aliases .glossary-card .glossary-definition {
+  color: #1a1a1a;
+}
+
+#category-aliases .glossary-card .glossary-origin-row,
+#category-aliases .glossary-card .glossary-references-row {
+  border-top-color: rgba(26, 26, 26, 0.35);
+}
+
+#category-aliases .glossary-card .glossary-meta-label {
+  color: #1a1a1a;
+  font-weight: 700;
+}
+
+#category-aliases .glossary-card .episode-note {
+  color: #1a1a1a;
+  font-weight: 500;
+}
+
+#category-aliases .glossary-card .episode-chip-link {
+  background: #ffffff;
+  color: #1a1a1a;
+  border-color: #1a1a1a;
+}
+
+#category-aliases .glossary-card .episode-chip-link:hover {
+  background: #1a1a1a;
+  color: #ffffff;
+}
+
+#category-aliases .glossary-card .episode-chip-static {
+  background: rgba(255, 255, 255, 0.75);
+  color: #1a1a1a;
+  border-color: #1a1a1a;
+}
+
+/* Category Navigation Pill Accents */
+.glossary-cat-pill[href='#category-frameworks'] {
+  background: var(--glossary-color-frameworks, #a164eb);
+  color: #ffffff;
+}
+.glossary-cat-pill[href='#category-frameworks']:hover {
+  background: #8e4ae0;
+  color: #ffffff;
+}
+
+.glossary-cat-pill[href='#category-segments'] {
+  background: var(--glossary-color-segments, #63d2ff);
+  color: #1a1a1a;
+}
+.glossary-cat-pill[href='#category-segments']:hover {
+  background: #3ac4ff;
+}
+
+.glossary-cat-pill[href='#category-personas'] {
+  background: var(--glossary-color-personas, #ffca36);
+  color: #1a1a1a;
+}
+.glossary-cat-pill[href='#category-personas']:hover {
+  background: #ffbe14;
+}
+
+.glossary-cat-pill[href='#category-terminology'] {
+  background: var(--glossary-color-terminology, #f7bfcc);
+  color: #1a1a1a;
+}
+.glossary-cat-pill[href='#category-terminology']:hover {
+  background: #f3a3b6;
+}
+
+.glossary-cat-pill[href='#category-aliases'] {
+  background: var(--glossary-color-aliases, #f89b22);
+  color: #1a1a1a;
+}
+.glossary-cat-pill[href='#category-aliases']:hover {
+  background: #e5870a;
 }
