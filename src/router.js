@@ -255,14 +255,40 @@ function handleLocation() {
         notFoundContainer = document.createElement('div');
         notFoundContainer.id = 'page-404';
         notFoundContainer.className = 'page active';
-        notFoundContainer.innerHTML = `
-          <div class="page-content halftone-bg" style="min-height:80vh; display:flex; flex-direction:column; align-items:center; justify-center; text-align:center; padding: 4rem 1rem;">
-            <div style="font-size: 4rem; margin-bottom: 1rem;">🐔</div>
-            <h1 style="font-family: 'Special Elite', monospace; font-size: 2.5rem; color: var(--maroon);">404 — Page Not Found</h1>
-            <p style="margin-top: 1rem; color: #555; max-width: 450px; line-height: 1.5;">Giggity? Whatever page you were looking for doesn't exist or has been moved.</p>
-            <a href="/" class="btn-orange" style="margin-top: 2rem; display: inline-block;">Return Home</a>
-          </div>
-        `;
+
+        const content = document.createElement('div');
+        content.className = 'page-content halftone-bg';
+        content.style.cssText =
+          'min-height:80vh; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding: 4rem 1rem;';
+
+        const icon = document.createElement('div');
+        icon.style.fontSize = '4rem';
+        icon.style.marginBottom = '1rem';
+        icon.textContent = '🐔';
+
+        const heading = document.createElement('h1');
+        heading.style.cssText =
+          "font-family: 'Special Elite', monospace; font-size: 2.5rem; color: var(--maroon);";
+        heading.textContent = '404 — Page Not Found';
+
+        const message = document.createElement('p');
+        message.style.cssText =
+          'margin-top: 1rem; color: #555; max-width: 450px; line-height: 1.5;';
+        message.textContent =
+          "Giggity? Whatever page you were looking for doesn't exist or has been moved.";
+
+        const homeLink = document.createElement('a');
+        homeLink.setAttribute('href', '/');
+        homeLink.className = 'btn-orange';
+        homeLink.style.cssText = 'margin-top: 2rem; display: inline-block;';
+        homeLink.textContent = 'Return Home';
+
+        content.appendChild(icon);
+        content.appendChild(heading);
+        content.appendChild(message);
+        content.appendChild(homeLink);
+        notFoundContainer.appendChild(content);
+
         const main = document.querySelector('main');
         if (main) main.appendChild(notFoundContainer);
       } else {
