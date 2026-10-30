@@ -17,9 +17,10 @@ import {
   GLOSSARY_ENTRIES,
   GLOSSARY_ENTRY_COUNT,
 } from '../src/data/glossary.ts';
+import { PUBLISHED_EPISODE_SLUGS } from '../src/data/publishedEpisodes.ts';
 
 describe('GlossaryApp Component (SSR & Static Markup)', () => {
-  it('renders default state with all 5 categories, 29 entries, and exact copy', () => {
+  it('renders default state with all 5 categories, 33 entries, and exact copy', () => {
     const html = renderToString(React.createElement(GlossaryApp));
     const $ = cheerio.load(html);
 
@@ -42,9 +43,9 @@ describe('GlossaryApp Component (SSR & Static Markup)', () => {
       expect($h2.eq(idx).text()).toContain(cat.emoji);
     });
 
-    // Exactly 29 entry h3 headings
+    // Exactly 33 entry h3 headings
     const $h3 = $('h3');
-    expect($h3).toHaveLength(29);
+    expect($h3).toHaveLength(33);
 
     // Every entry has a matching article with its id
     GLOSSARY_ENTRIES.forEach((entry) => {
@@ -74,7 +75,24 @@ describe('GlossaryApp Component (SSR & Static Markup)', () => {
   });
 
   it('renders published episode chips as links and unreleased episodes as static chips', () => {
-    const html = renderToString(React.createElement(GlossaryApp));
+    // Fixed catalog (through S2E5) so this test does not depend on the generated published list
+    const fixedCatalog = new Set([
+      's1e1',
+      's1e2',
+      's1e3',
+      's1e4',
+      's1e5',
+      's1e6',
+      's1e7',
+      's02e01',
+      's02e02',
+      's02e03',
+      's02e04',
+      's02e05',
+    ]);
+    const html = renderToString(
+      React.createElement(GlossaryApp, { publishedEpisodes: fixedCatalog })
+    );
     const $ = cheerio.load(html);
 
     // Entry with published origin (s1e1 in stewie-gay-watch)
@@ -112,6 +130,25 @@ describe('GlossaryApp Component (SSR & Static Markup)', () => {
     const notesText = $structureheadCard.find('.glossary-references-row').text();
     expect(notesText).toContain('(debated heavily)');
     expect(notesText).toContain('(revisited/expanded)');
+  });
+
+  it('defaults to the build-generated published episodes catalog', () => {
+    expect([...PUBLISHED_EPISODES].sort()).toEqual(
+      PUBLISHED_EPISODE_SLUGS.map((slug) => slug.toLowerCase()).sort()
+    );
+
+    // Every generated slug renders as a link with the default (no-prop) render
+    const html = renderToString(React.createElement(GlossaryApp));
+    const $ = cheerio.load(html);
+    const linkedHrefs = new Set(
+      $('.episode-chip-link')
+        .map((_, el) => $(el).attr('href'))
+        .get()
+    );
+    linkedHrefs.forEach((href) => {
+      const slug = href.replace(/^\/reviews\//, '');
+      expect(PUBLISHED_EPISODES.has(slug)).toBe(true);
+    });
   });
 
   it('dynamically resolves episode chip availability when custom published catalog or resolver is provided', () => {

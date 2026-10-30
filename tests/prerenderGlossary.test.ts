@@ -51,7 +51,7 @@ describe('Glossary Static Prerendering Pipeline', () => {
     expect($app.find('h1')).toHaveLength(1);
     expect($app.find('h1').text().trim()).toBe('Official Podcast Glossary');
     expect($app.find('h2')).toHaveLength(5);
-    expect($app.find('h3')).toHaveLength(29);
+    expect($app.find('h3')).toHaveLength(33);
 
     // Assert only glossary page is active
     expect($('#page-glossary').hasClass('active')).toBe(true);
@@ -81,7 +81,7 @@ describe('Glossary Static Prerendering Pipeline', () => {
     expect(jsonLd['@id']).toBe('https://familyguyguys.com/glossary#term-set');
     expect(jsonLd.url).toBe('https://familyguyguys.com/glossary');
     expect(jsonLd.name).toBe('Family Guy Guys Official Podcast Glossary');
-    expect(jsonLd.hasDefinedTerm).toHaveLength(29);
+    expect(jsonLd.hasDefinedTerm).toHaveLength(33);
     expect(jsonLd.hasDefinedTerm[0]['@type']).toBe('DefinedTerm');
     expect(jsonLd.hasDefinedTerm[0]['@id']).toBe(`https://familyguyguys.com/glossary#${GLOSSARY_ENTRIES[0].id}`);
     expect(jsonLd.hasDefinedTerm[0].url).toBe(`https://familyguyguys.com/glossary#${GLOSSARY_ENTRIES[0].id}`);

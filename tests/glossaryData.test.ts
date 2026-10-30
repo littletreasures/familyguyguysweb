@@ -21,9 +21,9 @@ describe('Glossary Canonical Data Layer', () => {
     ]);
   });
 
-  it('matches baseline count of 29 entries', () => {
-    expect(GLOSSARY_ENTRIES).toHaveLength(29);
-    expect(GLOSSARY_ENTRY_COUNT).toBe(29);
+  it('matches baseline count of 33 entries', () => {
+    expect(GLOSSARY_ENTRIES).toHaveLength(33);
+    expect(GLOSSARY_ENTRY_COUNT).toBe(33);
   });
 
   it('enforces unique kebab-case IDs on every entry', () => {

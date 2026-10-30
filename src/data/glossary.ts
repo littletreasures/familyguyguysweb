@@ -418,6 +418,25 @@ export const GLOSSARY_ENTRIES: GlossaryEntry[] = [
     ],
   },
   {
+    id: 'are-we-spoonin',
+    term: "Are We Spoonin'? / Spooning on Spooner Street",
+    categoryId: 'segments',
+    definition:
+      'The official host consensus metric used during the final rating pass when Jason, Tyler, and Collin find their review scores and critical verdicts in near-perfect alignment.',
+    origin: {
+      season: 2,
+      episode: 10,
+      timestamp: '2:39:20',
+    },
+    references: [
+      {
+        season: 2,
+        episode: 10,
+        timestamp: '2:39:20',
+      },
+    ],
+  },
+  {
     id: 'dick-cam',
     term: 'Dick Cam',
     aka: 'Sliz Cam',
@@ -590,6 +609,44 @@ export const GLOSSARY_ENTRIES: GlossaryEntry[] = [
     references: [],
   },
   {
+    id: 'mentat-moment',
+    term: 'Mentat Moment',
+    aka: 'Mentap Moment / Mentating',
+    categoryId: 'personas',
+    definition:
+      "A callback to Dune, describing the exact moment Jason's brain operates like a human supercomputer to effortlessly retrieve obscure 1970s/80s pop-culture trivia, predict scene beats, or recall deep Family Guy history.",
+    origin: {
+      season: 1,
+      episode: 5,
+      note: 'coined by guest Christian Hughes',
+    },
+    references: [
+      {
+        season: 1,
+        episode: 5,
+        note: 'coined by guest Christian Hughes',
+      },
+      {
+        season: 2,
+        episode: 3,
+        note: 'revisited',
+      },
+      {
+        season: 2,
+        episode: 6,
+        note: 'enshrined as a "Top 5 Core Topic"',
+      },
+      {
+        season: 2,
+        episode: 8,
+      },
+      {
+        season: 2,
+        episode: 9,
+      },
+    ],
+  },
+  {
     id: 'jpm',
     term: 'JPM (Jokes Per Minute)',
     categoryId: 'terminology',
@@ -688,6 +745,36 @@ export const GLOSSARY_ENTRIES: GlossaryEntry[] = [
     ],
   },
   {
+    id: 'porkying',
+    term: 'Porkying / Porkies',
+    aka: 'Porkeising',
+    categoryId: 'terminology',
+    definition:
+      "The show's shorthand and active verb for any cartoon cutaway, scene, or behavior involving peeping through a wall/locker room hole or introducing someone to adult media, referencing the 1981 comedy Porky's.",
+    origin: {
+      season: 2,
+      episode: 7,
+      note: 'birthed during a movie debate',
+    },
+    references: [
+      {
+        season: 2,
+        episode: 7,
+        note: 'birthed during a movie debate',
+      },
+      {
+        season: 2,
+        episode: 8,
+        note: "applied to Peter's locker room peeping",
+      },
+      {
+        season: 2,
+        episode: 10,
+        note: 'fully evolved into a verb',
+      },
+    ],
+  },
+  {
     id: 'peener-griffin',
     term: 'Peener Griffin & Sex Mcfarland',
     categoryId: 'aliases',
@@ -778,6 +865,26 @@ export const GLOSSARY_ENTRIES: GlossaryEntry[] = [
       {
         season: 2,
         episode: 9,
+      },
+    ],
+  },
+  {
+    id: 'chubtext',
+    term: 'Chubtext',
+    aka: 'Chomptext / Chomptext.com',
+    categoryId: 'aliases',
+    definition:
+      'A fictional website and research portal pitched by the hosts, dedicated to analyzing horny subtext, hidden boners, and erotic undertones in otherwise mundane or awkward television scenes.',
+    origin: {
+      season: 2,
+      episode: 10,
+      timestamp: '2:24:11',
+    },
+    references: [
+      {
+        season: 2,
+        episode: 10,
+        timestamp: '2:24:11',
       },
     ],
   },

@@ -185,7 +185,7 @@ async function runBrowserQA() {
     const test1Passed =
       h1Text === 'Official Podcast Glossary' &&
       categoryCount === 5 &&
-      entryCount === 29 &&
+      entryCount === 33 &&
       hasSearch &&
       hydrationErrors.length === 0 &&
       hydrationWarnings.length === 0;
@@ -297,10 +297,10 @@ async function runBrowserQA() {
       aliasMatchTerms.includes('Fix It in Post') &&
       defMatchTerms.includes('Fix It in Post') &&
       emptyStateText.includes('No glossary terms match') &&
-      statusCountText.includes('0 of 29') &&
+      statusCountText.includes('0 of 33') &&
       clearedInputVal === '' &&
       isSearchFocused === true &&
-      clearedCount === 29;
+      clearedCount === 33;
 
     results.push({
       test: '3. Search & Focus Retained',

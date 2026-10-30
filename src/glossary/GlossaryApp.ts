@@ -14,6 +14,7 @@ import {
   type GlossaryCategory,
   type GlossaryEntry,
 } from '../data/glossary.ts';
+import { PUBLISHED_EPISODE_SLUGS } from '../data/publishedEpisodes.ts';
 
 export type EpisodeRouteResolver = (ref: EpisodeRef) => string | null;
 
@@ -27,29 +28,16 @@ export interface GlossaryAppProps {
   resolveEpisodeRoute?: EpisodeRouteResolver;
 }
 
-/** Verified canonical published episode reviews catalog */
-export const CANONICAL_PUBLISHED_EPISODES = new Set<string>([
-  // Season 1 (unpadded slug format used on site & feed)
-  's1e1',
-  's1e2',
-  's1e3',
-  's1e4',
-  's1e5',
-  's1e6',
-  's1e7',
-  // Season 2 (zero-padded slug format used on site & feed)
-  's02e01',
-  's02e02',
-  's02e03',
-  's02e04',
-  's02e05',
-  // Non-padded aliases
-  's2e1',
-  's2e2',
-  's2e3',
-  's2e4',
-  's2e5',
-]);
+/**
+ * Canonical published episode reviews catalog.
+ * Generated at build time from Supabase by src/scripts/generate-feed.js
+ * (see src/data/publishedEpisodes.ts). Slugs follow the site format: unpadded for
+ * Season 1 (e.g. s1e7) and zero-padded for Season 2+ (e.g. s02e07); the resolver
+ * below checks both forms.
+ */
+export const CANONICAL_PUBLISHED_EPISODES = new Set<string>(
+  PUBLISHED_EPISODE_SLUGS.map((slug) => slug.toLowerCase())
+);
 
 // Keep backward-compatible export
 export const PUBLISHED_EPISODES = CANONICAL_PUBLISHED_EPISODES;
