@@ -871,7 +871,6 @@ export const GLOSSARY_ENTRIES: GlossaryEntry[] = [
   {
     id: 'chubtext',
     term: 'Chubtext',
-    aka: 'Chomptext / Chomptext.com',
     categoryId: 'aliases',
     definition:
       'A fictional website and research portal pitched by the hosts, dedicated to analyzing horny subtext, hidden boners, and erotic undertones in otherwise mundane or awkward television scenes.',
