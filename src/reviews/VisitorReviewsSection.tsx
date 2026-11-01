@@ -324,6 +324,7 @@ export function VisitorReviewsSection({ episodeId }: VisitorReviewsSectionProps)
                       type="button"
                       onClick={() => setFormRating(num)}
                       className="hover:scale-110 transition-transform"
+                      aria-label={`Rate ${num} of 5 stars`}
                     >
                       <Star
                         size={22}
@@ -342,6 +343,7 @@ export function VisitorReviewsSection({ episodeId }: VisitorReviewsSectionProps)
                     value={formRating}
                     onChange={(e) => setFormRating(Number(e.target.value))}
                     className="w-full cursor-pointer accent-pink-600 h-1.5 bg-gray-200 border border-black rounded-none appearance-none"
+                    aria-label="Score on a 100-point scale"
                   />
                   <div className="flex justify-between text-[8px] font-black">
                     <span>1 (Trash)</span>
