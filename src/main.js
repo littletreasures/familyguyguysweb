@@ -363,7 +363,15 @@ export function sanitizeURL(rawUrl) {
       str === '/contact' ||
       str === '/reviews' ||
       str.startsWith('/reviews/') ||
-      str.startsWith('/assets/')
+      str.startsWith('/assets/') ||
+      str === '/glossary' ||
+      str.startsWith('/glossary/') ||
+      str.startsWith('/glossary#') ||
+      str === '/guest' ||
+      str.startsWith('/guest/') ||
+      str === '/headers-gaggs' ||
+      str.startsWith('/headers-gaggs/') ||
+      str.startsWith('/headers-gaggs?')
     ) {
       return str;
     }
