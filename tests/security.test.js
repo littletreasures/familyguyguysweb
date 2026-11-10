@@ -13,6 +13,11 @@ describe('Security Utilities: sanitizeURL', () => {
     expect(sanitizeURL('/')).toBe('/');
     expect(sanitizeURL('/episodes')).toBe('/episodes');
     expect(sanitizeURL('/reviews/s1e4')).toBe('/reviews/s1e4');
+    expect(sanitizeURL('/glossary')).toBe('/glossary');
+    expect(sanitizeURL('/glossary#category-frameworks')).toBe('/glossary#category-frameworks');
+    expect(sanitizeURL('/guest')).toBe('/guest');
+    expect(sanitizeURL('/headers-gaggs')).toBe('/headers-gaggs');
+    expect(sanitizeURL('/headers-gaggs?result=GGHH')).toBe('/headers-gaggs?result=GGHH');
   });
 
   it('rejects malicious javascript: and data: schemes', () => {
