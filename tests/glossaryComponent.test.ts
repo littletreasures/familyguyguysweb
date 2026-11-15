@@ -119,7 +119,9 @@ describe('GlossaryApp Component (SSR & Static Markup)', () => {
     expect($councilStaticChip.text().trim()).toBe('S2E6');
 
     // Entry references: s1e4 is published (/reviews/s1e4), s2e6 is unreleased (static)
-    const $refLinkChip = $structureheadCard.find('.glossary-references-row a[href="/reviews/s1e4"]');
+    const $refLinkChip = $structureheadCard.find(
+      '.glossary-references-row a[href="/reviews/s1e4"]'
+    );
     expect($refLinkChip.length).toBe(1);
     expect($refLinkChip.text().trim()).toBe('S1E4');
 
@@ -326,8 +328,25 @@ describe('Glossary Mounting Module & Navigation Coordinator', () => {
       matchMedia: vi.fn().mockReturnValue({ matches: false }),
     } as any;
 
+    // Trigger mount to attach routing listeners
+    try {
+      await mountGlossary({
+        querySelectorAll: () => [],
+        firstElementChild: null,
+        querySelector: () => null,
+      } as any);
+    } catch {
+      // Catch mock container mount error in Node test environment
+    }
+
+    expect(addEventListenerMock).toHaveBeenCalledWith('popstate', expect.any(Function));
+    expect(addEventListenerMock).toHaveBeenCalledWith('hashchange', expect.any(Function));
+
     // Call unmountGlossary and verify teardown
     unmountGlossary();
+
+    expect(removeEventListenerMock).toHaveBeenCalledWith('popstate', expect.any(Function));
+    expect(removeEventListenerMock).toHaveBeenCalledWith('hashchange', expect.any(Function));
 
     global.window = originalWindow;
   });

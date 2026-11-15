@@ -314,6 +314,7 @@ export function unmountGlossary(): void {
   navigationCoordinatorToken++;
   if (typeof window !== 'undefined' && isPopstateAttached) {
     window.removeEventListener('popstate', handlePopState);
+    window.removeEventListener('hashchange', handlePopState);
     isPopstateAttached = false;
   }
 }
