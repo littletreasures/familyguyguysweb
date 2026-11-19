@@ -68,7 +68,7 @@ export function assemblePrerenderedHtml({
   );
 
   // JSON-LD Structured Data
-  const jsonLdString = JSON.stringify(jsonLd, null, 2);
+  const jsonLdString = JSON.stringify(jsonLd, null, 2).replace(/</g, '\\u003c');
   headInjects.push(`<script type="application/ld+json">\n${jsonLdString}\n</script>`);
 
   // Remove pre-existing standard meta descriptions / og tags from base template to avoid duplicate tags

@@ -63,7 +63,9 @@ describe('Phase 2 Prerendering Modules & Safety Gates', () => {
     });
 
     it('rejects MP3 enclosure URLs, returning null', () => {
-      expect(deriveRssEmbed('https://media.rss.com/family-guy-guys/2026_01_31_s1e1.mp3')).toBeNull();
+      expect(
+        deriveRssEmbed('https://media.rss.com/family-guy-guys/2026_01_31_s1e1.mp3')
+      ).toBeNull();
     });
 
     it('rejects player.rss.com URLs as inputs, returning null', () => {
@@ -84,8 +86,12 @@ describe('Phase 2 Prerendering Modules & Safety Gates', () => {
     });
 
     it('rejects other hosts, subdomains, and extra path segments, returning null', () => {
-      expect(deriveRssEmbed('https://otherpodcast.com/podcasts/family-guy-guys/3038733/')).toBeNull();
-      expect(deriveRssEmbed('https://content.rss.com/podcasts/family-guy-guys/3038733/')).toBeNull();
+      expect(
+        deriveRssEmbed('https://otherpodcast.com/podcasts/family-guy-guys/3038733/')
+      ).toBeNull();
+      expect(
+        deriveRssEmbed('https://content.rss.com/podcasts/family-guy-guys/3038733/')
+      ).toBeNull();
       expect(
         deriveRssEmbed('https://rss.com/podcasts/family-guy-guys/3038733/extra/segment')
       ).toBeNull();
@@ -638,7 +644,9 @@ describe('Phase 2 Prerendering Modules & Safety Gates', () => {
       expect(visitorReviewsIdx).toBeLessThan(transcriptDetailsIdx);
 
       // 2. Transcript is wrapped in native <details> with summary
-      expect(markup).toContain('<details class="episode-transcript-wrapper transcript-collapse" id="transcript-details"');
+      expect(markup).toContain(
+        '<details class="episode-transcript-wrapper transcript-collapse" id="transcript-details"'
+      );
       // Collapsed by default (no open attribute on transcript-details)
       expect(markup).not.toMatch(/<details[^>]*\bopen\b[^>]*id="transcript-details"/);
 
@@ -735,6 +743,33 @@ describe('Phase 2 Prerendering Modules & Safety Gates', () => {
       expect(jsonStr).not.toContain('UserReview');
       expect(jsonStr).not.toContain('Comment');
       expect(jsonStr).not.toContain('synthetic');
+    });
+
+    it('safely escapes HTML tags in JSON-LD script against injection', () => {
+      const mockEpisode = {
+        id: 's1e1',
+        season: 1,
+        episode_number: 1,
+        title: 'Death </script><script>alert(1)</script>',
+        summary: 'Peter </script>',
+        podcast_url: 'https://media.rss.com/family-guy-guys/2026_01_31_s1e1.mp3',
+      };
+      const jsonLd = buildEpisodeJsonLd(mockEpisode, null);
+      const html = assemblePrerenderedHtml({
+        templateHtml:
+          '<!DOCTYPE html><html><head><title>Test</title></head><body><div id="page-home" class="page active"></div></body></html>',
+        metadata: {
+          title: 'Test',
+          canonicalUrl: 'https://familyguyguys.com/reviews/s1e1',
+          description: 'Desc',
+          og: {},
+          twitter: {},
+        },
+        jsonLd,
+        bodyMarkup: '<div>Body</div>',
+      });
+      expect(html).not.toContain('</script><script>');
+      expect(html).toContain('\\u003c/script');
     });
   });
 
