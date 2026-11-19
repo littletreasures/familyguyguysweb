@@ -12,7 +12,21 @@ const IMAGES_TO_OPTIMIZE = [
   { file: 'tylerhost.png', path: PUBLIC_DIR, widths: [400], name: 'tylerhost' },
   { file: 'jasonhost.png', path: PUBLIC_DIR, widths: [400], name: 'jasonhost' },
   { file: 'structurehead.png', path: ASSETS_DIR, widths: [300], name: 'structurehead' },
-  { file: 'I’m A Gagger.png', path: ASSETS_DIR, widths: [300], name: 'I’m A Gagger' },
+  { file: 'im-a-gagger.png', path: ASSETS_DIR, widths: [300], name: 'im-a-gagger' },
+  {
+    file: 'merch-structurehead-shirt.png',
+    path: ASSETS_DIR,
+    widths: [400],
+    name: 'merch-structurehead-shirt',
+  },
+  {
+    file: 'merch-gagger-shirt.png',
+    path: ASSETS_DIR,
+    widths: [400],
+    name: 'merch-gagger-shirt',
+  },
+  { file: 'merch-gagger-mug.png', path: ASSETS_DIR, widths: [400], name: 'merch-gagger-mug' },
+  { file: 'merch-fgg-hoodie.png', path: ASSETS_DIR, widths: [400], name: 'merch-fgg-hoodie' },
 ];
 
 // Dynamically scan public/assets for episode thumbnails (e.g. ep003-thumb.jpg)

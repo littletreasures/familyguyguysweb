@@ -10,6 +10,7 @@ export interface EpisodeRef {
 export interface GlossaryCategory {
   id: GlossaryCategoryId;
   name: string;
+  shortName?: string;
   emoji: string;
 }
 
@@ -27,26 +28,31 @@ export const GLOSSARY_CATEGORIES: GlossaryCategory[] = [
   {
     id: 'frameworks',
     name: 'Critical & Comedic Frameworks',
+    shortName: 'Frameworks',
     emoji: '🎭',
   },
   {
     id: 'segments',
     name: 'Recurring Segments & Review Metrics',
+    shortName: 'Segments',
     emoji: '📺',
   },
   {
     id: 'personas',
     name: 'Host Personas, Inside Jokes & Production Slang',
+    shortName: 'Host Lore',
     emoji: '🎙️',
   },
   {
     id: 'terminology',
     name: 'Advanced Comedic Terminology',
+    shortName: 'Terminology',
     emoji: '📐',
   },
   {
     id: 'aliases',
     name: 'Host Aliases & Meta-Lore',
+    shortName: 'Aliases',
     emoji: '🎩',
   },
 ];

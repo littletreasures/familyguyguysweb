@@ -106,6 +106,26 @@ function renderStarSvg(isFilled, key) {
   );
 }
 
+function renderDossierCard(title, items, variant) {
+  return e(
+    'div',
+    { className: 'dossier-card' },
+    e(
+      'div',
+      { className: `dossier-card-header dossier-card-header--${variant}` },
+      e('span', null, title),
+      items.length ? e('span', { className: 'dossier-count' }, String(items.length)) : null
+    ),
+    e(
+      'ul',
+      { className: 'dossier-chip-list' },
+      items.length
+        ? items.map((item) => e('li', { key: item, className: 'dossier-chip' }, item))
+        : e('li', { className: 'dossier-chip dossier-chip--empty' }, 'None listed')
+    )
+  );
+}
+
 export function RenderEpisodeReviewPage({ episode, transcript, cohosts }) {
   const epNumber = episode.episode_number ?? episode.episodeNumber ?? 1;
   const epSeason = episode.season ?? 1;
@@ -117,6 +137,38 @@ export function RenderEpisodeReviewPage({ episode, transcript, cohosts }) {
   const hasTranscript = Boolean(
     transcript && transcript.sections && transcript.sections.length > 0
   );
+
+  const castList = Array.isArray(episode.cast) ? episode.cast.filter(Boolean) : [];
+  const rawGuests = Array.isArray(episode.guest_stars)
+    ? episode.guest_stars
+    : Array.isArray(episode.guestStars)
+      ? episode.guestStars
+      : [];
+  const guestStarsList = rawGuests.filter(
+    (item) => item && !String(item).toLowerCase().includes('guest cast to be imported')
+  );
+  const writersList = Array.isArray(episode.writers) ? episode.writers.filter(Boolean) : [];
+  const directorsList = episode.director
+    ? String(episode.director)
+        .split(/,\s+(?!Jr\.?|Sr\.?|II\b|III\b)/)
+        .map((s) => s.trim())
+        .filter(Boolean)
+    : [];
+  const factsList = Array.isArray(episode.facts)
+    ? episode.facts.filter(
+        (fact) =>
+          fact &&
+          !String(fact.value || '')
+            .toLowerCase()
+            .includes('demo placeholder')
+      )
+    : [];
+  const hasCreditsOrFacts =
+    castList.length > 0 ||
+    guestStarsList.length > 0 ||
+    writersList.length > 0 ||
+    directorsList.length > 0 ||
+    factsList.length > 0;
 
   // Safe audio URL validation: only render audio link if valid HTTPS shape and not forbidden host
   const isAudioValid = rawPodcastUrl && validateAudioUrlShape(rawPodcastUrl).valid;
@@ -239,6 +291,61 @@ export function RenderEpisodeReviewPage({ episode, transcript, cohosts }) {
         })
       )
     ),
+
+    // Episode Credits & Production Facts Dossier
+    hasCreditsOrFacts
+      ? e(
+          'details',
+          { className: 'episode-credits-dossier' },
+          e(
+            'summary',
+            { className: 'dossier-summary' },
+            e(
+              'div',
+              { className: 'dossier-summary-left' },
+              e('span', { className: 'dossier-kicker' }, 'Production Dossier'),
+              e('span', { className: 'dossier-title' }, 'Episode Credits & Production Facts')
+            ),
+            e(
+              'span',
+              { className: 'dossier-toggle-pill' },
+              e('span', { className: 'dossier-label-expand' }, 'Expand ▾'),
+              e('span', { className: 'dossier-label-collapse' }, 'Collapse ▴')
+            )
+          ),
+          e(
+            'div',
+            { className: 'dossier-body' },
+            e(
+              'div',
+              { className: 'dossier-grid' },
+              renderDossierCard('Cast', castList, 'cast'),
+              renderDossierCard('Guest stars', guestStarsList, 'guests'),
+              renderDossierCard('Writers', writersList, 'writers'),
+              renderDossierCard('Director', directorsList, 'director')
+            ),
+            factsList.length > 0
+              ? e(
+                  'div',
+                  { className: 'dossier-facts-box' },
+                  e('div', { className: 'dossier-facts-header' }, 'Metadata & Production Facts'),
+                  e(
+                    'dl',
+                    { className: 'dossier-facts-grid' },
+                    factsList.map((fact) =>
+                      e(
+                        'div',
+                        { key: `${fact.label}-${fact.value}`, className: 'dossier-fact-row' },
+                        e('dt', { className: 'dossier-fact-label' }, fact.label),
+                        e('dd', { className: 'dossier-fact-value' }, fact.value)
+                      )
+                    )
+                  )
+                )
+              : null
+          )
+        )
+      : null,
 
     // Host Ratings & Reviews Section
     e(
@@ -368,16 +475,6 @@ export function RenderEpisodeReviewPage({ episode, transcript, cohosts }) {
       )
     ),
 
-    // Intro Note / Editorial Review Context
-    transcript?.intro
-      ? e(
-          'section',
-          { className: 'episode-editorial-intro', 'aria-label': 'Episode Review Overview' },
-          e('h2', { className: 'intro-heading' }, 'Review Overview & Notes'),
-          e('p', { className: 'intro-text' }, transcript.intro)
-        )
-      : null,
-
     // Visitor / Community Reviews Section (Progressive Enhancement Island Mount)
     e(
       'section',
@@ -405,10 +502,18 @@ export function RenderEpisodeReviewPage({ episode, transcript, cohosts }) {
       )
     ),
 
-    // Spoken Transcript Section (Collapsible Native Details)
+    // Spoken Transcript Section (Intro + Collapsible Native Details)
     e(
       'section',
       { className: 'episode-transcript-container', 'aria-label': 'Episode Transcript' },
+      transcript?.intro
+        ? e(
+            'div',
+            { className: 'episode-editorial-intro', 'aria-label': 'Transcript Overview' },
+            e('h2', { className: 'intro-heading' }, 'Transcript Overview & Notes'),
+            e('p', { className: 'intro-text' }, transcript.intro)
+          )
+        : null,
       hasTranscript && transcript?.sections
         ? e(
             'details',

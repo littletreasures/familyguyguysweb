@@ -268,7 +268,7 @@ function handleLocation() {
 
         const heading = document.createElement('h1');
         heading.style.cssText =
-          "font-family: 'Special Elite', monospace; font-size: 2.5rem; color: var(--maroon);";
+          'font-family: var(--font-display); font-weight: 400; letter-spacing: 0.02em; font-size: 2.5rem; color: var(--maroon);';
         heading.textContent = '404 — Page Not Found';
 
         const message = document.createElement('p');

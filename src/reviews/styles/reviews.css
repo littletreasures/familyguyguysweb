@@ -3,28 +3,35 @@
 
 @theme {
   --font-sans: 'Neue Montreal', 'Helvetica Neue', sans-serif;
+  --font-display: 'Hit and Run', 'Neue Montreal', 'Helvetica Neue', sans-serif;
 }
 
 #review-app * {
-  line-height: 1.2;
   box-sizing: border-box;
 }
 
 #review-app {
-  color: #000000;
-  font-family: var(--font-display);
-  background: #f5f4f0;
+  color: var(--black, #1a1a1a);
+  font-family: var(--font-sans, 'Neue Montreal', 'Helvetica Neue', sans-serif);
+  background: var(--off-white, #f5f4f0);
   min-height: 100vh;
 }
 
 #review-app h1,
-#review-app h2,
+#review-app h2 {
+  font-family: var(--font-display, 'Hit and Run', 'Neue Montreal', sans-serif);
+  color: var(--black, #1a1a1a);
+  text-transform: uppercase;
+  font-weight: 400;
+  letter-spacing: 0.02em;
+}
+
 #review-app h3,
 #review-app h4 {
-  font-family: var(--font-display);
-  color: #000000;
+  font-family: var(--font-sans, 'Neue Montreal', 'Helvetica Neue', sans-serif);
+  color: var(--black, #1a1a1a);
   text-transform: uppercase;
-  font-weight: 900;
+  font-weight: 700;
 }
 
 /* Host Color Mappings */
@@ -40,11 +47,19 @@
   background-color: var(--amber, #aa6200);
   color: #ffffff;
 }
+#review-app .host-bg-collin h2,
+#review-app .host-bg-collin h3,
+#review-app .host-bg-tyler h2,
+#review-app .host-bg-tyler h3,
+#review-app .host-bg-jason h2,
+#review-app .host-bg-jason h3 {
+  color: #ffffff;
+}
 
 /* Halftone Texture Overlay */
 .reviews-halftone-bg {
   position: relative;
-  background-color: #f5f4f0;
+  background-color: var(--off-white, #f5f4f0);
 }
 .reviews-halftone-bg::before {
   content: '';
@@ -66,25 +81,32 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  background: #fbbf24; /* Yellow-400 */
-  color: #000000;
-  font-family: 'Neue Montreal', sans-serif;
+  gap: 0.4rem;
+  min-height: 44px;
+  background: var(--orange, #e8841a);
+  color: var(--black, #1a1a1a);
+  font-family: var(--font-sans, 'Neue Montreal', sans-serif);
   font-size: 0.85rem;
-  font-weight: 900;
-  letter-spacing: 0.08em;
+  font-weight: 700;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
-  padding: 0.6rem 1.3rem;
+  padding: 0.65rem 1.4rem;
   border-radius: 6px;
-  border: 2px solid #000000;
-  box-shadow: 3px 3px 0px 0px #000000;
-  transition: all 0.1s ease;
+  border: 2px solid var(--black, #1a1a1a);
+  box-shadow: 3px 3px 0px 0px var(--black, #1a1a1a);
+  transition:
+    transform 0.1s ease,
+    box-shadow 0.1s ease,
+    background-color 0.15s ease,
+    color 0.15s ease;
   cursor: pointer;
 }
 
 #review-app .primary-button:hover {
-  transform: translateY(-1px);
-  box-shadow: 4px 4px 0px 0px #000000;
-  background: #f5b014;
+  transform: translate(-1px, -1px);
+  box-shadow: 4px 4px 0px 0px var(--black, #1a1a1a);
+  background: var(--orange-dark, #7a2b0f);
+  color: #ffffff;
 }
 
 #review-app .primary-button:active {
@@ -96,25 +118,27 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  gap: 0.4rem;
+  min-height: 44px;
   background: #ffffff;
-  color: #000000;
-  font-family: 'Neue Montreal', sans-serif;
-  font-size: 0.8rem;
-  font-weight: 900;
+  color: var(--black, #1a1a1a);
+  font-family: var(--font-sans, 'Neue Montreal', sans-serif);
+  font-size: 0.85rem;
+  font-weight: 700;
   letter-spacing: 0.05em;
   text-transform: uppercase;
-  padding: 0.6rem 1.3rem;
+  padding: 0.65rem 1.3rem;
   border-radius: 6px;
-  border: 2px solid #000000;
-  box-shadow: 3px 3px 0px 0px #000000;
+  border: 2px solid var(--black, #1a1a1a);
+  box-shadow: 3px 3px 0px 0px var(--black, #1a1a1a);
   transition: all 0.1s ease;
   cursor: pointer;
 }
 
 #review-app .secondary-button:hover {
-  background: #f3f4f6;
-  transform: translateY(-1px);
-  box-shadow: 4px 4px 0px 0px #000000;
+  background: var(--off-white, #f5f4f0);
+  transform: translate(-1px, -1px);
+  box-shadow: 4px 4px 0px 0px var(--black, #1a1a1a);
 }
 
 #review-app .secondary-button:active {
@@ -124,13 +148,13 @@
 
 #review-app .secondary-button.small {
   padding: 0.4rem 0.9rem;
-  font-size: 0.7rem;
+  font-size: 0.75rem;
   border-radius: 4px;
   border-width: 2px;
-  box-shadow: 2px 2px 0px 0px #000000;
+  box-shadow: 2px 2px 0px 0px var(--black, #1a1a1a);
 }
 #review-app .secondary-button.small:hover {
-  box-shadow: 3px 3px 0px 0px #000000;
+  box-shadow: 3px 3px 0px 0px var(--black, #1a1a1a);
   transform: translateY(-1px);
 }
 #review-app .secondary-button.small:active {
@@ -139,48 +163,50 @@
 }
 
 #review-app .text-link {
-  font-family: 'Neue Montreal', sans-serif;
+  font-family: var(--font-sans, 'Neue Montreal', sans-serif);
   font-size: 0.85rem;
   letter-spacing: 0.05em;
   text-transform: uppercase;
-  color: #000000;
-  font-weight: 900;
+  color: var(--black, #1a1a1a);
+  font-weight: 700;
   text-decoration: underline;
+  text-underline-offset: 2px;
   transition: color 0.15s ease;
 }
 
 #review-app .text-link:hover {
-  color: #59c3f1;
+  color: var(--teal, #1a6b6b);
 }
 
 /* Form inputs & controls re-theme */
 #review-app .field {
   width: 100%;
-  border: 2px solid #000000;
+  min-height: 44px;
+  border: 2px solid var(--black, #1a1a1a);
   background: #ffffff;
-  color: #000000;
+  color: var(--black, #1a1a1a);
   border-radius: 6px;
   padding: 0.75rem 1rem;
   font-size: 0.875rem;
   font-weight: 700;
   outline: none;
-  box-shadow: 2px 2px 0px 0px #000000;
+  box-shadow: 2px 2px 0px 0px var(--black, #1a1a1a);
   transition:
     box-shadow 0.1s,
     background-color 0.1s;
 }
 
 #review-app .field:focus {
-  box-shadow: 3px 3px 0px 0px #000000;
+  box-shadow: 3px 3px 0px 0px var(--black, #1a1a1a);
   background: #fffdf5;
-  outline: 2px solid #000000;
+  outline: 2px solid var(--black, #1a1a1a);
   outline-offset: 2px;
 }
 
 #review-app select.field {
   cursor: pointer;
   appearance: none;
-  background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3E%3Cpath stroke='%23000000' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m6 8 4 4 4-4'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3E%3Cpath stroke='%231a1a1a' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m6 8 4 4 4-4'/%3E%3C/svg%3E");
   background-position: right 0.75rem center;
   background-repeat: no-repeat;
   background-size: 1.25rem;
@@ -189,26 +215,26 @@
 
 #review-app select option {
   background: #ffffff;
-  color: #000000;
+  color: var(--black, #1a1a1a);
 }
 
 #review-app .mini-field {
-  border: 2px solid #000000;
+  border: 2px solid var(--black, #1a1a1a);
   background: #ffffff;
-  color: #000000;
+  color: var(--black, #1a1a1a);
   border-radius: 4px;
   padding: 0.4rem 0.8rem;
   font-size: 0.75rem;
   font-weight: 700;
 }
 #review-app .mini-field:focus-visible {
-  outline: 2px solid #000;
+  outline: 2px solid var(--black, #1a1a1a);
   outline-offset: 2px;
 }
 
 /* Star rating range input re-theme */
 #review-app input[type='range'] {
-  accent-color: #f472b6 !important; /* Accent Pink */
+  accent-color: var(--pink, #ff72c7) !important;
 }
 
 /* Animations */
@@ -227,9 +253,15 @@
   animation: rise 500ms cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
+@media (prefers-reduced-motion: reduce) {
+  #review-app .animate-rise {
+    animation: none;
+  }
+}
+
 /* Neobrutalist custom card classes */
 #review-app .cohost-card-themed {
-  border: 2px solid #000000;
+  border: 2px solid var(--black, #1a1a1a);
   border-radius: 8px;
   overflow: hidden;
   background: #ffffff;
@@ -237,30 +269,30 @@
 
 /* Status colors tailored to Neobrutalist theme */
 #review-app .status-tag {
-  font-family: 'Neue Montreal', sans-serif;
+  font-family: var(--font-sans, 'Neue Montreal', sans-serif);
   font-size: 0.75rem;
-  font-weight: 900;
+  font-weight: 700;
   letter-spacing: 0.05em;
   text-transform: uppercase;
   padding: 0.25rem 0.65rem;
   border-radius: 4px;
-  border: 2px solid #000000;
-  box-shadow: 2px 2px 0px 0px #000000;
+  border: 2px solid var(--black, #1a1a1a);
+  box-shadow: 2px 2px 0px 0px var(--black, #1a1a1a);
 }
 
 #review-app .status-backlog {
   background: #e2e8f0;
-  color: #000000;
+  color: var(--black, #1a1a1a);
 }
 #review-app .status-watched {
-  background: #a7f3d0; /* teal */
-  color: #000000;
+  background: #a7f3d0;
+  color: var(--black, #1a1a1a);
 }
 #review-app .status-recorded {
-  background: #c084fc; /* purple */
-  color: #000000;
+  background: #c084fc;
+  color: var(--black, #1a1a1a);
 }
 #review-app .status-published {
-  background: #fbbf24; /* yellow */
-  color: #000000;
+  background: #fbbf24;
+  color: var(--black, #1a1a1a);
 }

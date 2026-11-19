@@ -2,14 +2,20 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import React from 'react';
 import { renderToString } from 'react-dom/server';
 import * as cheerio from 'cheerio';
-import { GlossaryApp, PUBLISHED_EPISODES } from '../src/glossary/GlossaryApp.ts';
+import {
+  GlossaryApp,
+  PUBLISHED_EPISODES,
+  deduplicateReferences,
+} from '../src/glossary/GlossaryApp.ts';
 import {
   mountGlossary,
   unmountGlossary,
   isGlossaryRouteActive,
   getSafeFragmentId,
   coordinateFragmentNavigation,
+  extractPublishedSlugsFromContainer,
   _setActiveSearchForTesting,
+  _setActiveCategoryForTesting,
   _notifyCommitForTesting,
 } from '../src/glossary/mount.tsx';
 import {
@@ -24,6 +30,9 @@ describe('GlossaryApp Component (SSR & Static Markup)', () => {
     const html = renderToString(React.createElement(GlossaryApp));
     const $ = cheerio.load(html);
 
+    // Zero nested <main> landmark inside GlossaryApp
+    expect($('main')).toHaveLength(0);
+
     // Exact single h1
     const $h1 = $('h1');
     expect($h1).toHaveLength(1);
@@ -32,8 +41,9 @@ describe('GlossaryApp Component (SSR & Static Markup)', () => {
     // Exact intro paragraph copy
     const introText = $('.glossary-intro').text().trim();
     expect(introText).toBe(
-      "Welcome to the official glossary for Family Guy Guys: The Podcast. Whether you are a first-time listener or a seasoned 'Family Guy Guys Guy,' use this guide to navigate our critical frameworks, recurring review segments, and production lore."
+      'The official field manual for Family Guy Guys — decoding every baffling rating scale, Structurehead vs. Gagger argument, and studio tangent Collin, Tyler, and Jason have turned into canon.'
     );
+    expect($('.glossary-chip-legend').text()).toContain('Linked blue chips open published episode reviews');
 
     // Exactly 5 category h2 headings
     const $h2 = $('h2');
@@ -47,25 +57,40 @@ describe('GlossaryApp Component (SSR & Static Markup)', () => {
     const $h3 = $('h3');
     expect($h3).toHaveLength(33);
 
-    // Every entry has a matching article with its id
+    // Every entry has a matching article with its id and # permalink button
     GLOSSARY_ENTRIES.forEach((entry) => {
       const $card = $(`article#${entry.id}`);
       expect($card.length).toBe(1);
       expect($card.find('.glossary-term').text().trim()).toBe(entry.term);
+      expect($card.find('.glossary-permalink-btn').attr('aria-label')).toBe(
+        `Copy link to ${entry.term}`
+      );
       expect($card.find('.glossary-definition').text().trim()).toBe(entry.definition);
       if (entry.aka) {
         expect($card.find('.glossary-aka').text()).toContain(entry.aka);
       }
     });
 
-    // Category navigation landmark
+    // Category navigation landmark with All pill + 5 shortName category pills
     const $nav = $('nav[aria-label="Glossary categories"]');
     expect($nav.length).toBe(1);
+    const $allBtn = $nav.find('.glossary-cat-all-btn');
+    expect($allBtn).toHaveLength(1);
+    expect($allBtn.text().trim()).toBe('All');
+    expect($allBtn.attr('aria-pressed')).toBe('true');
+
     const $pills = $nav.find('.glossary-cat-pill');
     expect($pills).toHaveLength(5);
     GLOSSARY_CATEGORIES.forEach((cat, idx) => {
       expect($pills.eq(idx).attr('href')).toBe(`#category-${cat.id}`);
+      expect($pills.eq(idx).text()).toContain(cat.shortName ?? cat.name);
     });
+
+    // #structurehead and #gagger render /headers-gaggs CTA links, plus bottom CTA
+    expect($('#structurehead a.glossary-quiz-link').attr('href')).toBe('/headers-gaggs');
+    expect($('#gagger a.glossary-quiz-link').attr('href')).toBe('/headers-gaggs');
+    expect($('.glossary-bottom-cta a[href="/headers-gaggs"]').length).toBe(1);
+    expect($('.glossary-bottom-cta a[href="/reviews"]').length).toBe(1);
 
     // Search container and live status
     expect($('#glossary-search-input').length).toBe(1);
@@ -118,18 +143,27 @@ describe('GlossaryApp Component (SSR & Static Markup)', () => {
     expect($councilStaticChip.length).toBe(1);
     expect($councilStaticChip.text().trim()).toBe('S2E6');
 
-    // Entry references: s1e4 is published (/reviews/s1e4), s2e6 is unreleased (static)
+    // Entry references: s1e4 is published (/reviews/s1e4) in first 4 chips, and >4 refs collapse
     const $refLinkChip = $structureheadCard.find('.glossary-references-row a[href="/reviews/s1e4"]');
     expect($refLinkChip.length).toBe(1);
     expect($refLinkChip.text().trim()).toBe('S1E4');
+    expect($structureheadCard.find('.glossary-references-row .episode-chip')).toHaveLength(4);
+    expect($structureheadCard.find('.glossary-refs-toggle').text().trim()).toBe('+7 more');
 
-    const $refStaticChip = $structureheadCard.find('.glossary-references-row .episode-chip-static');
-    expect($refStaticChip.text()).toContain('S2E6');
+    // Origin S1E7 was deduplicated out of #structurehead references
+    const refChipTexts = $structureheadCard
+      .find('.glossary-references-row .episode-chip')
+      .map((_, el) => $(el).text().trim())
+      .get();
+    expect(refChipTexts).not.toContain('S1E7');
 
-    // Inline note check
+    // Unreleased S2E6 reference on #jpm renders as static chip
+    const $jpmStaticChip = $('#jpm .glossary-references-row .episode-chip-static');
+    expect($jpmStaticChip.text()).toContain('S2E6');
+
+    // Inline note check on visible chip
     const notesText = $structureheadCard.find('.glossary-references-row').text();
     expect(notesText).toContain('(debated heavily)');
-    expect(notesText).toContain('(revisited/expanded)');
   });
 
   it('defaults to the build-generated published episodes catalog', () => {
@@ -164,8 +198,8 @@ describe('GlossaryApp Component (SSR & Static Markup)', () => {
     expect($s1e7Chip.length).toBe(1);
     expect($s1e7Chip.attr('href')).toBe('/reviews/s1e7');
 
-    // And S2E6 reference in structurehead should be a link!
-    const $s2e6Chip = $cat('#structurehead .glossary-references-row a[href="/reviews/s2e6"]');
+    // And S2E6 reference in #jpm should be a link!
+    const $s2e6Chip = $cat('#jpm .glossary-references-row a[href="/reviews/s2e6"]');
     expect($s2e6Chip.length).toBe(1);
 
     // But S1E4 (not in dynamicCatalog) should now be static!
@@ -185,7 +219,7 @@ describe('GlossaryApp Component (SSR & Static Markup)', () => {
     const $res = cheerio.load(htmlWithResolver);
 
     // S2E6 resolved via custom resolver
-    const $s2e6Custom = $res('#structurehead a[href="/reviews/custom-s2e6"]');
+    const $s2e6Custom = $res('#jpm a[href="/reviews/custom-s2e6"]');
     expect($s2e6Custom.length).toBe(1);
 
     // S1E1 is null/unreleased under custom resolver
@@ -224,7 +258,53 @@ describe('GlossaryApp Component (SSR & Static Markup)', () => {
     );
   });
 
-  it('renders empty state when search matches no terms', () => {
+  it('searches across episode codes and reference/origin notes', () => {
+    const htmlByEpCode = renderToString(React.createElement(GlossaryApp, { initialFilter: 'S1E7' }));
+    const $ep = cheerio.load(htmlByEpCode);
+    expect($ep('#structurehead').length).toBe(1);
+    expect($ep('#gagger').length).toBe(1);
+
+    const htmlByNote = renderToString(React.createElement(GlossaryApp, { initialFilter: 'Danny' }));
+    const $note = cheerio.load(htmlByNote);
+    expect($note('#gagger').length).toBe(1);
+    expect($note('article.glossary-card').length).toBe(1);
+  });
+
+  it('deduplicates origin references without distinct notes and preserves published slugs for hydration', () => {
+    const origin = { season: 1, episode: 7, note: 'coined' };
+    const deduped = deduplicateReferences(
+      [
+        { season: 1, episode: 4 },
+        { season: 1, episode: 7 },
+        { season: 1, episode: 7, note: 'expanded later' },
+      ],
+      origin
+    );
+    expect(deduped).toEqual([
+      { season: 1, episode: 4 },
+      { season: 1, episode: 7, note: 'expanded later' },
+    ]);
+
+    const published = new Set(['s1e1', 's02e06', 's02e07']);
+    const html = renderToString(
+      React.createElement(GlossaryApp, { publishedEpisodes: published })
+    );
+    const $ = cheerio.load(html);
+    const slugsAttr = $('.glossary-container').attr('data-published-slugs');
+    expect(slugsAttr).toBe('s02e06,s02e07,s1e1');
+
+    const mockContainer = {
+      querySelector: (selector: string) =>
+        selector === '.glossary-container'
+          ? { getAttribute: (attr: string) => (attr === 'data-published-slugs' ? slugsAttr : null) }
+          : null,
+      querySelectorAll: () => [],
+    } as unknown as HTMLElement;
+
+    expect(extractPublishedSlugsFromContainer(mockContainer)).toEqual(published);
+  });
+
+  it('renders empty state with echoed query and starter chips when search matches no terms', () => {
     const html = renderToString(
       React.createElement(GlossaryApp, { initialFilter: 'nonexistenttermxyz' })
     );
@@ -234,10 +314,12 @@ describe('GlossaryApp Component (SSR & Static Markup)', () => {
     expect($('[role="status"]').text().trim()).toBe(`Showing 0 of ${GLOSSARY_ENTRY_COUNT} entries`);
     expect($('.glossary-empty-state').length).toBe(1);
     expect($('.glossary-empty-message').text().trim()).toBe(
-      'No glossary terms match your search. Try another keyword.'
+      `No lore matches "nonexistenttermxyz" — even Peter couldn't invent that bit.`
     );
+    expect($('.glossary-starter-chip')).toHaveLength(3);
     expect($('.glossary-clear-btn').length).toBe(1);
     expect($('nav[aria-label="Glossary categories"] .glossary-cat-pill')).toHaveLength(0);
+    expect($('nav[aria-label="Glossary categories"] .glossary-cat-all-btn')).toHaveLength(0);
   });
 });
 
@@ -314,7 +396,7 @@ describe('Glossary Mounting Module & Navigation Coordinator', () => {
     global.window = originalWindow;
   });
 
-  it('mounts and unmounts cleanly, tearing down listeners', async () => {
+  it('mounts and unmounts cleanly, tearing down popstate and hashchange listeners', async () => {
     const originalWindow = global.window;
     const addEventListenerMock = vi.fn();
     const removeEventListenerMock = vi.fn();
@@ -326,10 +408,58 @@ describe('Glossary Mounting Module & Navigation Coordinator', () => {
       matchMedia: vi.fn().mockReturnValue({ matches: false }),
     } as any;
 
-    // Call unmountGlossary and verify teardown
+    const mockContainer = {
+      firstElementChild: null,
+      querySelector: () => null,
+      querySelectorAll: () => [],
+    } as unknown as HTMLElement;
+
+    const mountPromise = mountGlossary(mockContainer, { isHydration: false }).catch(() => {});
+    // Verify popstate and hashchange were attached, then teardown removes both
+    expect(addEventListenerMock).toHaveBeenCalledWith('popstate', expect.any(Function));
+    expect(addEventListenerMock).toHaveBeenCalledWith('hashchange', expect.any(Function));
+
     unmountGlossary();
+    await mountPromise;
+
+    expect(removeEventListenerMock).toHaveBeenCalledWith('popstate', expect.any(Function));
+    expect(removeEventListenerMock).toHaveBeenCalledWith('hashchange', expect.any(Function));
 
     global.window = originalWindow;
+  });
+
+  it('clears active category filter before scrolling to fragment target', async () => {
+    const originalWindow = global.window;
+    const originalDocument = global.document;
+
+    const scrollIntoViewMock = vi.fn();
+    const mockEl = { scrollIntoView: scrollIntoViewMock };
+    let isCommitted = false;
+    const setCategoryMock = vi.fn(() => {
+      isCommitted = true;
+      _notifyCommitForTesting();
+    });
+
+    _setActiveCategoryForTesting('segments', setCategoryMock);
+
+    global.window = {
+      location: { pathname: '/glossary', hash: '#structurehead' },
+      matchMedia: vi.fn().mockReturnValue({ matches: false }),
+    } as any;
+
+    global.document = {
+      getElementById: vi.fn((id: string) =>
+        id === 'structurehead' && isCommitted ? mockEl : null
+      ),
+    } as any;
+
+    await coordinateFragmentNavigation({ isInitialLoad: false });
+    expect(setCategoryMock).toHaveBeenCalledWith('all');
+    expect(scrollIntoViewMock).toHaveBeenCalled();
+
+    _setActiveCategoryForTesting('all', null);
+    global.window = originalWindow;
+    global.document = originalDocument;
   });
 
   it('respects prefers-reduced-motion media query during fragment navigation', async () => {

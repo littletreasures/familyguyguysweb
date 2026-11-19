@@ -19,4 +19,7 @@ export const PUBLISHED_EPISODE_SLUGS: readonly string[] = [
   's02e06',
   's02e07',
   's02e08',
+  's02e09',
+  's02e10',
+  's02e11',
 ];

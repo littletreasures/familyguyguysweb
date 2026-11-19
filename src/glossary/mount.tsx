@@ -6,6 +6,7 @@
 import React, { useEffect, useState } from 'react';
 import { createRoot, hydrateRoot, type Root } from 'react-dom/client';
 import { GlossaryApp } from './GlossaryApp.ts';
+import { type GlossaryCategoryId } from '../data/glossary.ts';
 import './styles/glossary.css';
 
 export interface MountGlossaryOptions {
@@ -19,9 +20,11 @@ let inFlightMountPromise: Promise<void> | null = null;
 let isInitialCoordinatorRun = true;
 let isPopstateAttached = false;
 
-// Search control callback registered by mounted wrapper
+// Search and category filter control callbacks registered by mounted wrapper
 let activeSetSearchQuery: ((query: string) => void) | null = null;
 let activeSearchQuery = '';
+let activeSetSelectedCategory: ((category: GlossaryCategoryId | 'all') => void) | null = null;
+let activeSelectedCategory: GlossaryCategoryId | 'all' = 'all';
 
 /** Testing helper to set simulated search coordinator state */
 export function _setActiveSearchForTesting(
@@ -30,6 +33,15 @@ export function _setActiveSearchForTesting(
 ): void {
   activeSearchQuery = query;
   activeSetSearchQuery = setQuery;
+}
+
+/** Testing helper to set simulated category filter coordinator state */
+export function _setActiveCategoryForTesting(
+  category: GlossaryCategoryId | 'all',
+  setCategory: ((cat: GlossaryCategoryId | 'all') => void) | null
+): void {
+  activeSelectedCategory = category;
+  activeSetSelectedCategory = setCategory;
 }
 
 let navigationCoordinatorToken = 0;
@@ -71,9 +83,42 @@ export function getSafeFragmentId(): string {
 }
 
 /**
+ * Extract published episode slugs from prerendered container HTML (`data-published-slugs`
+ * first, falling back to `.episode-chip-link` href parsing).
+ */
+export function extractPublishedSlugsFromContainer(
+  container: HTMLElement
+): Set<string> | undefined {
+  const glossaryContainer = container.querySelector('.glossary-container');
+  const slugsAttr = glossaryContainer?.getAttribute('data-published-slugs');
+  if (slugsAttr !== null && slugsAttr !== undefined) {
+    const parsed = new Set(
+      slugsAttr
+        .split(',')
+        .map((s) => s.trim().toLowerCase())
+        .filter(Boolean)
+    );
+    return parsed.size > 0 ? parsed : undefined;
+  }
+
+  const existingLinks = container.querySelectorAll<HTMLAnchorElement>('.episode-chip-link');
+  const publishedFromPrerender = new Set<string>();
+  existingLinks.forEach((link) => {
+    const href = link.getAttribute('href') || '';
+    const match = href.match(/^\/reviews\/([a-z0-9_-]+)$/i);
+    if (match) {
+      publishedFromPrerender.add(match[1].toLowerCase());
+    }
+  });
+
+  return publishedFromPrerender.size > 0 ? publishedFromPrerender : undefined;
+}
+
+/**
  * Single-owner fragment navigation coordinator:
- * Handles anchor scrolling post-commit, clearing active search filters if target is hidden,
- * respecting prefers-reduced-motion, and discarding stale requests if user navigated away.
+ * Handles anchor scrolling post-commit, clearing active search or category filters if target
+ * is hidden, respecting prefers-reduced-motion, and discarding stale requests if user
+ * navigated away.
  */
 export async function coordinateFragmentNavigation(options?: {
   isInitialLoad?: boolean;
@@ -95,11 +140,14 @@ export async function coordinateFragmentNavigation(options?: {
   // 2. Check if target element exists in DOM or is filtered out
   let targetEl = document.getElementById(targetId);
 
-  // If target element is missing and search is active, clear search and await React post-commit effect
-  if (!targetEl && activeSearchQuery !== '' && activeSetSearchQuery) {
+  const needsSearchClear = activeSearchQuery !== '' && Boolean(activeSetSearchQuery);
+  const needsCategoryClear = activeSelectedCategory !== 'all' && Boolean(activeSetSelectedCategory);
+
+  // If target element is missing and search/category filter is active, clear filters and await commit
+  if (!targetEl && (needsSearchClear || needsCategoryClear)) {
     const setSearch = activeSetSearchQuery;
+    const setCategory = activeSetSelectedCategory;
     await new Promise<void>((resolve) => {
-      // Settle any previously pending commit request so it does not remain unresolved
       if (pendingCommitRequest) {
         pendingCommitRequest.resolve();
       }
@@ -108,7 +156,8 @@ export async function coordinateFragmentNavigation(options?: {
         targetId,
         resolve,
       };
-      setSearch('');
+      if (needsSearchClear && setSearch) setSearch('');
+      if (needsCategoryClear && setCategory) setCategory('all');
     });
 
     // Guard again: Discard stale request if route or hash changed or superseded by a newer navigation
@@ -172,13 +221,16 @@ function GlossaryMountedRoot({
   publishedEpisodes,
 }: GlossaryMountedRootProps): React.ReactElement {
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState<GlossaryCategoryId | 'all'>('all');
 
   useEffect(() => {
     activeSetSearchQuery = setSearchQuery;
     activeSearchQuery = searchQuery;
+    activeSetSelectedCategory = setSelectedCategory;
+    activeSelectedCategory = selectedCategory;
 
-    // React post-commit effect: fires after the cleared search filter has committed to the DOM
-    if (searchQuery === '' && pendingCommitRequest) {
+    // React post-commit effect: fires after cleared search/category filters have committed to DOM
+    if (searchQuery === '' && selectedCategory === 'all' && pendingCommitRequest) {
       const pending = pendingCommitRequest;
       pendingCommitRequest = null;
       pending.resolve();
@@ -189,12 +241,18 @@ function GlossaryMountedRoot({
         activeSetSearchQuery = null;
         activeSearchQuery = '';
       }
+      if (activeSetSelectedCategory === setSelectedCategory) {
+        activeSetSelectedCategory = null;
+        activeSelectedCategory = 'all';
+      }
     };
-  }, [searchQuery]);
+  }, [searchQuery, selectedCategory]);
 
   return React.createElement(GlossaryApp, {
     searchQuery,
     setSearchQuery,
+    selectedCategory,
+    setSelectedCategory,
     onReady,
     publishedEpisodes,
   });
@@ -243,19 +301,7 @@ export function mountGlossary(
     };
 
     try {
-      // Extract published episode slugs from prerendered HTML links to ensure 100% hydration consistency
-      const existingLinks = container.querySelectorAll<HTMLAnchorElement>('.episode-chip-link');
-      const publishedFromPrerender = new Set<string>();
-      existingLinks.forEach((link) => {
-        const href = link.getAttribute('href') || '';
-        const match = href.match(/^\/reviews\/([a-z0-9_-]+)$/i);
-        if (match) {
-          publishedFromPrerender.add(match[1].toLowerCase());
-        }
-      });
-
-      const publishedEpisodes =
-        publishedFromPrerender.size > 0 ? publishedFromPrerender : undefined;
+      const publishedEpisodes = extractPublishedSlugsFromContainer(container);
 
       const element = React.createElement(GlossaryMountedRoot, {
         onReady: handleReady,
@@ -310,10 +356,13 @@ export function unmountGlossary(): void {
   }
   activeSetSearchQuery = null;
   activeSearchQuery = '';
+  activeSetSelectedCategory = null;
+  activeSelectedCategory = 'all';
   isInitialCoordinatorRun = true;
   navigationCoordinatorToken++;
   if (typeof window !== 'undefined' && isPopstateAttached) {
     window.removeEventListener('popstate', handlePopState);
+    window.removeEventListener('hashchange', handlePopState);
     isPopstateAttached = false;
   }
 }

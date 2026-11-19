@@ -1,10 +1,22 @@
 import { useEffect, useMemo, useState } from 'react';
 import { supabase } from './lib/supabase';
 import { navigateTo } from '../router.js';
+import { deriveRssEmbed } from '../build/rss-embed.js';
+import { formatSeconds } from '../build/format-time.js';
 import { Star } from 'lucide-react';
 import { VisitorReviewsSection } from './VisitorReviewsSection';
-
-type WatchStatus = 'backlog' | 'watched' | 'recorded' | 'published';
+import {
+  buildCatalogQueryString,
+  computeNormalizedAverage,
+  countSeasonStatuses,
+  findEpisodeByRouteId,
+  findHostByRouteId,
+  getNativeRatingDisplay,
+  parseCatalogQueryParams,
+  sanitizeExternalHttpsUrl,
+  type CatalogSortOrder,
+  type WatchStatus,
+} from './lib/reviewHelpers';
 
 type Cohost = {
   id: string;
@@ -30,6 +42,29 @@ type EpisodeFact = {
   value: string;
 };
 
+type TranscriptEntry = {
+  start_seconds?: number;
+  speaker?: string;
+  text?: string;
+};
+
+type TranscriptSection = {
+  id: string;
+  heading: string;
+  start_seconds?: number;
+  end_seconds?: number;
+  entries?: TranscriptEntry[];
+};
+
+type EpisodeTranscript = {
+  episode_id: string;
+  status: string;
+  word_count: number | null;
+  intro: string | null;
+  sections: TranscriptSection[] | null;
+  published_at: string | null;
+};
+
 type Episode = {
   id: string;
   season: number;
@@ -46,6 +81,7 @@ type Episode = {
   facts: EpisodeFact[];
   watchStatus: WatchStatus;
   podcastUrl: string;
+  youtubeUrl: string;
   transcriptNotes: string;
   thumbnailPublicId: string | null;
   thumbnailUrl: string | null;
@@ -79,13 +115,6 @@ const STATUS_LABEL: Record<WatchStatus, string> = {
   recorded: 'Recorded',
   published: 'Published',
 };
-const STATUS_TONE: Record<WatchStatus, string> = {
-  backlog: 'border-slate-500/30 bg-slate-500/10 text-slate-300',
-  watched: 'border-blue-300/30 bg-blue-300/10 text-blue-200',
-  recorded: 'border-amber-300/30 bg-amber-300/10 text-amber-200',
-  published: 'border-emerald-300/30 bg-emerald-300/10 text-emerald-200',
-};
-const PALETTE = ['#65e4d3', '#f7c948', '#a78bfa', '#fb7185', '#38bdf8', '#f97316'];
 
 const COHOST_NAME_MAP: Record<string, { name: string; role: string; photo: string }> = {
   '01201e1a-dafd-424a-b596-ff9ece65f1aa': {
@@ -125,7 +154,6 @@ const COHOST_NAME_MAP: Record<string, { name: string; role: string; photo: strin
 
 function getHostTheme(hostId: string): {
   bgClass: string;
-  starColor: string;
   fallbackBg: string;
   textClass: string;
 } {
@@ -137,7 +165,6 @@ function getHostTheme(hostId: string): {
   ) {
     return {
       bgClass: 'host-bg-collin',
-      starColor: 'var(--teal, #1a6b6b)',
       fallbackBg: 'var(--teal, #1a6b6b)',
       textClass: 'text-white',
     };
@@ -149,20 +176,18 @@ function getHostTheme(hostId: string): {
   ) {
     return {
       bgClass: 'host-bg-tyler',
-      starColor: 'var(--maroon, #5c1a1a)',
       fallbackBg: 'var(--maroon, #5c1a1a)',
       textClass: 'text-white',
     };
   }
   return {
     bgClass: 'host-bg-jason',
-    starColor: 'var(--amber, #aa6200)',
     fallbackBg: 'var(--amber, #aa6200)',
     textClass: 'text-white',
   };
 }
 
-function cohostFromRow(row: any): Cohost {
+function cohostFromRow(row: Record<string, any>): Cohost {
   const mapped = COHOST_NAME_MAP[row.id?.toLowerCase()] || COHOST_NAME_MAP[row.name?.toLowerCase()];
   return {
     id: row.id,
@@ -173,7 +198,7 @@ function cohostFromRow(row: any): Cohost {
   };
 }
 
-function reviewFromRow(row: any): Review {
+function reviewFromRow(row: Record<string, any>): Review {
   return {
     cohostId: row.cohost_id,
     rating: row.rating,
@@ -186,7 +211,7 @@ function reviewFromRow(row: any): Review {
   };
 }
 
-function episodeFromRow(row: any): Episode {
+function episodeFromRow(row: Record<string, any>): Episode {
   return {
     id: row.id,
     season: row.season,
@@ -202,8 +227,9 @@ function episodeFromRow(row: any): Episode {
     director: row.director,
     facts: Array.isArray(row.facts) ? row.facts : [],
     watchStatus: row.watch_status,
-    podcastUrl: row.podcasturl,
-    transcriptNotes: row.transcriptnotes,
+    podcastUrl: row.podcast_url ?? row.podcasturl ?? '',
+    youtubeUrl: row.youtube_url ?? '',
+    transcriptNotes: row.transcript_notes ?? row.transcriptnotes ?? '',
     thumbnailPublicId: row.thumbnail_public_id ?? null,
     thumbnailUrl: row.thumbnail_url ?? null,
     thumbnailStatus: row.thumbnail_status ?? 'pending',
@@ -212,7 +238,7 @@ function episodeFromRow(row: any): Episode {
   };
 }
 
-function configFromRow(row: any) {
+function configFromRow(row: Record<string, any> | null | undefined) {
   return {
     showName: row?.show_name ?? 'Family Guy Guys',
     subtitle:
@@ -226,10 +252,10 @@ function configFromRow(row: any) {
 }
 
 function buildDataset(
-  cohostsRaw: any[],
-  episodesRaw: any[],
-  reviewsRaw: any[],
-  configRaw: any
+  cohostsRaw: Record<string, any>[],
+  episodesRaw: Record<string, any>[],
+  reviewsRaw: Record<string, any>[],
+  configRaw: Record<string, any> | null | undefined
 ): PodcastDataset {
   const cohosts = cohostsRaw.map(cohostFromRow);
   const config = configFromRow(configRaw);
@@ -253,37 +279,41 @@ function buildDataset(
   };
 }
 
-const demoDataset = createDemoDataset();
-
-// schemaTemplate removed
-
-function formatRating(val: number): string {
-  const rounded = Math.round((val + Number.EPSILON) * 100) / 100;
-  return String(rounded);
-}
-
 function App() {
+  const initialFilters = useMemo(
+    () =>
+      typeof window !== 'undefined'
+        ? parseCatalogQueryParams(window.location.search)
+        : parseCatalogQueryParams(''),
+    []
+  );
+
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [retryCount, setRetryCount] = useState(0);
-  const [dataset, setDataset] = useState<PodcastDataset>(demoDataset);
-  const [selectedCohostId, setSelectedCohostId] = useState(demoDataset.cohosts[0].id);
+  const [dataset, setDataset] = useState<PodcastDataset | null>(null);
   const [route, setRoute] = useState<Route>(() => parsePath());
-  const [search, setSearch] = useState('');
-  const [seasonFilter, setSeasonFilter] = useState('all');
-  const [statusFilter, setStatusFilter] = useState<WatchStatus | 'all'>('all');
-  // Admin mode and related states are retired.
+  const [search, setSearch] = useState(initialFilters.search);
+  const [seasonFilter, setSeasonFilter] = useState(initialFilters.seasonFilter);
+  const [statusFilter, setStatusFilter] = useState<WatchStatus | 'all'>(
+    initialFilters.statusFilter
+  );
+  const [sortOrder, setSortOrder] = useState<CatalogSortOrder>(initialFilters.sortOrder);
 
   useEffect(() => {
-    const controller = new AbortController();
+    let cancelled = false;
 
     async function fetchData() {
+      setLoading(true);
+      setLoadError(null);
+
       try {
         if (!supabase) {
-          console.warn('Missing Supabase credentials. Database features are disabled.');
-          setLoading(false);
-          return;
+          throw new Error(
+            'Reviews database connection is not configured right now. Please try again later.'
+          );
         }
+
         const client = supabase;
         const fetchReviews = async () => {
           const res = await client
@@ -300,69 +330,76 @@ function App() {
             .from('reviews')
             .select('episode_id, cohost_id, rating, review, pull_quote, draft_source, updated_at');
         };
+
         const results = await Promise.allSettled([
           client.from('cohosts').select('id, name, role, bio, accent'),
           client
             .from('episodes')
             .select(
-              'id, season, episode_number, title, air_date, runtime, imdb_rating, summary, cast, guest_stars, writers, director, facts, watch_status, podcast_url, transcript_notes, thumbnail_public_id, thumbnail_url, thumbnail_status, thumbnail_error'
+              'id, season, episode_number, title, air_date, runtime, imdb_rating, summary, cast, guest_stars, writers, director, facts, watch_status, podcast_url, youtube_url, transcript_notes, thumbnail_public_id, thumbnail_url, thumbnail_status, thumbnail_error'
             ),
           fetchReviews(),
           client.from('config').select('rating_label, rating_max, show_name, subtitle'),
         ]);
 
+        if (cancelled) return;
+
         const [cohostsRes, episodesRes, reviewsRes, configRes] = results;
 
-        // Supabase returns fulfilled promises with { data, error } objects
-        // Check for both rejected promises AND Supabase errors in fulfilled responses
         const hasCriticalError =
           cohostsRes.status === 'rejected' ||
           episodesRes.status === 'rejected' ||
           reviewsRes.status === 'rejected' ||
-          (cohostsRes.status === 'fulfilled' && cohostsRes.value.error) ||
-          (episodesRes.status === 'fulfilled' && episodesRes.value.error) ||
-          (reviewsRes.status === 'fulfilled' && reviewsRes.value.error);
+          (cohostsRes.status === 'fulfilled' && Boolean(cohostsRes.value.error)) ||
+          (episodesRes.status === 'fulfilled' && Boolean(episodesRes.value.error)) ||
+          (reviewsRes.status === 'fulfilled' && Boolean(reviewsRes.value.error));
 
         if (hasCriticalError) {
-          console.warn('Supabase data fetch encountered an error. Falling back to local dataset.');
-          setDataset(demoDataset);
-          setSelectedCohostId(demoDataset.cohosts[0]?.id ?? '01201e1a-dafd-424a-b596-ff9ece65f1aa');
-          setLoading(false);
-          return;
+          const errDetail =
+            (episodesRes.status === 'fulfilled' && episodesRes.value.error?.message) ||
+            (reviewsRes.status === 'fulfilled' && reviewsRes.value.error?.message) ||
+            (cohostsRes.status === 'fulfilled' && cohostsRes.value.error?.message) ||
+            'Unable to reach the reviews archive.';
+          throw new Error(errDetail);
         }
 
-        const cohosts = (cohostsRes as any).value.data;
-        const episodes = (episodesRes as any).value.data;
-        const reviews = (reviewsRes as any).value.data;
-        const config = (
-          configRes.status === 'fulfilled' ? (configRes as any).value.data : null
-        )?.[0];
-
-        if (!episodes || episodes.length === 0) {
-          setDataset(demoDataset);
-          setSelectedCohostId(demoDataset.cohosts[0]?.id ?? '01201e1a-dafd-424a-b596-ff9ece65f1aa');
-          setLoading(false);
-          return;
-        }
+        const cohosts =
+          cohostsRes.status === 'fulfilled' && Array.isArray(cohostsRes.value.data)
+            ? cohostsRes.value.data
+            : [];
+        const episodes =
+          episodesRes.status === 'fulfilled' && Array.isArray(episodesRes.value.data)
+            ? episodesRes.value.data
+            : [];
+        const reviews =
+          reviewsRes.status === 'fulfilled' && Array.isArray(reviewsRes.value.data)
+            ? reviewsRes.value.data
+            : [];
+        const config =
+          configRes.status === 'fulfilled' && Array.isArray(configRes.value.data)
+            ? configRes.value.data[0]
+            : null;
 
         const nextDataset = buildDataset(cohosts, episodes, reviews, config);
         setDataset(nextDataset);
-        setSelectedCohostId(nextDataset.cohosts[0]?.id ?? demoDataset.cohosts[0].id);
         setLoading(false);
       } catch (error) {
-        console.warn('Supabase fetch failed. Falling back to local dataset:', error);
-        setDataset(demoDataset);
-        setSelectedCohostId(demoDataset.cohosts[0]?.id ?? '01201e1a-dafd-424a-b596-ff9ece65f1aa');
+        if (cancelled) return;
+        setLoadError(
+          error instanceof Error ? error.message : 'Unable to load reviews from the archive.'
+        );
         setLoading(false);
       }
     }
 
     fetchData();
-    return () => controller.abort();
-  }, []);
+    return () => {
+      cancelled = true;
+    };
+  }, [retryCount]);
 
   useEffect(() => {
-    const onRouteChange = (e: any) => {
+    const onRouteChange = (e: CustomEvent<{ page: string; params?: any }>) => {
       const { page, params } = e.detail;
       if (page === 'reviews') {
         if (params) {
@@ -374,119 +411,44 @@ function App() {
         }
       }
     };
-    window.addEventListener('routechange', onRouteChange);
+    window.addEventListener('routechange', onRouteChange as EventListener);
     setRoute(parsePath());
-    return () => window.removeEventListener('routechange', onRouteChange);
+    return () => window.removeEventListener('routechange', onRouteChange as EventListener);
   }, []);
 
   useEffect(() => {
-    if (!dataset.cohosts.some((host) => host.id === selectedCohostId)) {
-      setSelectedCohostId(dataset.cohosts[0]?.id ?? '');
+    if (typeof window === 'undefined' || route.page !== 'catalog') return;
+    const qs = buildCatalogQueryString({ search, seasonFilter, statusFilter, sortOrder });
+    const nextUrl = `/reviews${qs}`;
+    const currentUrl = `${window.location.pathname}${window.location.search}`;
+    if (currentUrl !== nextUrl && window.location.pathname.startsWith('/reviews')) {
+      window.history.replaceState(window.history.state, '', nextUrl);
     }
-  }, [dataset, selectedCohostId]);
+  }, [route.page, search, seasonFilter, statusFilter, sortOrder]);
 
-  useEffect(() => {
-    if (retryCount === 0) return; // Only run on retry attempts
+  const seasons = useMemo(() => (dataset ? getSeasons(dataset.episodes) : []), [dataset]);
 
-    setLoading(true);
-
-    const controller = new AbortController();
-
-    const retryFetch = async () => {
-      setLoadError(null);
-      try {
-        if (!supabase) {
-          console.warn('Missing Supabase credentials. Database features are disabled.');
-          setLoading(false);
-          return;
-        }
-        const client = supabase;
-        const fetchReviews = async () => {
-          const res = await client
-            .from('reviews')
-            .select(
-              'episode_id, cohost_id, rating, review, pull_quote, draft_source, updated_at, rating_terminology, rating_scale_max'
-            );
-          if (!res.error) return res;
-          console.warn(
-            'New columns not found in reviews table, falling back to legacy schema:',
-            res.error.message
-          );
-          return await client
-            .from('reviews')
-            .select('episode_id, cohost_id, rating, review, pull_quote, draft_source, updated_at');
-        };
-        const results = await Promise.allSettled([
-          client.from('cohosts').select('id, name, role, bio, accent'),
-          client
-            .from('episodes')
-            .select(
-              'id, season, episode_number, title, air_date, runtime, imdb_rating, summary, cast, guest_stars, writers, director, facts, watch_status, podcast_url, transcript_notes, thumbnail_public_id, thumbnail_url, thumbnail_status, thumbnail_error'
-            ),
-          fetchReviews(),
-          client.from('config').select('rating_label, rating_max, show_name, subtitle'),
-        ]);
-
-        const [cohostsRes, episodesRes, reviewsRes, configRes] = results;
-
-        // Supabase returns fulfilled promises with { data, error } objects
-        // Check for both rejected promises AND Supabase errors in fulfilled responses
-        const hasCriticalError =
-          cohostsRes.status === 'rejected' ||
-          episodesRes.status === 'rejected' ||
-          reviewsRes.status === 'rejected' ||
-          (cohostsRes.status === 'fulfilled' && cohostsRes.value.error) ||
-          (episodesRes.status === 'fulfilled' && episodesRes.value.error) ||
-          (reviewsRes.status === 'fulfilled' && reviewsRes.value.error);
-
-        if (hasCriticalError) {
-          setLoadError('Critical data fetch failed');
-          setLoading(false);
-          return;
-        }
-
-        const cohosts = (cohostsRes as any).value.data;
-        const episodes = (episodesRes as any).value.data;
-        const reviews = (reviewsRes as any).value.data;
-        const config = (
-          configRes.status === 'fulfilled' ? (configRes as any).value.data : null
-        )?.[0];
-
-        if (!episodes || episodes.length === 0) {
-          setLoading(false);
-          return;
-        }
-
-        const nextDataset = buildDataset(cohosts, episodes, reviews, config);
-        setDataset(nextDataset);
-        setSelectedCohostId(nextDataset.cohosts[0]?.id ?? demoDataset.cohosts[0].id);
-        setLoading(false);
-      } catch (error) {
-        setLoadError(error instanceof Error ? error.message : 'Failed to load data from Supabase');
-        setLoading(false);
-      }
-    };
-
-    retryFetch();
-
-    return () => controller.abort();
-  }, [retryCount]);
-
-  const seasons = useMemo(() => getSeasons(dataset.episodes), [dataset.episodes]);
-  const selectedCohost =
-    dataset.cohosts.find((host) => host.id === selectedCohostId) ?? dataset.cohosts[0];
   const visibleEpisodes = useMemo(() => {
+    if (!dataset) return [];
     const query = search.trim().toLowerCase();
-    return [...dataset.episodes]
-      .sort(compareEpisodes)
+    const sorted = [...dataset.episodes].sort((a, b) =>
+      sortOrder === 'newest' ? compareEpisodes(b, a) : compareEpisodes(a, b)
+    );
+    return sorted
       .filter((episode) => seasonFilter === 'all' || episode.season === Number(seasonFilter))
       .filter((episode) => statusFilter === 'all' || episode.watchStatus === statusFilter)
       .filter((episode) => {
         if (!query) return true;
         return searchableEpisodeText(episode).includes(query);
       });
-  }, [dataset.episodes, search, seasonFilter, statusFilter]);
-  const metrics = useMemo(() => getDatasetMetrics(dataset), [dataset]);
+  }, [dataset, search, seasonFilter, statusFilter, sortOrder]);
+
+  function resetFilters() {
+    setSearch('');
+    setSeasonFilter('all');
+    setStatusFilter('published');
+    setSortOrder('newest');
+  }
 
   function navigate(nextRoute: Route) {
     if (nextRoute.page === 'episode') {
@@ -496,74 +458,59 @@ function App() {
     navigateTo(routeToPath(nextRoute));
   }
 
-  // Admin mutations and imports retired
-
   if (loading) {
     return (
-      <div className="flex h-screen flex-col bg-slate-950 text-white">
-        {/* Full-width top banner */}
-        <div className="w-full border-b border-white/10 p-4 text-center">
-          <p className="text-sm font-semibold tracking-wider uppercase text-cyan-200/80">
-            Loading…
+      <div
+        id="review-app"
+        className="min-h-screen text-[#1a1a1a] reviews-halftone-bg p-6 md:p-10 flex items-center justify-center"
+      >
+        <div
+          className="max-w-lg w-full bg-white border-2 border-[#1a1a1a] rounded-lg shadow-[4px_4px_0_#1a1a1a] p-8 text-center"
+          role="status"
+          aria-live="polite"
+        >
+          <p className="text-xs font-bold uppercase tracking-widest text-[#7a2b0f]">
+            Loading Reviews Archive
           </p>
-        </div>
-
-        {/* Centered animation */}
-        <div className="flex h-[calc(100%-56px)] items-center justify-center">
-          <div className="animate-pulse rounded-full bg-white/5 p-4">
-            <svg className="h-8 w-8 animate-spin text-cyan-200" fill="none" viewBox="0 0 24 24">
-              <circle
-                className="opacity-25"
-                cx="12"
-                cy="12"
-                r="10"
-                stroke="currentColor"
-                strokeWidth="4"
-              ></circle>
-              <path
-                className="opacity-75"
-                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                stroke="currentColor"
-                strokeWidth="4"
-              ></path>
-            </svg>
-          </div>
+          <h1 className="mt-2 text-3xl text-[#1a1a1a] uppercase">Fetching Episode Ledger…</h1>
+          <p className="mt-3 text-sm text-[#4a4a4a]">
+            Pulling host scores, ratings, and episode notes from the Family Guy Guys archive.
+          </p>
         </div>
       </div>
     );
   }
 
-  if (loadError) {
+  if (loadError || !dataset) {
     return (
-      <div className="flex h-screen flex-col bg-slate-950 text-white p-5">
-        {/* Full-width top banner */}
-        <div className="w-full border-b border-white/10 p-4 text-center">
-          <p className="text-sm font-semibold tracking-wider uppercase text-cyan-200/80">
-            Couldn't reach Supabase: {loadError}
+      <div
+        id="review-app"
+        className="min-h-screen text-[#1a1a1a] reviews-halftone-bg p-6 md:p-10 flex items-center justify-center"
+      >
+        <div
+          className="max-w-lg w-full bg-white border-2 border-[#1a1a1a] rounded-lg shadow-[4px_4px_0_#1a1a1a] p-8 text-center"
+          role="alert"
+          aria-live="polite"
+        >
+          <p className="text-xs font-bold uppercase tracking-widest text-[#5c1a1a]">
+            Archive Unavailable {retryCount > 0 ? `(Attempt #${retryCount + 1})` : ''}
           </p>
-        </div>
-
-        {/* Retry section */}
-        <div className="flex h-[calc(100%-56px)] flex-col items-center justify-center gap-4 p-5">
-          {/* Retry counter badge */}
-          <div className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs font-medium uppercase tracking-wider text-slate-400">
-            Retry #{retryCount + 1}
+          <h1 className="mt-2 text-3xl text-[#1a1a1a] uppercase">Could Not Load Reviews</h1>
+          <p className="mt-3 text-sm text-[#4a4a4a]">
+            {loadError || 'Unable to reach the reviews archive right now.'}
+          </p>
+          <div className="mt-6 flex flex-wrap justify-center gap-3">
+            <button
+              type="button"
+              onClick={() => setRetryCount((prev) => prev + 1)}
+              className="primary-button"
+            >
+              Retry
+            </button>
+            <a href="/episodes" className="secondary-button">
+              Browse Episode Feed
+            </a>
           </div>
-
-          {/* Error message */}
-          <p className="text-rose-400 text-xl font-bold">{loadError}</p>
-
-          {/* Retry button */}
-          <button
-            type="button"
-            onClick={() => {
-              setRetryCount((prev) => prev + 1);
-              window.location.reload();
-            }}
-            className="primary-button"
-          >
-            Retry
-          </button>
         </div>
       </div>
     );
@@ -571,10 +518,10 @@ function App() {
 
   return (
     <div
-      className="min-h-screen text-black reviews-halftone-bg relative p-4 md:p-8 animate-rise"
+      className="min-h-screen text-[#1a1a1a] reviews-halftone-bg relative p-4 md:p-8 animate-rise"
       id="review-app"
     >
-      <main className="mx-auto max-w-7xl px-5 pb-16 pt-2 sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-7xl px-5 pb-28 pt-2 sm:px-6 lg:px-8">
         {route.page === 'catalog' ? (
           <CatalogPage
             dataset={dataset}
@@ -587,6 +534,9 @@ function App() {
             onSeasonFilterChange={setSeasonFilter}
             statusFilter={statusFilter}
             onStatusFilterChange={setStatusFilter}
+            sortOrder={sortOrder}
+            onSortOrderChange={setSortOrder}
+            onResetFilters={resetFilters}
           />
         ) : null}
 
@@ -601,7 +551,7 @@ function App() {
         {route.page === 'host' ? (
           <HostPage dataset={dataset} hostId={route.id} onNavigate={navigate} />
         ) : null}
-      </main>
+      </div>
     </div>
   );
 }
@@ -617,6 +567,9 @@ function CatalogPage({
   onSeasonFilterChange,
   statusFilter,
   onStatusFilterChange,
+  sortOrder,
+  onSortOrderChange,
+  onResetFilters,
 }: {
   dataset: PodcastDataset;
   episodes: Episode[];
@@ -628,17 +581,21 @@ function CatalogPage({
   onSeasonFilterChange: (value: string) => void;
   statusFilter: WatchStatus | 'all';
   onStatusFilterChange: (value: WatchStatus | 'all') => void;
+  sortOrder: CatalogSortOrder;
+  onSortOrderChange: (value: CatalogSortOrder) => void;
+  onResetFilters: () => void;
 }) {
   return (
     <div className="animate-rise mt-4 grid gap-8 lg:grid-cols-[minmax(0,1fr)_330px]">
       <section>
-        <header className="mb-6 border-b-4 border-black pb-4">
-          <h1
-            className="text-4xl md:text-6xl font-black uppercase tracking-tight select-none font-sans leading-none cursor-pointer hover:text-gray-700"
-            onClick={() => onNavigate({ page: 'catalog' })}
-          >
-            REVIEWS
+        <header className="mb-6 border-b-4 border-[#1a1a1a] pb-4">
+          <h1 className="text-4xl md:text-6xl uppercase tracking-tight leading-none">
+            Episode Reviews
           </h1>
+          <p className="mt-2 text-sm text-[#4a4a4a] font-medium max-w-2xl">
+            Every chronological rewatch episode rated by Collin, Tyler, and Jason — complete with
+            arbitrary units, show links, and community scores.
+          </p>
         </header>
 
         {/* Search and Filters Block */}
@@ -649,14 +606,14 @@ function CatalogPage({
                 type="text"
                 value={search}
                 onChange={(e) => onSearchChange(e.target.value)}
-                placeholder="Search reviews..."
-                className="field w-full text-sm font-sans"
+                placeholder="Search episodes, guests, quotes..."
+                className="field w-full text-sm font-sans pr-10"
                 aria-label="Search reviews"
               />
               {search && (
                 <button
                   onClick={() => onSearchChange('')}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-black font-black text-sm"
+                  className="absolute right-1 top-1/2 -translate-y-1/2 min-h-[44px] min-w-[44px] flex items-center justify-center text-[#4a4a4a] hover:text-[#1a1a1a] font-black text-sm"
                   aria-label="Clear search"
                   type="button"
                 >
@@ -668,7 +625,7 @@ function CatalogPage({
               <select
                 value={seasonFilter}
                 onChange={(e) => onSeasonFilterChange(e.target.value)}
-                className="field min-w-[120px] text-sm font-sans cursor-pointer"
+                className="field min-w-[130px] text-sm font-sans cursor-pointer"
                 aria-label="Filter by season"
               >
                 <option value="all">All Seasons</option>
@@ -681,7 +638,7 @@ function CatalogPage({
               <select
                 value={statusFilter}
                 onChange={(e) => onStatusFilterChange(e.target.value as WatchStatus | 'all')}
-                className="field min-w-[125px] text-sm font-sans cursor-pointer"
+                className="field min-w-[135px] text-sm font-sans cursor-pointer"
                 aria-label="Filter by status"
               >
                 <option value="all">All Statuses</option>
@@ -693,11 +650,39 @@ function CatalogPage({
               </select>
             </div>
           </div>
-          <div className="text-xs font-bold text-gray-500 tracking-wider uppercase font-sans">
-            Found {episodes.length} {episodes.length === 1 ? 'episode' : 'episodes'}
+
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="text-xs font-bold text-[#4a4a4a] tracking-wider uppercase font-sans">
+              Found {episodes.length} {episodes.length === 1 ? 'episode' : 'episodes'}
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                onClick={() =>
+                  onStatusFilterChange(statusFilter === 'published' ? 'all' : 'published')
+                }
+                aria-pressed={statusFilter === 'published'}
+                className={`min-h-[44px] px-3 py-1.5 rounded border-2 border-[#1a1a1a] text-xs font-bold uppercase tracking-wider transition-colors ${
+                  statusFilter === 'published'
+                    ? 'bg-[#e8841a] text-[#1a1a1a]'
+                    : 'bg-white text-[#1a1a1a] hover:bg-[#f5f4f0]'
+                }`}
+              >
+                {statusFilter === 'published' ? 'Published only' : 'Showing all statuses'}
+              </button>
+              <button
+                type="button"
+                onClick={() => onSortOrderChange(sortOrder === 'newest' ? 'oldest' : 'newest')}
+                aria-pressed={sortOrder === 'oldest'}
+                className="min-h-[44px] px-3 py-1.5 rounded border-2 border-[#1a1a1a] bg-white text-[#1a1a1a] hover:bg-[#f5f4f0] text-xs font-bold uppercase tracking-wider"
+              >
+                Sort: {sortOrder === 'newest' ? 'Newest first' : 'Chronological'}
+              </button>
+            </div>
           </div>
         </div>
 
+        <h2 className="sr-only">Episodes</h2>
         <div className="mt-6 grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
           {episodes.map((episode) => (
             <EpisodeTile
@@ -709,12 +694,17 @@ function CatalogPage({
           ))}
         </div>
         {!episodes.length ? (
-          <EmptyState title="No episodes found" copy="Check back later for new reviews!" />
+          <EmptyState
+            title="No episodes match"
+            copy="Try widening your search or switching back to all seasons and statuses."
+            actionLabel="Reset filters"
+            onAction={onResetFilters}
+          />
         ) : null}
       </section>
 
       <aside className="space-y-6">
-        <SidePanel title="Season shelves">
+        <SidePanel title="Season Shelves">
           <div className="space-y-4">
             {seasons.map((season) => {
               const seasonEpisodes = dataset.episodes.filter(
@@ -725,13 +715,13 @@ function CatalogPage({
                   key={season}
                   type="button"
                   onClick={() => onNavigate({ page: 'season', season })}
-                  className="group w-full border-b border-gray-200 pb-4 text-left last:border-b-0 last:pb-0 focus:ring-2 focus:ring-black focus:outline-none"
+                  className="group w-full min-h-[44px] border-b border-gray-200 pb-4 text-left last:border-b-0 last:pb-0 focus:ring-2 focus:ring-[#1a1a1a] focus:outline-none"
                 >
                   <div className="flex items-center justify-between gap-4 font-sans">
-                    <p className="font-bold text-black group-hover:text-pink-600 transition-colors">
+                    <p className="font-bold text-[#1a1a1a] group-hover:text-[#7a2b0f] transition-colors">
                       Season {season}
                     </p>
-                    <p className="text-sm font-semibold text-gray-500">
+                    <p className="text-sm font-semibold text-[#4a4a4a]">
                       {seasonEpisodes.length} eps
                     </p>
                   </div>
@@ -742,7 +732,7 @@ function CatalogPage({
           </div>
         </SidePanel>
 
-        <SidePanel title="Host profiles">
+        <SidePanel title="Host Profiles">
           <div className="space-y-3">
             {dataset.cohosts.map((host) => {
               const mapped =
@@ -754,12 +744,12 @@ function CatalogPage({
                   key={host.id}
                   type="button"
                   onClick={() => onNavigate({ page: 'host', id: host.id })}
-                  className="flex w-full items-center gap-3 border-2 border-black bg-white p-3 text-left transition shadow-[3px_3px_0px_0px_#000] hover:translate-y-[-1px] hover:shadow-[4px_4px_0px_0px_#000] text-black"
+                  className="flex w-full min-h-[44px] items-center gap-3 border-2 border-[#1a1a1a] bg-white p-3 text-left transition shadow-[3px_3px_0px_0px_#1a1a1a] hover:translate-y-[-1px] hover:shadow-[4px_4px_0px_0px_#1a1a1a] text-[#1a1a1a]"
                 >
                   <Avatar host={host} />
                   <div>
-                    <p className="font-black text-black leading-none">{name}</p>
-                    <p className="text-xs font-bold text-gray-500 mt-1.5 leading-none">{role}</p>
+                    <p className="font-bold text-[#1a1a1a] leading-none">{name}</p>
+                    <p className="text-xs font-bold text-[#4a4a4a] mt-1.5 leading-none">{role}</p>
                   </div>
                 </button>
               );
@@ -807,29 +797,125 @@ function EpisodePage({
       .filter((ep) => ep.watchStatus === 'published');
   }, [dataset.episodes]);
 
-  const episode = dataset.episodes.find((item) => item.id === episodeId);
-  if (!episode)
-    return (
-      <EmptyState title="Episode not found" copy="This URL does not match the loaded dataset." />
-    );
+  const episode = findEpisodeByRouteId(dataset.episodes, episodeId);
+  const resolvedEpisodeId = episode?.id ?? null;
 
-  const currentIndex = publishedEpisodes.findIndex((item) => item.id === episodeId);
+  const [transcript, setTranscript] = useState<EpisodeTranscript | null>(null);
+  const [transcriptLoading, setTranscriptLoading] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    setTranscript(null);
+
+    if (!supabase || !resolvedEpisodeId) {
+      setTranscriptLoading(false);
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    const client = supabase;
+    setTranscriptLoading(true);
+
+    async function fetchTranscript() {
+      try {
+        const res = await client
+          .from('episode_transcripts')
+          .select('episode_id, status, word_count, intro, sections, published_at')
+          .eq('episode_id', resolvedEpisodeId)
+          .eq('status', 'published')
+          .maybeSingle();
+
+        if (cancelled) return;
+        if (res.error) {
+          console.warn('Failed to fetch episode transcript:', res.error.message);
+          setTranscript(null);
+        } else {
+          setTranscript((res.data as EpisodeTranscript | null) ?? null);
+        }
+      } catch (err) {
+        if (cancelled) return;
+        console.warn('Failed to fetch episode transcript:', err);
+        setTranscript(null);
+      } finally {
+        if (!cancelled) {
+          setTranscriptLoading(false);
+        }
+      }
+    }
+
+    fetchTranscript();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [resolvedEpisodeId]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || !transcript?.sections?.length) return;
+    const hash = window.location.hash;
+    if (hash && hash.startsWith('#sec-')) {
+      const details = document.getElementById('transcript-details') as HTMLDetailsElement | null;
+      if (details && !details.open) {
+        details.open = true;
+      }
+      const target = document.getElementById(hash.slice(1));
+      if (target) {
+        requestAnimationFrame(() => {
+          target.scrollIntoView({ behavior: 'smooth' });
+        });
+      }
+    }
+  }, [transcript]);
+
+  if (!episode) {
+    return (
+      <EmptyState
+        title="Episode not found"
+        copy="This URL does not match an episode in the archive."
+        actionLabel="Back to catalog"
+        onAction={() => onNavigate({ page: 'catalog' })}
+        headingLevel="h1"
+      />
+    );
+  }
+
+  const currentIndex = publishedEpisodes.findIndex((item) => item.id === episode.id);
   const prevEpisode = currentIndex > 0 ? publishedEpisodes[currentIndex - 1] : null;
   const nextEpisode =
     currentIndex < publishedEpisodes.length - 1 && currentIndex !== -1
       ? publishedEpisodes[currentIndex + 1]
       : null;
 
-  const average = averageRating(episode.reviews);
+  const average = computeNormalizedAverage(episode.reviews);
+  const safePodcastUrl = sanitizeExternalHttpsUrl(episode.podcastUrl);
+  const safeYoutubeUrl = sanitizeExternalHttpsUrl(episode.youtubeUrl);
+  const rssEmbed = safePodcastUrl ? deriveRssEmbed(safePodcastUrl) : null;
+
+  const filteredGuestStars = episode.guestStars.filter(
+    (item) => !item.toLowerCase().includes('guest cast to be imported')
+  );
+  const filteredFacts = episode.facts.filter(
+    (fact) => !fact.value.toLowerCase().includes('demo placeholder')
+  );
+  const directorsList = episode.director
+    ? episode.director
+        .split(/,\s+(?!Jr\.?|Sr\.?|II\b|III\b)/)
+        .map((item) => item.trim())
+        .filter(Boolean)
+    : [];
+  const introNotes = transcript?.intro || episode.transcriptNotes;
+  const transcriptSections = Array.isArray(transcript?.sections) ? transcript.sections : [];
+  const hasTranscript = transcriptSections.length > 0;
 
   return (
-    <div className="animate-rise mt-8 text-black">
+    <div className="animate-rise mt-8 text-[#1a1a1a]">
       {/* Top adjacent navigation */}
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b-4 border-black pb-3 mb-6 font-sans">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b-4 border-[#1a1a1a] pb-3 mb-6 font-sans">
         <button
           type="button"
           onClick={() => onNavigate({ page: 'catalog' })}
-          className="text-link hover:text-gray-700 focus:ring-2 focus:ring-black focus:outline-none"
+          className="text-link min-h-[44px] inline-flex items-center focus:ring-2 focus:ring-[#1a1a1a] focus:outline-none"
         >
           ← Back to catalog
         </button>
@@ -838,134 +924,174 @@ function EpisodePage({
             <button
               type="button"
               onClick={() => onNavigate({ page: 'episode', id: prevEpisode.id })}
-              className="hover:underline focus:ring-2 focus:ring-black focus:outline-none px-3.5 py-2 bg-white border-2 border-black shadow-[1.5px_1.5px_0px_0px_#000] active:translate-y-0.5 active:shadow-none min-h-[44px] inline-flex items-center justify-center"
+              className="hover:underline focus:ring-2 focus:ring-[#1a1a1a] focus:outline-none px-3.5 py-2 bg-white border-2 border-[#1a1a1a] shadow-[1.5px_1.5px_0px_0px_#1a1a1a] active:translate-y-0.5 active:shadow-none min-h-[44px] inline-flex items-center justify-center"
               aria-label={`Previous episode: ${formatEpisodeCode(prevEpisode)}, ${prevEpisode.title}`}
             >
               &larr; {formatEpisodeCode(prevEpisode)}
             </button>
           ) : (
-            <span className="text-gray-400 opacity-55 px-3.5 py-2 bg-gray-100 border-2 border-black min-h-[44px] inline-flex items-center justify-center select-none">
+            <span className="text-[#4a4a4a] opacity-65 px-3.5 py-2 bg-gray-100 border-2 border-[#1a1a1a] min-h-[44px] inline-flex items-center justify-center select-none">
               &larr; Start
             </span>
           )}
 
-          <span className="text-black select-none">/</span>
+          <span className="text-[#1a1a1a] select-none">/</span>
 
           {nextEpisode ? (
             <button
               type="button"
               onClick={() => onNavigate({ page: 'episode', id: nextEpisode.id })}
-              className="hover:underline focus:ring-2 focus:ring-black focus:outline-none px-3.5 py-2 bg-white border-2 border-black shadow-[1.5px_1.5px_0px_0px_#000] active:translate-y-0.5 active:shadow-none min-h-[44px] inline-flex items-center justify-center"
+              className="hover:underline focus:ring-2 focus:ring-[#1a1a1a] focus:outline-none px-3.5 py-2 bg-white border-2 border-[#1a1a1a] shadow-[1.5px_1.5px_0px_0px_#1a1a1a] active:translate-y-0.5 active:shadow-none min-h-[44px] inline-flex items-center justify-center"
               aria-label={`Next episode: ${formatEpisodeCode(nextEpisode)}, ${nextEpisode.title}`}
             >
               {formatEpisodeCode(nextEpisode)} &rarr;
             </button>
           ) : (
-            <span className="text-gray-400 opacity-55 px-3.5 py-2 bg-gray-100 border-2 border-black min-h-[44px] inline-flex items-center justify-center select-none font-bold">
+            <span className="text-[#4a4a4a] opacity-65 px-3.5 py-2 bg-gray-100 border-2 border-[#1a1a1a] min-h-[44px] inline-flex items-center justify-center select-none font-bold">
               End &rarr;
             </span>
           )}
         </div>
       </div>
 
-      {/* Compact Episode Identity */}
-      <div className="mb-6 font-sans">
-        <h1 className="text-2xl md:text-3xl font-black uppercase tracking-tight text-black">
-          {formatEpisodeCode(episode)}: {episode.title}
-        </h1>
-      </div>
-
       <div className="grid gap-8 lg:grid-cols-[360px_minmax(0,1fr)]">
         <aside className="space-y-6 w-full max-w-[360px] mx-auto lg:mx-0">
           <EpisodePoster episode={episode} ratingScale={dataset.ratingScale.label} size="detail" />
-          <SidePanel title="Watch status">
-            <div className="field w-full bg-gray-50 border-2 border-black p-3 rounded-md">
-              <span className="text-black font-bold">{STATUS_LABEL[episode.watchStatus]}</span>
-            </div>
-          </SidePanel>
         </aside>
 
         <section className="space-y-8">
           {/* Main info card */}
-          <div className="bg-white border-2 border-black rounded-lg p-6">
+          <div className="bg-white border-2 border-[#1a1a1a] rounded-lg p-6 shadow-[4px_4px_0_#1a1a1a]">
             <div className="flex flex-wrap items-start justify-between gap-4 border-b-2 border-dashed border-gray-300 pb-6">
               <div>
-                <button
-                  type="button"
-                  onClick={() => onNavigate({ page: 'catalog' })}
-                  className="text-link"
-                >
-                  Back to catalog
-                </button>
-                <p className="mt-4 text-sm font-black text-gray-500 uppercase">
+                <p className="text-sm font-black text-[#4a4a4a] uppercase">
                   <button
                     type="button"
                     onClick={() => onNavigate({ page: 'season', season: episode.season })}
-                    className="hover:text-pink-600 underline"
+                    className="hover:text-[#7a2b0f] underline min-h-[44px] inline-flex items-center"
                   >
                     Season {episode.season}
                   </button>{' '}
                   / Episode {episode.episodeNumber}
                 </p>
-                <h2 className="mt-2 text-3xl font-black uppercase text-black">{episode.title}</h2>
+                <h1 className="mt-1 text-3xl md:text-4xl uppercase text-[#1a1a1a]">
+                  {formatEpisodeCode(episode)}: {episode.title}
+                </h1>
               </div>
-              <div className="bg-yellow-200 border-2 border-black rounded-md px-5 py-4 text-right shadow-[2px_2px_0px_0px_#000]">
-                <p className="text-xs font-black uppercase tracking-[0.2em] text-gray-600">
-                  Average
+              <div className="bg-yellow-200 border-2 border-[#1a1a1a] rounded-md px-5 py-4 text-right shadow-[2px_2px_0px_0px_#1a1a1a]">
+                <p className="text-xs font-black uppercase tracking-[0.2em] text-[#4a4a4a]">
+                  Normalized Avg
                 </p>
-                <p className="mt-1 text-3xl font-black text-black">
-                  {average === null ? '--' : formatRating(average)} / {dataset.ratingScale.max}
+                <p className="mt-1 text-3xl font-black text-[#1a1a1a]">
+                  {average === null ? '--' : average.toFixed(1)} / 5
                 </p>
-                <p className="text-xs font-bold text-gray-500">{dataset.ratingScale.label}</p>
+                <a
+                  href="/glossary#arbitrary-rating-units"
+                  className="mt-1 inline-block text-xs font-bold text-[#1a6b6b] underline hover:text-[#7a2b0f]"
+                >
+                  Why the scales? &rarr; Glossary
+                </a>
               </div>
             </div>
 
             <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-              <Info label="Air date" value={episode.airDate} />
-              <Info label="Runtime" value={episode.runtime} />
-              <Info label="IMDb" value={episode.imdbRating} />
+              <Info label="Air date" value={episode.airDate || 'Unknown'} />
+              <Info label="Runtime" value={episode.runtime || '22 min'} />
+              <Info label="IMDb" value={episode.imdbRating || '--'} />
               <Info label="Status" value={STATUS_LABEL[episode.watchStatus]} />
             </div>
 
             <div className="mt-6 border-t-2 border-dashed border-gray-200 pt-6">
-              <p className="mb-2 text-xs font-black uppercase tracking-[0.35em] text-gray-500">
+              <p className="mb-2 text-xs font-black uppercase tracking-[0.35em] text-[#4a4a4a]">
                 Synopsis
               </p>
-              <p className="max-w-3xl text-sm font-bold leading-relaxed text-gray-700">
+              <p className="max-w-3xl text-sm font-medium leading-relaxed text-[#1a1a1a]">
                 {episode.summary}
               </p>
             </div>
-          </div>
 
-          <div className="grid gap-4 md:grid-cols-2">
-            <DetailList title="Cast" items={episode.cast} />
-            <DetailList title="Guest stars" items={episode.guestStars} />
-            <DetailList title="Writers" items={episode.writers} />
-            <DetailList title="Director" items={episode.director ? [episode.director] : []} />
-          </div>
+            {safePodcastUrl || safeYoutubeUrl || rssEmbed ? (
+              <div className="mt-6 border-t-2 border-dashed border-gray-200 pt-6 space-y-4">
+                <div className="flex flex-wrap gap-3">
+                  {safePodcastUrl ? (
+                    <a
+                      href={rssEmbed?.pageUrl ?? safePodcastUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="primary-button"
+                    >
+                      Listen to Episode
+                    </a>
+                  ) : null}
+                  {safeYoutubeUrl ? (
+                    <a
+                      href={safeYoutubeUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center justify-center min-h-[44px] px-5 py-2.5 rounded-md border-2 border-[#1a1a1a] bg-[#1a6b6b] text-white hover:bg-[#0f3f3f] text-sm font-bold uppercase tracking-wider shadow-[3px_3px_0_#1a1a1a] transition-colors"
+                    >
+                      Watch on YouTube
+                    </a>
+                  ) : null}
+                </div>
 
-          {episode.facts.length ? (
-            <SectionBlock title="Metadata">
-              <dl className="grid gap-4 sm:grid-cols-2">
-                {episode.facts.map((fact) => (
-                  <div
-                    key={`${fact.label}-${fact.value}`}
-                    className="flex justify-between gap-4 border-b border-gray-200 pb-3 font-bold text-sm"
-                  >
-                    <dt className="text-gray-500 font-black">{fact.label}</dt>
-                    <dd className="text-right text-black">{fact.value}</dd>
+                {rssEmbed ? (
+                  <div className="border-2 border-[#1a1a1a] rounded-lg bg-[#222226] p-3 shadow-[3px_3px_0_#1a1a1a]">
+                    <iframe
+                      src={rssEmbed.embedUrl}
+                      title={`Family Guy Guys podcast player: ${episode.title}`}
+                      loading="lazy"
+                      className="w-full h-[154px] rounded border-0 block"
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                      allowFullScreen
+                    />
                   </div>
-                ))}
-              </dl>
-            </SectionBlock>
-          ) : null}
+                ) : null}
+              </div>
+            ) : null}
+          </div>
+
+          <details className="episode-credits-dossier">
+            <summary className="dossier-summary">
+              <div className="dossier-summary-left">
+                <span className="dossier-kicker">Production Dossier</span>
+                <span className="dossier-title">Episode Credits &amp; Production Facts</span>
+              </div>
+              <span className="dossier-toggle-pill">
+                <span className="dossier-label-expand">Expand &#9662;</span>
+                <span className="dossier-label-collapse">Collapse &#9652;</span>
+              </span>
+            </summary>
+            <div className="dossier-body">
+              <div className="dossier-grid">
+                <DetailList title="Cast" items={episode.cast} variant="cast" />
+                <DetailList title="Guest stars" items={filteredGuestStars} variant="guests" />
+                <DetailList title="Writers" items={episode.writers} variant="writers" />
+                <DetailList title="Director" items={directorsList} variant="director" />
+              </div>
+
+              {filteredFacts.length ? (
+                <div className="dossier-facts-box">
+                  <div className="dossier-facts-header">Metadata &amp; Production Facts</div>
+                  <dl className="dossier-facts-grid">
+                    {filteredFacts.map((fact) => (
+                      <div key={`${fact.label}-${fact.value}`} className="dossier-fact-row">
+                        <dt className="dossier-fact-label">{fact.label}</dt>
+                        <dd className="dossier-fact-value">{fact.value}</dd>
+                      </div>
+                    ))}
+                  </dl>
+                </div>
+              ) : null}
+            </div>
+          </details>
 
           {/* Host ratings */}
           <div>
-            <div className="inline-block bg-[#F99F1B] border-2 border-black px-4 py-2 mb-6 shadow-[2px_2px_0px_0px_#000000] text-black">
-              <h3 className="text-xl font-black uppercase tracking-wide">
+            <div className="inline-block bg-[#e8841a] border-2 border-[#1a1a1a] px-4 py-2 mb-6 shadow-[2px_2px_0px_0px_#1a1a1a] text-[#1a1a1a]">
+              <h2 className="text-xl uppercase tracking-wide text-[#1a1a1a]">
                 HOST RATINGS FOR THIS EPISODE
-              </h3>
+              </h2>
             </div>
             <div className="space-y-6">
               {episode.reviews.map((review) => {
@@ -986,12 +1112,146 @@ function EpisodePage({
           {/* Visitor Reviews Feed & Composer */}
           <VisitorReviewsSection episodeId={episode.id} />
 
+          {/* Spoken Transcript Section */}
+          <section className="episode-transcript-container" aria-label="Episode Transcript">
+            {introNotes ? (
+              <div className="episode-editorial-intro" aria-label="Transcript Overview">
+                <h2 className="intro-heading">Transcript Overview &amp; Notes</h2>
+                <p className="intro-text">{introNotes}</p>
+              </div>
+            ) : null}
+            {transcriptLoading ? (
+              <div className="episode-transcript-wrapper" role="status" aria-live="polite">
+                <div className="transcript-header-bar">
+                  <h2 className="transcript-section-title">Full Spoken Podcast Transcript</h2>
+                </div>
+                <div className="no-transcript-fallback">
+                  <p className="no-transcript-msg">Loading full episode transcript…</p>
+                  <p className="no-transcript-sub">
+                    Fetching timestamped conversation logs from the Family Guy Guys archive.
+                  </p>
+                </div>
+              </div>
+            ) : hasTranscript ? (
+              <details
+                className="episode-transcript-wrapper transcript-collapse"
+                id="transcript-details"
+              >
+                <summary className="transcript-header-bar transcript-summary">
+                  <h2 className="transcript-section-title">Full Spoken Podcast Transcript</h2>
+                  <div className="transcript-summary-meta">
+                    <span className="transcript-wordcount">
+                      {transcript?.word_count
+                        ? `${transcript.word_count.toLocaleString()} words`
+                        : 'Full Length'}
+                    </span>
+                    <span className="transcript-expand-badge">
+                      <span className="transcript-expand-text">Read Transcript</span>
+                      <span className="transcript-expand-icon" aria-hidden="true">
+                        &#9662;
+                      </span>
+                    </span>
+                  </div>
+                </summary>
+                <div className="transcript-body" id="prerendered-transcript">
+                  <div className="transcript-layout-grid">
+                    {transcriptSections.length > 1 ? (
+                      <aside className="transcript-toc" aria-label="Transcript Topics">
+                        <details className="toc-mobile-details" open>
+                          <summary className="toc-summary">
+                            <span className="toc-title">Episode Topics</span>
+                            <span className="toc-badge">{transcriptSections.length} topics</span>
+                            <span className="toc-chevron" aria-hidden="true">
+                              &#9662;
+                            </span>
+                          </summary>
+                          <ul className="toc-list">
+                            {transcriptSections.map((sec) => (
+                              <li key={sec.id}>
+                                <a href={`#${sec.id}`} className="toc-link">
+                                  <span className="toc-time">
+                                    {formatSeconds(sec.start_seconds ?? 0)}
+                                  </span>
+                                  <span className="toc-heading">{sec.heading}</span>
+                                </a>
+                              </li>
+                            ))}
+                          </ul>
+                        </details>
+                      </aside>
+                    ) : null}
+
+                    <div className="transcript-sections-list">
+                      {transcriptSections.map((section) => (
+                        <section
+                          key={section.id}
+                          id={section.id}
+                          className="transcript-section-block"
+                          aria-labelledby={`heading-${section.id}`}
+                        >
+                          <div className="section-meta-header">
+                            <h3 id={`heading-${section.id}`} className="section-title">
+                              {section.heading}
+                            </h3>
+                            <span className="section-time-range">
+                              {formatSeconds(section.start_seconds ?? 0)} –{' '}
+                              {formatSeconds(section.end_seconds ?? 0)}
+                            </span>
+                          </div>
+                          <div className="section-entries">
+                            {(section.entries || []).map((entry, idx) => {
+                              const speakerName = entry.speaker || 'Host';
+                              const speakerSlug = speakerName
+                                .toLowerCase()
+                                .replace(/[^a-z0-9]/g, '');
+                              return (
+                                <div
+                                  key={`${section.id}-e${idx}`}
+                                  className={`dialogue-entry speaker-${speakerSlug}`}
+                                >
+                                  <div className="entry-header">
+                                    <span className="speaker-label">{speakerName}</span>
+                                    <span className="timestamp-label">
+                                      {formatSeconds(entry.start_seconds ?? 0)}
+                                    </span>
+                                  </div>
+                                  <div className="dialogue-content">
+                                    <p>{entry.text}</p>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </section>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </details>
+            ) : (
+              <div className="episode-transcript-wrapper">
+                <div className="transcript-header-bar">
+                  <h2 className="transcript-section-title">Full Spoken Podcast Transcript</h2>
+                </div>
+                <div className="no-transcript-fallback">
+                  <p className="no-transcript-msg">
+                    The full transcribed conversation for this episode is currently being curated.
+                  </p>
+                  <p className="no-transcript-sub">
+                    Listen to the complete audio discussion above, or explore other reviewed
+                    episodes.
+                  </p>
+                </div>
+              </div>
+            )}
+          </section>
+
           {/* Bottom adjacent navigation */}
-          <div className="mt-12 pt-6 border-t-4 border-black flex flex-wrap items-center justify-between gap-4 font-sans">
+          <div className="mt-12 pt-6 border-t-4 border-[#1a1a1a] flex flex-wrap items-center justify-between gap-4 font-sans">
             <button
               type="button"
               onClick={() => onNavigate({ page: 'catalog' })}
-              className="text-link hover:text-gray-700 focus:ring-2 focus:ring-black focus:outline-none"
+              className="text-link min-h-[44px] inline-flex items-center focus:ring-2 focus:ring-[#1a1a1a] focus:outline-none"
             >
               ← Back to catalog
             </button>
@@ -1000,7 +1260,7 @@ function EpisodePage({
                 <button
                   type="button"
                   onClick={() => onNavigate({ page: 'episode', id: prevEpisode.id })}
-                  className="px-3.5 py-2.5 border-2 border-black hover:bg-yellow-50 bg-white shadow-[2px_2px_0px_0px_#000] active:translate-y-0.5 active:shadow-none min-h-[44px] inline-flex items-center justify-center focus:ring-2 focus:ring-black focus:outline-none max-w-full min-w-0"
+                  className="px-3.5 py-2.5 border-2 border-[#1a1a1a] hover:bg-yellow-50 bg-white shadow-[2px_2px_0px_0px_#1a1a1a] active:translate-y-0.5 active:shadow-none min-h-[44px] inline-flex items-center justify-center focus:ring-2 focus:ring-[#1a1a1a] focus:outline-none max-w-full min-w-0"
                   aria-label={`Previous episode: ${formatEpisodeCode(prevEpisode)}, ${prevEpisode.title}`}
                 >
                   <span className="flex-shrink-0">
@@ -1015,7 +1275,7 @@ function EpisodePage({
                 <button
                   type="button"
                   onClick={() => onNavigate({ page: 'episode', id: nextEpisode.id })}
-                  className="px-3.5 py-2.5 border-2 border-black hover:bg-yellow-50 bg-white shadow-[2px_2px_0px_0px_#000] active:translate-y-0.5 active:shadow-none min-h-[44px] inline-flex items-center justify-center focus:ring-2 focus:ring-black focus:outline-none max-w-full min-w-0"
+                  className="px-3.5 py-2.5 border-2 border-[#1a1a1a] hover:bg-yellow-50 bg-white shadow-[2px_2px_0px_0px_#1a1a1a] active:translate-y-0.5 active:shadow-none min-h-[44px] inline-flex items-center justify-center focus:ring-2 focus:ring-[#1a1a1a] focus:outline-none max-w-full min-w-0"
                   aria-label={`Next episode: ${formatEpisodeCode(nextEpisode)}, ${nextEpisode.title}`}
                 >
                   <span className="hidden sm:inline truncate max-w-[240px]">
@@ -1050,9 +1310,7 @@ function HostReviewRow({
   const theme = getHostTheme(host.id);
   const [imgError, setImgError] = useState(false);
 
-  const scaleMax = review.ratingScaleMax || 5;
-  const terminology = review.ratingTerminology || ratingLabel;
-  const ratingVal = review.rating !== null ? (review.rating / 5) * scaleMax : null;
+  const ratingDisplay = getNativeRatingDisplay(review, ratingLabel);
 
   const initials = name
     .split(/\s+/)
@@ -1062,7 +1320,7 @@ function HostReviewRow({
     .toUpperCase();
 
   return (
-    <div className="flex flex-col sm:flex-row gap-4 items-start bg-white border-2 border-black rounded-lg p-4 transition-transform duration-100">
+    <div className="flex flex-col sm:flex-row gap-4 items-start bg-white border-2 border-[#1a1a1a] rounded-lg p-4 transition-transform duration-100">
       <div className="flex-shrink-0 self-start">
         {photoUrl && !imgError ? (
           <img
@@ -1073,69 +1331,79 @@ function HostReviewRow({
           />
         ) : (
           <div
-            className={`w-20 h-20 grid place-items-center border-2 border-black font-black overflow-hidden relative ${theme.textClass}`}
+            className={`w-20 h-20 grid place-items-center border-2 border-[#1a1a1a] font-black overflow-hidden relative ${theme.textClass}`}
             style={{ backgroundColor: theme.fallbackBg }}
           >
             <span className="absolute inset-0 flex items-center justify-center bg-transparent z-0">
               {initials}
             </span>
-            <div className="absolute bottom-0 inset-x-0 bg-black text-white text-[8px] font-black uppercase text-center py-0.5 tracking-wider leading-none z-10">
+            <div className="absolute bottom-0 inset-x-0 bg-[#1a1a1a] text-white text-xs font-black uppercase text-center py-0.5 tracking-wider leading-none z-10">
               {name.split(' ')[0].toUpperCase()}
             </div>
           </div>
         )}
       </div>
 
-      <div className="flex-grow w-full text-black">
+      <div className="flex-grow w-full text-[#1a1a1a]">
         <div
-          className={`border-2 border-black p-2 mb-2.5 flex flex-wrap items-center justify-between rounded-md ${theme.bgClass}`}
+          className={`border-2 border-[#1a1a1a] p-2 mb-2.5 flex flex-wrap items-center justify-between rounded-md ${theme.bgClass}`}
         >
           <span className="font-black text-xs uppercase tracking-wider">
             {name.split(' ')[0]}'S METRIC
           </span>
-          <div className="flex items-center gap-1">
-            {ratingVal === null ? (
-              <span className="bg-black text-white font-black text-[10px] px-1.5 py-0.5 border border-white leading-none">
-                Not Rated
-              </span>
-            ) : scaleMax === 100 ? (
-              <div className="flex items-center gap-1.5">
-                <div className="w-16 bg-white border border-black h-2.5 relative overflow-hidden">
-                  <div
-                    className="bg-pink-500 h-full border-r border-black"
-                    style={{ width: `${ratingVal}%` }}
-                  />
-                </div>
-                <span className="bg-black text-white font-black text-[10px] px-1.5 py-0.5 border border-white leading-none">
-                  {formatRating(ratingVal)}/100 {terminology}
-                </span>
-              </div>
-            ) : (
-              <div className="flex items-center gap-1">
-                {[1, 2, 3, 4, 5].map((s) => (
-                  <Star
-                    key={s}
-                    size={14}
-                    fill={s <= Math.round(ratingVal) ? '#ffffff' : 'transparent'}
-                    className="stroke-[2.5] text-black"
-                  />
-                ))}
-                <span className="bg-black text-white font-black text-[10px] px-1.5 py-0.5 ml-1 border border-white leading-none">
-                  {formatRating(ratingVal)}/5 {terminology}
-                </span>
-              </div>
-            )}
-          </div>
+          <HostScoreDisplay ratingDisplay={ratingDisplay} />
         </div>
         {review.pullQuote && (
-          <p className="mb-1 text-xs font-black text-pink-600 leading-normal">
+          <p className="mb-1 text-xs font-black text-[#7a2b0f] leading-normal">
             "{review.pullQuote}"
           </p>
         )}
-        <p className="font-bold text-xs md:text-sm leading-relaxed text-gray-800 whitespace-pre-wrap">
+        <p className="font-medium text-xs md:text-sm leading-relaxed text-[#1a1a1a] whitespace-pre-wrap">
           {review.review || 'No review yet.'}
         </p>
       </div>
+    </div>
+  );
+}
+
+function HostScoreDisplay({
+  ratingDisplay,
+}: {
+  ratingDisplay: ReturnType<typeof getNativeRatingDisplay>;
+}) {
+  return (
+    <div className="flex items-center gap-1 shrink-0">
+      {ratingDisplay.value === null ? (
+        <span className="bg-[#1a1a1a] text-white font-black text-xs px-2 py-0.5 border border-white leading-none">
+          Not Rated
+        </span>
+      ) : ratingDisplay.scaleMax === 100 ? (
+        <div className="flex items-center gap-1.5">
+          <div className="w-16 bg-white border border-[#1a1a1a] h-2.5 relative overflow-hidden">
+            <div
+              className="bg-[#ff72c7] h-full border-r border-[#1a1a1a]"
+              style={{ width: `${Math.min(100, Math.max(0, ratingDisplay.value))}%` }}
+            />
+          </div>
+          <span className="bg-[#1a1a1a] text-white font-black text-xs px-2 py-0.5 border border-white leading-none">
+            {ratingDisplay.formatted}
+          </span>
+        </div>
+      ) : (
+        <div className="flex items-center gap-1">
+          {[1, 2, 3, 4, 5].map((s) => (
+            <Star
+              key={s}
+              size={14}
+              fill={s <= Math.round(ratingDisplay.value!) ? '#ffffff' : 'transparent'}
+              className="stroke-[2.5] text-[#1a1a1a]"
+            />
+          ))}
+          <span className="bg-[#1a1a1a] text-white font-black text-xs px-2 py-0.5 ml-1 border border-white leading-none">
+            {ratingDisplay.formatted}
+          </span>
+        </div>
+      )}
     </div>
   );
 }
@@ -1149,54 +1417,51 @@ function SeasonPage({
   season: number;
   onNavigate: (route: Route) => void;
 }) {
+  const statusCounts = countSeasonStatuses(dataset.episodes, season);
   const episodes = dataset.episodes
     .filter((episode) => episode.season === season)
     .filter((episode) => episode.watchStatus === 'published')
     .sort(compareEpisodes);
-  const average = averageRating(episodes.flatMap((episode) => episode.reviews));
 
   return (
     <div className="animate-rise mt-4">
       <div className="mb-4">
-        <button type="button" onClick={() => onNavigate({ page: 'catalog' })} className="text-link">
+        <button
+          type="button"
+          onClick={() => onNavigate({ page: 'catalog' })}
+          className="text-link min-h-[44px] inline-flex items-center"
+        >
           &larr; Back to catalog
         </button>
       </div>
-      <header className="mb-6 border-b-4 border-black pb-4">
-        <h1
-          className="text-4xl md:text-6xl font-black uppercase tracking-tight select-none font-sans leading-none cursor-pointer hover:text-gray-700"
-          onClick={() => onNavigate({ page: 'catalog' })}
-        >
-          REVIEWS
-        </h1>
-        <p className="mt-2 text-md md:text-lg font-bold bg-white inline-block border-2 border-black px-3 py-1 shadow-[3px_3px_0px_0px_#000000] uppercase font-sans">
+      <header className="mb-6 border-b-4 border-[#1a1a1a] pb-4">
+        <h1 className="text-4xl md:text-6xl uppercase tracking-tight leading-none">
           Season {season}
-        </p>
+        </h1>
       </header>
+      <h2 className="sr-only">Season status counts</h2>
       <div className="mt-6 grid gap-4 sm:grid-cols-4">
         {STATUS_ORDER.map((status) => (
-          <Info
-            key={status}
-            label={STATUS_LABEL[status]}
-            value={String(episodes.filter((episode) => episode.watchStatus === status).length)}
-          />
+          <Info key={status} label={STATUS_LABEL[status]} value={String(statusCounts[status])} />
         ))}
       </div>
-      <div className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+      <h2 className="mt-10 text-2xl uppercase tracking-tight">Published Episodes</h2>
+      <div className="mt-4 grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
         {episodes.map((episode) => (
           <EpisodeTile
             key={episode.id}
             episode={episode}
             ratingLabel={dataset.ratingScale.label}
             onOpen={() => onNavigate({ page: 'episode', id: episode.id })}
-            // onStatus retired
           />
         ))}
       </div>
       {!episodes.length ? (
         <EmptyState
-          title="Season not found"
-          copy="No episodes are published for this season yet."
+          title="No published episodes yet"
+          copy="Check back soon — no episodes are published for this season yet."
+          actionLabel="Back to catalog"
+          onAction={() => onNavigate({ page: 'catalog' })}
         />
       ) : null}
     </div>
@@ -1212,14 +1477,18 @@ function HostPage({
   hostId: string;
   onNavigate: (route: Route) => void;
 }) {
-  const host = dataset.cohosts.find((item) => item.id === hostId);
-  if (!host)
+  const host = findHostByRouteId(dataset.cohosts, hostId, COHOST_NAME_MAP);
+  if (!host) {
     return (
       <EmptyState
         title="Host not found"
         copy="This profile does not exist in the loaded dataset."
+        actionLabel="Back to catalog"
+        onAction={() => onNavigate({ page: 'catalog' })}
+        headingLevel="h1"
       />
     );
+  }
 
   const hostReviews = dataset.episodes
     .map((episode) => ({
@@ -1228,98 +1497,174 @@ function HostPage({
     }))
     .filter((item): item is { episode: Episode; review: Review } => Boolean(item.review))
     .filter((item) => item.episode.watchStatus === 'published');
-  const ratings = hostReviews
-    .map((item) => item.review.rating)
-    .filter((rating): rating is number => rating !== null);
-  const average = ratings.length
-    ? ratings.reduce((sum, rating) => sum + rating, 0) / ratings.length
-    : null;
+
+  const average = computeNormalizedAverage(hostReviews.map((item) => item.review));
 
   const mapped =
     COHOST_NAME_MAP[host.id.toLowerCase()] || COHOST_NAME_MAP[host.name?.toLowerCase()];
   const name = mapped?.name ?? host.name;
   const role = mapped?.role ?? host.role;
+  const firstName = name.split(' ')[0];
+  const theme = getHostTheme(host.id);
+  const otherCohosts = dataset.cohosts.filter((item) => item.id !== host.id);
 
   return (
     <div className="animate-rise mt-4">
       <div className="mb-4">
-        <button type="button" onClick={() => onNavigate({ page: 'catalog' })} className="text-link">
+        <button
+          type="button"
+          onClick={() => onNavigate({ page: 'catalog' })}
+          className="text-link min-h-[44px] inline-flex items-center"
+        >
           &larr; Back to catalog
         </button>
       </div>
-      <div className="grid gap-8 lg:grid-cols-[320px_minmax(0,1fr)]">
+      <div className="grid gap-8 lg:grid-cols-[330px_minmax(0,1fr)] items-start">
         <aside>
-          <div className="border-2 border-black rounded-lg bg-white p-6 text-black">
-            <div className="flex justify-center mb-5">
-              <Avatar host={host} large />
+          <div className="border-2 border-[#1a1a1a] rounded-xl bg-white text-[#1a1a1a] shadow-[4px_4px_0_#1a1a1a] overflow-hidden">
+            <div className={`${theme.bgClass} border-b-2 border-[#1a1a1a] p-6 text-center`}>
+              <div className="w-24 h-24 mx-auto mb-4 rounded-xl border-2 border-[#1a1a1a] bg-white shadow-[3px_3px_0_#1a1a1a] overflow-hidden flex items-center justify-center">
+                <Avatar host={host} large />
+              </div>
+              <h2 className="text-3xl uppercase text-white tracking-wide leading-tight">{name}</h2>
+              <span className="inline-block mt-2 bg-[#1a1a1a] text-white text-xs font-black uppercase tracking-widest px-3 py-1 rounded border border-white leading-none">
+                {role}
+              </span>
             </div>
-            <h2 className="text-3xl font-black uppercase text-black leading-tight text-center">
-              {name}
-            </h2>
-            <p className="mt-1 font-bold text-pink-600 uppercase text-sm leading-none text-center">
-              {role}
-            </p>
-            <p className="mt-4 text-xs font-bold leading-relaxed text-gray-700">{host.bio}</p>
-            <div className="mt-6 grid grid-cols-2 gap-3">
-              <Info label="Reviews" value={String(hostReviews.length)} />
-              <Info label="Average" value={average === null ? '--' : average.toFixed(1)} />
+
+            <div className="p-5 sm:p-6 bg-white space-y-5">
+              {host.bio ? (
+                <div className="bg-[#f5f4f0] border-2 border-[#1a1a1a] rounded-lg p-4 text-sm sm:text-base font-bold leading-relaxed text-[#1a1a1a] text-center shadow-[2px_2px_0_#1a1a1a]">
+                  "{host.bio}"
+                </div>
+              ) : null}
+
+              <div className="grid grid-cols-2 gap-3 items-stretch">
+                <Info label="Reviews" value={String(hostReviews.length)} />
+                <div className="flex flex-col justify-between min-h-[88px] bg-yellow-200 border-2 border-[#1a1a1a] rounded-lg p-3.5 shadow-[2px_2px_0_#1a1a1a] text-[#1a1a1a]">
+                  <p className="text-xs font-black uppercase tracking-wider text-[#4a4a4a] leading-tight">
+                    Normalized Avg
+                  </p>
+                  <p className="mt-auto pt-2 text-2xl font-black text-[#1a1a1a] leading-none">
+                    {average === null ? '--' : `${average.toFixed(1)} / 5`}
+                  </p>
+                </div>
+              </div>
+
+              {otherCohosts.length > 0 ? (
+                <div className="pt-4" style={{ borderTop: '2px dashed #d1d5db' }}>
+                  <p className="text-xs font-black uppercase tracking-[0.2em] text-[#4a4a4a] mb-2.5">
+                    Other Hosts
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {otherCohosts.map((other) => {
+                      const otherMapped =
+                        COHOST_NAME_MAP[other.id.toLowerCase()] ||
+                        COHOST_NAME_MAP[other.name?.toLowerCase()];
+                      const otherName = (otherMapped?.name ?? other.name).split(' ')[0];
+                      const otherTheme = getHostTheme(other.id);
+                      return (
+                        <button
+                          key={other.id}
+                          type="button"
+                          onClick={() => onNavigate({ page: 'host', id: other.id })}
+                          className={`min-h-[44px] flex-1 px-3 py-2 rounded-md border-2 border-[#1a1a1a] font-bold text-xs uppercase tracking-wider shadow-[2px_2px_0_#1a1a1a] hover:translate-y-[-1px] transition-transform ${otherTheme.bgClass}`}
+                        >
+                          {otherName}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              ) : null}
             </div>
           </div>
         </aside>
+
         <section>
-          <header className="mb-6 border-b-4 border-black pb-4">
-            <h1
-              className="text-4xl md:text-6xl font-black uppercase tracking-tight select-none font-sans leading-none cursor-pointer hover:text-gray-700"
-              onClick={() => onNavigate({ page: 'catalog' })}
-            >
-              REVIEWS
-            </h1>
-            <p className="mt-2 text-md md:text-lg font-bold bg-white inline-block border-2 border-black px-3 py-1 shadow-[3px_3px_0px_0px_#000000] uppercase font-sans">
-              {name.split(' ')[0]}'s Reviews
-            </p>
-          </header>
-          <div className="mt-6 divide-y-2 divide-dashed divide-gray-300 border-y-2 border-dashed border-gray-300">
-            {hostReviews.map(({ episode, review }) => (
-              <button
-                key={episode.id}
-                type="button"
-                onClick={() => onNavigate({ page: 'episode', id: episode.id })}
-                className="grid w-full gap-4 py-5 text-left transition hover:bg-white/50 px-2 sm:grid-cols-[120px_minmax(0,1fr)_90px] text-black"
+          <header className="bg-white border-2 border-[#1a1a1a] rounded-xl p-5 sm:p-6 shadow-[4px_4px_0_#1a1a1a] mb-6 flex flex-wrap items-center justify-between gap-4">
+            <div>
+              <span
+                className={`inline-block px-3 py-1 rounded border-2 border-[#1a1a1a] text-xs font-black uppercase tracking-widest mb-2 ${theme.bgClass}`}
               >
-                <EpisodePoster
-                  episode={episode}
-                  ratingScale={dataset.ratingScale.label}
-                  size="mini"
-                />
-                <div>
-                  <p className="text-xs font-black uppercase tracking-[0.32em] text-gray-500">
-                    {formatEpisodeCode(episode)}
-                  </p>
-                  <h3 className="mt-1 text-lg font-black text-black uppercase leading-tight">
-                    {episode.title}
-                  </h3>
-                  <p className="mt-2 line-clamp-2 text-xs font-bold leading-relaxed text-gray-600">
-                    {review.pullQuote || review.review || 'No review yet.'}
-                  </p>
-                </div>
-                <div className="text-right">
-                  <p className="text-2xl font-black text-black leading-none">
-                    {review.rating == null ? '--' : review.rating.toFixed(1)}
-                  </p>
-                  <p className="text-xs font-bold text-gray-500 uppercase mt-1">
-                    {dataset.ratingScale.label}
-                  </p>
-                </div>
-              </button>
-            ))}
+                Host Critique Log
+              </span>
+              <h1 className="text-3xl md:text-5xl uppercase tracking-tight leading-none text-[#1a1a1a]">
+                {firstName}'s Reviews
+              </h1>
+            </div>
+            <div className="bg-[#f5f4f0] border-2 border-[#1a1a1a] rounded-lg px-4 py-2.5 text-center shadow-[2px_2px_0_#1a1a1a]">
+              <p className="text-xs font-black uppercase tracking-wider text-[#4a4a4a]">Logged</p>
+              <p className="text-2xl font-black text-[#1a1a1a] leading-none mt-1">
+                {hostReviews.length}
+              </p>
+            </div>
+          </header>
+
+          <h2 className="sr-only">Reviewed Episodes</h2>
+          <div className="space-y-4">
+            {hostReviews.map(({ episode, review }) => {
+              const display = getNativeRatingDisplay(review, dataset.ratingScale.label);
+              const thumbSrc =
+                (episode.thumbnailStatus === 'uploaded' || episode.thumbnailStatus === 'manual') &&
+                episode.thumbnailUrl
+                  ? episode.thumbnailUrl
+                  : null;
+              return (
+                <button
+                  key={episode.id}
+                  type="button"
+                  onClick={() => onNavigate({ page: 'episode', id: episode.id })}
+                  className="group flex flex-col sm:flex-row gap-4 w-full text-left bg-white border-2 border-[#1a1a1a] rounded-xl p-4 sm:p-5 shadow-[4px_4px_0_#1a1a1a] hover:translate-x-[-1px] hover:translate-y-[-1px] hover:shadow-[5px_5px_0_#1a1a1a] transition-all text-[#1a1a1a]"
+                >
+                  <div className="w-full sm:w-44 aspect-video rounded-lg border-2 border-[#1a1a1a] overflow-hidden bg-[#f5f4f0] shrink-0 shadow-[2px_2px_0_#1a1a1a] flex items-center justify-center">
+                    {thumbSrc ? (
+                      <img
+                        src={thumbSrc}
+                        alt={`Family Guy — ${episode.title}`}
+                        className="w-full h-full object-cover"
+                        loading="lazy"
+                      />
+                    ) : (
+                      <span className="text-xs font-black uppercase tracking-widest text-[#4a4a4a]">
+                        {formatEpisodeCode(episode)}
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="flex-1 min-w-0">
+                    <div
+                      className={`border-2 border-[#1a1a1a] rounded-md px-3 py-2 mb-3 flex flex-wrap items-center justify-between gap-2 ${theme.bgClass}`}
+                    >
+                      <h3 className="text-sm sm:text-base font-black uppercase leading-tight text-white">
+                        {formatEpisodeCode(episode)}: {episode.title}
+                      </h3>
+                      <HostScoreDisplay ratingDisplay={display} />
+                    </div>
+
+                    {review.pullQuote ? (
+                      <p className="mb-1.5 text-sm font-black text-[#7a2b0f] leading-snug">
+                        "{review.pullQuote}"
+                      </p>
+                    ) : null}
+
+                    <p className="text-sm font-medium leading-relaxed text-[#1a1a1a] line-clamp-3">
+                      {review.review || 'No review yet.'}
+                    </p>
+
+                    <p className="mt-3 text-xs font-black uppercase tracking-wider text-[#1a6b6b] group-hover:text-[#7a2b0f]">
+                      Read Full Episode Review &rarr;
+                    </p>
+                  </div>
+                </button>
+              );
+            })}
           </div>
         </section>
       </div>
     </div>
   );
 }
-
-// PipelinePage retired
 
 function EpisodePoster({
   episode,
@@ -1330,8 +1675,7 @@ function EpisodePoster({
   ratingScale: string;
   size?: 'card' | 'hero' | 'detail' | 'mini';
 }) {
-  const colors = posterColors(episode.id);
-  const average = averageRating(episode.reviews);
+  const average = computeNormalizedAverage(episode.reviews);
   const [imageFailed, setImageFailed] = useState(false);
 
   const thumbnailUrl =
@@ -1343,17 +1687,12 @@ function EpisodePoster({
 
   if (size === 'mini') {
     return (
-      <div
-        className="relative overflow-hidden border-2 border-black p-2 bg-white w-[90px] h-[120px] flex flex-col justify-between text-black rounded-md shrink-0"
-        style={{
-          background: `linear-gradient(145deg, #ffffff, #f5f4f0 62%, ${colors[2]}22)`,
-        }}
-      >
-        <div className="text-[8px] font-black uppercase text-black/60 leading-none">
+      <div className="relative overflow-hidden border-2 border-[#1a1a1a] p-2 bg-white w-[116px] min-h-[120px] flex flex-col justify-between text-[#1a1a1a] rounded-md shrink-0 shadow-[2px_2px_0_#1a1a1a]">
+        <div className="text-xs font-black uppercase text-[#4a4a4a] leading-none">
           {formatEpisodeCode(episode)}
         </div>
 
-        <div className="h-10 w-full border border-black/35 bg-[#f5f4f0] overflow-hidden relative my-0.5 flex items-center justify-center rounded">
+        <div className="h-10 w-full border border-[#1a1a1a] bg-[#f5f4f0] overflow-hidden relative my-1 flex items-center justify-center rounded">
           {thumbnailUrl ? (
             <img
               src={thumbnailUrl}
@@ -1367,7 +1706,7 @@ function EpisodePoster({
               fill="none"
               stroke="currentColor"
               strokeWidth="2.5"
-              className="w-4 h-4 text-black/30"
+              className="w-4 h-4 text-[#4a4a4a]"
               aria-hidden="true"
             >
               <rect x="2" y="7" width="20" height="15" rx="2" ry="2" />
@@ -1376,41 +1715,33 @@ function EpisodePoster({
           )}
         </div>
 
-        <h3 className="text-[9px] font-black leading-tight text-black uppercase truncate w-full">
+        <h3 className="text-xs font-black leading-tight text-[#1a1a1a] uppercase truncate w-full">
           {episode.title}
         </h3>
 
-        <div className="border-t border-black/15 pt-0.5 text-[8px] text-black/75 font-bold flex justify-between items-center leading-none">
+        <div className="border-t border-black/15 pt-1 text-xs text-[#4a4a4a] font-bold flex justify-between items-center leading-none">
           <span>
-            {average === null ? '--' : average.toFixed(1)} {ratingScale.slice(0, 3)}
+            {average === null ? '--' : average.toFixed(1)}/5 {ratingScale.slice(0, 3)}
           </span>
         </div>
       </div>
     );
   }
 
-  const sizeClass =
-    size === 'hero' ? 'aspect-[4/5]' : size === 'detail' ? 'aspect-[4/5]' : 'aspect-[4/5]';
-
-  const titleClass = size === 'hero' || size === 'detail' ? 'text-3xl' : 'text-2xl';
+  const titleClass = size === 'hero' || size === 'detail' ? 'text-2xl' : 'text-xl';
 
   return (
-    <div
-      className={`poster-shine relative overflow-hidden border-2 border-black p-3.5 rounded-lg bg-white ${sizeClass}`}
-      style={{
-        background: `radial-gradient(circle at 20% 18%, ${colors[0]}33, transparent 32%), radial-gradient(circle at 80% 70%, ${colors[1]}33, transparent 35%), linear-gradient(145deg, #ffffff, #f5f4f0 62%, ${colors[2]}22)`,
-      }}
-    >
-      <div className="absolute inset-x-3.5 top-3.5 flex items-center justify-between text-xs font-extrabold uppercase tracking-[0.28em] text-black/60">
+    <div className="poster-shine relative overflow-hidden border-2 border-[#1a1a1a] p-3.5 rounded-lg bg-white aspect-[4/5] shadow-[3px_3px_0_#1a1a1a] flex flex-col justify-between text-[#1a1a1a]">
+      <div className="flex items-center justify-between text-xs font-extrabold uppercase tracking-[0.2em] text-[#4a4a4a]">
         <span>{formatEpisodeCode(episode)}</span>
 
-        <span className="bg-black text-white px-1.5 py-0.5 border border-black font-black rounded">
+        <span className="bg-[#1a1a1a] text-white px-1.5 py-0.5 border border-[#1a1a1a] font-black rounded">
           {STATUS_LABEL[episode.watchStatus]}
         </span>
       </div>
 
-      <div className="absolute inset-x-3.5 bottom-3.5 text-black">
-        <div className="mb-3 aspect-[16/9] w-full border-2 border-black bg-[#f5f4f0] overflow-hidden relative flex items-center justify-center rounded">
+      <div className="text-[#1a1a1a]">
+        <div className="mb-3 aspect-[16/9] w-full border-2 border-[#1a1a1a] bg-[#f5f4f0] overflow-hidden relative flex items-center justify-center rounded">
           {thumbnailUrl ? (
             <img
               src={thumbnailUrl}
@@ -1429,7 +1760,7 @@ function EpisodePoster({
                 fill="none"
                 stroke="currentColor"
                 strokeWidth="2.5"
-                className="w-10 h-10 text-black/30"
+                className="w-10 h-10 text-[#4a4a4a]"
               >
                 <rect x="2" y="7" width="20" height="15" rx="2" ry="2" />
                 <polyline points="17 2 12 7 7 2" />
@@ -1438,126 +1769,74 @@ function EpisodePoster({
           )}
         </div>
 
-        <h3
-          className={`${titleClass} max-w-[92%] font-black leading-[0.95] tracking-[-0.05em] text-black uppercase`}
-        >
-          {episode.title}
-        </h3>
+        {size === 'detail' ? (
+          <p className={`${titleClass} font-black leading-tight text-[#1a1a1a] uppercase`}>
+            {episode.title}
+          </p>
+        ) : (
+          <h3 className={`${titleClass} font-black leading-tight text-[#1a1a1a] uppercase`}>
+            {episode.title}
+          </h3>
+        )}
 
-        <div className="mt-4 flex items-center justify-between gap-4 border-t-2 border-black/15 pt-4 text-sm text-black/75 font-bold">
+        <div className="mt-4 flex items-center justify-between gap-4 border-t-2 border-black/15 pt-3 text-sm text-[#4a4a4a] font-bold">
           <span>{episode.airDate}</span>
 
-          <span>
-            {average === null ? '--' : average.toFixed(1)} {ratingScale}
-          </span>
+          <span>{average === null ? '--' : `${average.toFixed(1)} / 5`}</span>
         </div>
       </div>
     </div>
   );
 }
 
-function StatusBadge({ status }: { status: WatchStatus }) {
-  return <span className={`status-tag status-${status}`}>{STATUS_LABEL[status]}</span>;
-}
-
 function Info({ label, value }: { label: string; value: string }) {
   return (
-    <div className="bg-white border-2 border-black rounded-md p-4 text-black">
-      <p className="text-[11px] font-black uppercase tracking-[0.3em] text-gray-500">{label}</p>
-      <p className="mt-1 font-extrabold text-black">{value}</p>
+    <div className="flex flex-col justify-between min-h-[88px] bg-[#f5f4f0] border-2 border-[#1a1a1a] rounded-lg p-3.5 shadow-[2px_2px_0_#1a1a1a] text-[#1a1a1a]">
+      <p className="text-xs font-black uppercase tracking-wider text-[#4a4a4a] leading-tight">
+        {label}
+      </p>
+      <p className="mt-auto pt-2 text-lg font-extrabold text-[#1a1a1a] leading-snug">{value}</p>
     </div>
-  );
-}
-
-function SectionIntro({ eyebrow, title, copy }: { eyebrow: string; title: string; copy: string }) {
-  return (
-    <div className="text-black">
-      <p className="text-xs font-black uppercase tracking-[0.42em] text-pink-600">{eyebrow}</p>
-      <h2 className="mt-3 text-3xl font-black tracking-tight text-black sm:text-4xl uppercase">
-        {title}
-      </h2>
-      <p className="mt-3 max-w-2xl text-sm font-bold text-gray-600 leading-relaxed">{copy}</p>
-    </div>
-  );
-}
-
-function SectionBlock({ title, children }: { title: string; children: React.ReactNode }) {
-  return (
-    <section className="mt-8 bg-white border-2 border-black rounded-lg p-5 text-black">
-      <p className="mb-3 text-xs font-black uppercase tracking-[0.35em] text-gray-500">{title}</p>
-      {children}
-    </section>
   );
 }
 
 function SidePanel({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <section className="bg-white border-2 border-black rounded-lg p-5 text-black">
-      <h3 className="text-lg font-black text-black uppercase tracking-wider">{title}</h3>
+    <section className="bg-white border-2 border-[#1a1a1a] rounded-lg p-5 text-[#1a1a1a] shadow-[3px_3px_0_#1a1a1a]">
+      <h2 className="text-xl text-[#1a1a1a] uppercase tracking-wider">{title}</h2>
       <div className="mt-4">{children}</div>
     </section>
   );
 }
 
-function DetailList({ title, items }: { title: string; items: string[] }) {
+type DossierVariant = 'cast' | 'guests' | 'writers' | 'director';
+
+function DetailList({
+  title,
+  items,
+  variant = 'cast',
+}: {
+  title: string;
+  items: string[];
+  variant?: DossierVariant;
+}) {
   return (
-    <div className="bg-white border-2 border-black rounded-md p-4 text-black">
-      <p className="text-xs font-black uppercase tracking-[0.35em] text-gray-500">{title}</p>
-      <ul className="mt-2 space-y-1 text-sm font-bold text-gray-700 leading-6">
+    <div className="dossier-card">
+      <div className={`dossier-card-header dossier-card-header--${variant}`}>
+        <span>{title}</span>
+        {items.length ? <span className="dossier-count">{items.length}</span> : null}
+      </div>
+      <ul className="dossier-chip-list">
         {items.length ? (
-          items.map((item) => <li key={item}>{item}</li>)
+          items.map((item) => (
+            <li key={item} className="dossier-chip">
+              {item}
+            </li>
+          ))
         ) : (
-          <li className="text-gray-400">Unknown</li>
+          <li className="dossier-chip dossier-chip--empty">None listed</li>
         )}
       </ul>
-    </div>
-  );
-}
-
-function ReviewRow({
-  host,
-  review,
-  ratingLabel,
-  onHost,
-}: {
-  host: Cohost | undefined;
-  review: Review;
-  ratingLabel: string;
-  onHost: (route: Route) => void;
-}) {
-  const mapped = host
-    ? COHOST_NAME_MAP[host.id.toLowerCase()] || COHOST_NAME_MAP[host.name?.toLowerCase()]
-    : null;
-  const name = mapped?.name ?? host?.name ?? review.cohostId;
-  return (
-    <div className="grid gap-4 py-5 sm:grid-cols-[220px_minmax(0,1fr)_90px] text-black">
-      <button
-        type="button"
-        onClick={() => host && onHost({ page: 'host', id: host.id })}
-        className="flex items-center gap-3 text-left"
-      >
-        {host ? <Avatar host={host} /> : null}
-        <div>
-          <p className="font-black text-black">{name}</p>
-          <p className="text-xs font-bold text-gray-500">
-            {review.draftSource === 'transcript' ? 'Transcript draft' : 'Manual edit'}
-          </p>
-        </div>
-      </button>
-      <div>
-        {review.pullQuote ? (
-          <p className="mb-2 text-sm font-black text-pink-600">"{review.pullQuote}"</p>
-        ) : null}
-        <p className="whitespace-pre-wrap text-sm font-bold text-gray-700 leading-relaxed">
-          {review.review || 'No review yet.'}
-        </p>
-      </div>
-      <div className="text-right">
-        <p className="text-2xl font-black text-black">
-          {review.rating == null ? '--' : review.rating.toFixed(1)}
-        </p>
-        <p className="text-xs font-bold text-gray-500 uppercase">{ratingLabel}</p>
-      </div>
     </div>
   );
 }
@@ -1589,7 +1868,7 @@ function Avatar({ host, large = false }: { host: Cohost; large?: boolean }) {
   const theme = getHostTheme(host.id);
   return (
     <div
-      className={`grid shrink-0 place-items-center border-2 border-black font-black overflow-hidden relative ${theme.textClass} ${large ? 'h-24 w-24 text-3xl' : 'h-11 w-11 text-sm'}`}
+      className={`grid shrink-0 place-items-center border-2 border-[#1a1a1a] font-black overflow-hidden relative ${theme.textClass} ${large ? 'h-24 w-24 text-3xl' : 'h-11 w-11 text-sm'}`}
       style={{ backgroundColor: theme.fallbackBg }}
     >
       <span className="absolute inset-0 flex items-center justify-center bg-transparent z-0">
@@ -1601,226 +1880,47 @@ function Avatar({ host, large = false }: { host: Cohost; large?: boolean }) {
 
 function ProgressBar({ value }: { value: number }) {
   return (
-    <div className="mt-2.5 h-3 overflow-hidden border-2 border-black bg-white">
-      <div className="h-full bg-black" style={{ width: `${Math.max(2, Math.min(100, value))}%` }} />
+    <div className="mt-2.5 h-3 overflow-hidden border-2 border-[#1a1a1a] bg-white">
+      <div
+        className="h-full bg-[#1a1a1a]"
+        style={{ width: `${Math.max(2, Math.min(100, value))}%` }}
+      />
     </div>
   );
 }
 
-// SchemaLine retired
-
-function EmptyState({ title, copy }: { title: string; copy: string }) {
+function EmptyState({
+  title,
+  copy,
+  actionLabel,
+  onAction,
+  headingLevel = 'h3',
+}: {
+  title: string;
+  copy: string;
+  actionLabel?: string;
+  onAction?: () => void;
+  headingLevel?: 'h1' | 'h2' | 'h3';
+}) {
+  const HeadingTag = headingLevel;
   return (
-    <div className="mt-8 rounded-[1.6rem] border border-dashed border-white/15 bg-white/[0.025] p-8 text-center">
-      <h3 className="text-2xl font-semibold text-white">{title}</h3>
-      <p className="mt-2 text-slate-400">{copy}</p>
+    <div className="mt-8 rounded-lg border-2 border-[#1a1a1a] bg-white p-8 text-center text-[#1a1a1a] shadow-[3px_3px_0_#1a1a1a]">
+      <HeadingTag className="text-2xl font-black uppercase text-[#1a1a1a]">{title}</HeadingTag>
+      <p className="mt-2 text-sm font-medium text-[#4a4a4a]">{copy}</p>
+      {actionLabel && onAction ? (
+        <button type="button" onClick={onAction} className="primary-button mt-5">
+          {actionLabel}
+        </button>
+      ) : null}
     </div>
   );
 }
-
-function createDemoDataset(): PodcastDataset {
-  const cohosts: Cohost[] = [
-    {
-      id: 'collin',
-      name: 'Collin Brown',
-      role: 'Host',
-      bio: "Longtime improv comedian, lifelong Family Guy apologist, and the guy who didn't see the pilot until middle school.",
-      accent: PALETTE[0],
-    },
-    {
-      id: 'tyler',
-      name: 'Tyler Simpson',
-      role: 'Host',
-      bio: 'Watched the original broadcast as an 8-year-old and loved it. This is either his origin story or his origin tragedy.',
-      accent: PALETTE[1],
-    },
-    {
-      id: 'jason',
-      name: 'Jason Hackett',
-      role: 'Host',
-      bio: 'Played the theme song entirely too loud on episode one. Sets the tone. Cranks the hogs. Asks the hard questions nobody asked.',
-      accent: PALETTE[2],
-    },
-  ];
-
-  const baseEpisodes: Omit<Episode, 'reviews'>[] = [
-    episodeBase(
-      's01e01-death-has-a-shadow',
-      1,
-      1,
-      'Death Has a Shadow',
-      'Jan 31, 1999',
-      'published',
-      'Peter loses his job after a company party and the Griffin family dynamic arrives almost fully formed.',
-      'Peter Shin',
-      ['Seth MacFarlane', 'David Zuckerman'],
-      '1ACX01'
-    ),
-    episodeBase(
-      's01e02-i-never-met-the-dead-man',
-      1,
-      2,
-      'I Never Met the Dead Man',
-      'Apr 11, 1999',
-      'published',
-      'Peter is banned from television, so he finds increasingly desperate ways to get his favorite distraction back.',
-      'Michael Dante DiMartino',
-      ['Danny Smith'],
-      '1ACX02'
-    ),
-    episodeBase(
-      's01e03-chitty-chitty-death-bang',
-      1,
-      3,
-      'Chitty Chitty Death Bang',
-      'Apr 18, 1999',
-      'recorded',
-      'A birthday party spirals into a cult standoff and shows how quickly the series can escalate a simple premise.',
-      'Dominic Polcino',
-      ['Mikey Day', 'Matt Weitzman'],
-      '1ACX03'
-    ),
-    episodeBase(
-      's01e04-mind-over-murder',
-      1,
-      4,
-      'Mind Over Murder',
-      'Apr 25, 1999',
-      'watched',
-      'Peter turns the basement into a bar while the episode tests how much story can be built around a single bad decision.',
-      'Roy Allen Smith',
-      ['Neil Goldman', 'Garrett Donovan'],
-      '1ACX04'
-    ),
-    episodeBase(
-      's01e05-peter-peter-caviar-eater',
-      1,
-      5,
-      'Peter, Peter, Caviar Eater',
-      'May 2, 1999',
-      'backlog',
-      'The Griffins brush up against wealth, which gives Peter a larger room to be the least elegant person alive.',
-      'Jeff Myers',
-      ['Chris Sheridan'],
-      '1ACX05'
-    ),
-    episodeBase(
-      's01e06-the-son-also-draws',
-      1,
-      6,
-      'The Son Also Draws',
-      'May 9, 1999',
-      'backlog',
-      'A family road trip gives the show space to turn parenting anxiety into roaming nonsense.',
-      'Neil Affleck',
-      ['Ricky Blitt'],
-      '1ACX06'
-    ),
-    episodeBase(
-      's02e01-peter-peter-caviar-eater',
-      2,
-      1,
-      'Peter, Peter, Caviar Eater',
-      'Sep 23, 1999',
-      'backlog',
-      'A new season shelf sample for testing chronological runs and season pages.',
-      'Dan Povenmire',
-      ['Chris Sheridan'],
-      '2ACX01'
-    ),
-    episodeBase(
-      's02e02-holy-crap',
-      2,
-      2,
-      'Holy Crap',
-      'Sep 30, 1999',
-      'backlog',
-      "Peter's father visits and turns the house into a pressure cooker of generational tension and dumb rebellion.",
-      'Neil Affleck',
-      ['Danny Smith'],
-      '2ACX02'
-    ),
-  ];
-
-  return {
-    schemaVersion: 'fg-letterlog-v2',
-    showName: 'Family Guy Guys',
-    subtitle:
-      'Join Collin, Tyler, and Jason as they watch and review every single episode of Family Guy in chronological order.',
-    ratingScale: { label: 'Quahogs', max: 5 },
-    cohosts,
-    episodes: baseEpisodes.map((episode, index) => ({
-      ...episode,
-      reviews: demoReviews(cohosts, index),
-    })),
-  };
-}
-
-function episodeBase(
-  id: string,
-  season: number,
-  episodeNumber: number,
-  title: string,
-  airDate: string,
-  watchStatus: WatchStatus,
-  summary: string,
-  director: string,
-  writers: string[],
-  productionCode: string
-): Omit<Episode, 'reviews'> {
-  return {
-    id,
-    season,
-    episodeNumber,
-    title,
-    airDate,
-    runtime: '22 min',
-    imdbRating: (7 + ((season + episodeNumber) % 6) / 10).toFixed(1),
-    summary,
-    cast: [
-      'Seth MacFarlane as Peter Griffin',
-      'Alex Borstein as Lois Griffin',
-      'Seth Green as Chris Griffin',
-      'Mila Kunis as Meg Griffin',
-    ],
-    guestStars: ['Guest cast to be imported from your metadata source'],
-    writers,
-    director,
-    facts: [
-      { label: 'Production code', value: productionCode },
-      { label: 'Metadata source', value: 'Demo placeholder for IMDb-style fields' },
-    ],
-    watchStatus,
-    podcastUrl: '',
-    transcriptNotes: '',
-    thumbnailPublicId: null,
-    thumbnailUrl: null,
-    thumbnailStatus: 'pending',
-    thumbnailError: null,
-  };
-}
-
-function demoReviews(cohosts: Cohost[], index: number): Review[] {
-  return cohosts.map((host, hostIndex) => {
-    const rating = Math.min(5, 3 + ((index + hostIndex) % 4) * 0.5);
-    return {
-      cohostId: host.id,
-      rating,
-      review: `${host.name} draft review for this episode. Replace this with the summarized discussion and let the host rewrite it later.`,
-      pullQuote: rating >= 4 ? 'A strong early swing.' : 'Still finding the formula.',
-      draftSource: 'manual',
-      updatedAt: new Date().toISOString(),
-    };
-  });
-}
-
-// Unused normalize functions retired
 
 function parsePath(): Route {
+  if (typeof window === 'undefined') return { page: 'catalog' };
   const path = window.location.pathname;
   if (path.startsWith('/reviews')) {
     const subpath = path.slice('/reviews'.length);
-    // Retired subpaths handled globally by router
     if (subpath.startsWith('/season/')) {
       const seasonNum = Number(subpath.split('/')[2]);
       if (!isNaN(seasonNum)) return { page: 'season', season: seasonNum };
@@ -1844,29 +1944,6 @@ function routeToPath(route: Route): string {
   return `/reviews/host/${encodeURIComponent(route.id)}`;
 }
 
-function getDatasetMetrics(dataset: PodcastDataset) {
-  const ratings = dataset.episodes.flatMap((episode) =>
-    episode.reviews
-      .map((review) => review.rating)
-      .filter((rating): rating is number => rating !== null)
-  );
-  return {
-    episodeCount: dataset.episodes.length,
-    publishedCount: dataset.episodes.filter((episode) => episode.watchStatus === 'published')
-      .length,
-    average: ratings.length
-      ? ratings.reduce((sum, rating) => sum + rating, 0) / ratings.length
-      : null,
-  };
-}
-
-function averageRating(reviews: Review[]): number | null {
-  const ratings = reviews
-    .map((review) => review.rating)
-    .filter((rating): rating is number => rating !== null);
-  return ratings.length ? ratings.reduce((sum, rating) => sum + rating, 0) / ratings.length : null;
-}
-
 function alignReviews(reviews: Review[], cohosts: Cohost[]): Review[] {
   const map = new Map(reviews.map((review) => [review.cohostId, review]));
   return cohosts.map(
@@ -1883,6 +1960,8 @@ function alignReviews(reviews: Review[], cohosts: Cohost[]): Review[] {
 
 function searchableEpisodeText(episode: Episode): string {
   return [
+    episode.id,
+    formatEpisodeCode(episode),
     episode.title,
     episode.summary,
     episode.cast.join(' '),
@@ -1921,23 +2000,5 @@ function seasonProgress(episodes: Episode[]): number {
 function formatEpisodeCode(episode: Pick<Episode, 'season' | 'episodeNumber'>): string {
   return `S${String(episode.season).padStart(2, '0')}E${String(episode.episodeNumber).padStart(2, '0')}`;
 }
-
-function posterColors(seed: string): string[] {
-  let hash = 0;
-  for (let index = 0; index < seed.length; index += 1)
-    hash = seed.charCodeAt(index) + ((hash << 5) - hash);
-  return [
-    PALETTE[Math.abs(hash) % PALETTE.length],
-    PALETTE[Math.abs(hash + 2) % PALETTE.length],
-    PALETTE[Math.abs(hash + 4) % PALETTE.length],
-  ];
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value);
-}
-
-// Helper to hash string to SHA-256 hex string using standard SubtleCrypto
-// sha256 and AdminLoginPage retired
 
 export default App;

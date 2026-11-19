@@ -7,8 +7,7 @@ function getElements() {
     titleEl: document.getElementById('audio-title'),
     currentTimeEl: document.getElementById('audio-current-time'),
     durationEl: document.getElementById('audio-duration'),
-    progressBar: document.getElementById('audio-progress-bar'),
-    progressBg: document.getElementById('audio-progress-bar-bg'),
+    progressSlider: document.getElementById('audio-progress-slider'),
     speedSelect: document.getElementById('audio-speed'),
     closeBtn: document.getElementById('audio-close'),
   };
@@ -17,9 +16,16 @@ function getElements() {
 let currentEpisode = null;
 
 export function initAudioPlayer() {
-  const { audioElement, playBtn, durationEl, speedSelect, progressBg, closeBtn, playerContainer } =
-    getElements();
-  if (!audioElement || !playBtn || !progressBg || !closeBtn) return;
+  const {
+    audioElement,
+    playBtn,
+    durationEl,
+    speedSelect,
+    progressSlider,
+    closeBtn,
+    playerContainer,
+  } = getElements();
+  if (!audioElement || !playBtn || !progressSlider || !closeBtn) return;
 
   // Restore state from localStorage
   const savedState =
@@ -56,6 +62,7 @@ export function initAudioPlayer() {
   // Load duration when metadata is ready
   audioElement.addEventListener('loadedmetadata', () => {
     if (durationEl) durationEl.textContent = formatTime(audioElement.duration);
+    updateProgress();
   });
 
   // Speed selection
@@ -66,20 +73,22 @@ export function initAudioPlayer() {
     });
   }
 
-  // Scrubbing logic
-  progressBg.addEventListener('click', (e) => {
-    const rect = progressBg.getBoundingClientRect();
-    const clickX = e.clientX - rect.left;
-    const width = rect.width;
-    const percentage = clickX / width;
-    audioElement.currentTime = percentage * audioElement.duration;
+  // Accessible range input scrubbing logic
+  progressSlider.addEventListener('input', () => {
+    const dur = audioElement.duration;
+    if (!Number.isFinite(dur) || dur <= 0) return;
+    audioElement.currentTime = (Number(progressSlider.value) / 100) * dur;
     updateProgress();
   });
 
   // Close player
   closeBtn.addEventListener('click', () => {
     audioElement.pause();
+    stopVisualizer();
     if (playerContainer) playerContainer.style.display = 'none';
+    if (typeof document !== 'undefined' && document.body?.classList) {
+      document.body.classList.toggle('has-audio-player', false);
+    }
     if (typeof localStorage !== 'undefined') localStorage.removeItem('faguugu-audio-state');
   });
 
@@ -100,6 +109,10 @@ function loadEpisode(title, url, shouldPlay = true) {
   audioElement.src = url;
   playerContainer.style.display = 'block';
 
+  if (typeof document !== 'undefined' && document.body?.classList) {
+    document.body.classList.toggle('has-audio-player', true);
+  }
+
   // Set MediaSession metadata for mobile lockscreen integration
   if (typeof navigator !== 'undefined' && 'mediaSession' in navigator) {
     navigator.mediaSession.metadata = new MediaMetadata({
@@ -116,9 +129,11 @@ function loadEpisode(title, url, shouldPlay = true) {
   if (shouldPlay) {
     audioElement.play().catch((err) => console.log('Playback start interrupted:', err));
     playBtn.textContent = '⏸';
-    startVisualizer();
+    playBtn.setAttribute('aria-label', 'Pause');
+    startVisualizer(audioElement);
   } else {
     playBtn.textContent = '▶';
+    playBtn.setAttribute('aria-label', 'Play');
     stopVisualizer();
   }
 }
@@ -130,26 +145,34 @@ function togglePlay() {
   if (audioElement.paused) {
     audioElement.play().catch((err) => console.log('Playback resume interrupted:', err));
     playBtn.textContent = '⏸';
-    startVisualizer();
+    playBtn.setAttribute('aria-label', 'Pause');
+    startVisualizer(audioElement);
   } else {
     audioElement.pause();
     playBtn.textContent = '▶';
+    playBtn.setAttribute('aria-label', 'Play');
     stopVisualizer();
   }
 }
 
 function updateProgress() {
-  const { audioElement, currentTimeEl, progressBar } = getElements();
-  if (!audioElement || !currentTimeEl || !progressBar) return;
+  const { audioElement, currentTimeEl, progressSlider } = getElements();
+  if (!audioElement || !currentTimeEl || !progressSlider) return;
 
   const current = audioElement.currentTime;
-  const duration = audioElement.duration || 0;
+  const duration = Number.isFinite(audioElement.duration) ? audioElement.duration : 0;
   currentTimeEl.textContent = formatTime(current);
 
   if (duration > 0) {
-    const percent = (current / duration) * 100;
-    progressBar.style.width = `${percent}%`;
+    const percent = Math.min(100, Math.max(0, (current / duration) * 100));
+    progressSlider.value = percent.toFixed(1);
+  } else {
+    progressSlider.value = '0';
   }
+  progressSlider.setAttribute(
+    'aria-valuetext',
+    `${formatTime(current)} of ${formatTime(duration)}`
+  );
 }
 
 function saveProgress() {
@@ -165,7 +188,7 @@ function saveProgress() {
 }
 
 function formatTime(seconds) {
-  if (isNaN(seconds)) return '0:00';
+  if (!Number.isFinite(seconds) || isNaN(seconds) || seconds < 0) return '0:00';
   const mins = Math.floor(seconds / 60);
   const secs = Math.floor(seconds % 60);
   return `${mins}:${secs.toString().padStart(2, '0')}`;
@@ -177,11 +200,12 @@ let analyser = null;
 let source = null;
 let visualizerActive = false;
 
-function setupVisualizer() {
-  if (audioCtx) return;
+function setupVisualizer(audioElement) {
+  if (audioCtx || !audioElement || typeof window === 'undefined') return;
 
   try {
     const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+    if (!AudioContextClass) return;
     audioCtx = new AudioContextClass();
     analyser = audioCtx.createAnalyser();
     analyser.fftSize = 64; // small size for basic volume tracking
@@ -195,8 +219,15 @@ function setupVisualizer() {
   }
 }
 
-function startVisualizer() {
-  setupVisualizer();
+function startVisualizer(audioElement) {
+  if (
+    typeof window !== 'undefined' &&
+    window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches
+  ) {
+    return;
+  }
+
+  setupVisualizer(audioElement);
   if (!analyser) return;
 
   if (audioCtx && audioCtx.state === 'suspended') {
@@ -236,5 +267,7 @@ function startVisualizer() {
 
 function stopVisualizer() {
   visualizerActive = false;
-  document.documentElement.style.setProperty('--halftone-opacity', '0.13'); // Reset to default
+  if (typeof document !== 'undefined') {
+    document.documentElement.style.setProperty('--halftone-opacity', '0.13'); // Reset to default
+  }
 }

@@ -46,12 +46,14 @@ describe('Glossary Static Prerendering Pipeline', () => {
     const html = fs.readFileSync(generatedHtmlPath, 'utf8');
     const $ = cheerio.load(html);
 
-    // Exact heading counts within glossary container
+    // Exact heading counts within glossary container and zero nested <main>
     const $app = $('#glossary-app');
+    expect($app.find('main')).toHaveLength(0);
     expect($app.find('h1')).toHaveLength(1);
     expect($app.find('h1').text().trim()).toBe('Official Podcast Glossary');
     expect($app.find('h2')).toHaveLength(5);
     expect($app.find('h3')).toHaveLength(33);
+    expect($app.find('.glossary-container').attr('data-published-slugs')).toBeDefined();
 
     // Assert only glossary page is active
     expect($('#page-glossary').hasClass('active')).toBe(true);

@@ -66,16 +66,22 @@ if (typeof window !== 'undefined' && typeof document !== 'undefined') {
       reviewAppLoaded = true;
       const reviewAppContainer = document.getElementById('review-app');
       if (reviewAppContainer) {
-        reviewAppContainer.textContent = 'Loading Reviews Platform...';
-        reviewAppContainer.className = 'p-8 text-center text-slate-800';
+        const loadingCard = document.createElement('div');
+        loadingCard.className = 'route-loading-card';
+        loadingCard.setAttribute('role', 'status');
+        loadingCard.textContent = 'Loading Reviews Platform...';
+        reviewAppContainer.replaceChildren(loadingCard);
         try {
           // Dynamically import the React review application entry point
           const { mountReviews } = await import('./reviews/mount.jsx');
           mountReviews(reviewAppContainer);
         } catch (err) {
           console.error('Failed to load reviews app:', err);
-          reviewAppContainer.textContent = 'Failed to load reviews platform. Please try again.';
-          reviewAppContainer.className = 'p-8 text-center text-red-600';
+          const errorCard = document.createElement('div');
+          errorCard.className = 'route-error-card';
+          errorCard.setAttribute('role', 'alert');
+          errorCard.textContent = 'Failed to load reviews platform. Please refresh and try again.';
+          reviewAppContainer.replaceChildren(errorCard);
         }
       }
     }
@@ -215,6 +221,20 @@ if (typeof window !== 'undefined' && typeof document !== 'undefined') {
         }
       } catch (err) {
         console.error('Failed to mount Headers-Gaggs module:', err);
+        const target = ctaContainer || appContainer;
+        if (target) {
+          const fallback = document.createElement('div');
+          fallback.className = 'route-error-card';
+          const copy = document.createElement('p');
+          copy.textContent = 'Take the Headers-Gaggs Personality Evaluation on its dedicated page.';
+          const link = document.createElement('a');
+          link.href = '/headers-gaggs';
+          link.className = 'btn-orange';
+          link.textContent = 'Open Headers-Gaggs Test';
+          fallback.appendChild(copy);
+          fallback.appendChild(link);
+          target.replaceChildren(fallback);
+        }
       }
     }
   };
@@ -246,54 +266,6 @@ if (typeof window !== 'undefined' && typeof document !== 'undefined') {
 
   // Initialize the persistent audio player
   initAudioPlayer();
-
-  // Spreadshirt Shop Integration (Spreadshop ID: 401265528) - Loaded on demand
-  if (document.getElementById('merchShopContainer')) {
-    window.spread_shop_config = {
-      shopName: '401265528',
-      locale: 'us_US',
-      prefix: 'https://familyguyguys.com/merch',
-      baseId: 'merchShopContainer',
-    };
-
-    const loadMerchScript = () => {
-      if (document.getElementById('spreadshirt-script')) return;
-      const script = document.createElement('script');
-      script.id = 'spreadshirt-script';
-      script.type = 'text/javascript';
-      script.src = 'https://shop.spreadshirt.com/shopfiles/shopclient.nocache.js';
-      script.async = true;
-      script.onerror = () => {
-        console.warn('Failed to load Spreadshirt shop widget.');
-      };
-      document.body.appendChild(script);
-    };
-
-    // Defer merch script until main content render
-    if (document.readyState === 'complete') {
-      loadMerchScript();
-    } else {
-      window.addEventListener('load', loadMerchScript);
-    }
-  }
-
-  // Newsletter Signup Integration (Honest Coming Soon state)
-  const newsletterForm = document.getElementById('newsletter-form');
-  const newsletterEmail = document.getElementById('newsletter-email');
-  const newsletterStatus = document.getElementById('newsletter-status');
-
-  if (newsletterForm) {
-    newsletterForm.addEventListener('submit', (e) => {
-      e.preventDefault();
-      if (!newsletterStatus) return;
-
-      newsletterStatus.style.display = 'block';
-      newsletterStatus.style.color = 'var(--teal)';
-      newsletterStatus.textContent =
-        'Newsletter signup is coming soon! Email feedback@familyguyguys.com to connect.';
-      if (newsletterEmail) newsletterEmail.value = '';
-    });
-  }
 
   // Auto-expand transcript <details> if navigating to a section anchor (#sec-...)
   const handleTranscriptHash = () => {
@@ -499,11 +471,11 @@ function createEpisodeElement(ep, isFeatured = false) {
   numDiv.textContent = `Episode #${epNumStr}`;
 
   const titleDiv = document.createElement('div');
-  titleDiv.className = 'ep-title';
+  titleDiv.className = isFeatured ? 'episode-title' : 'ep-title';
   titleDiv.textContent = ep.title || '';
 
   const descDiv = document.createElement('div');
-  descDiv.className = 'ep-desc';
+  descDiv.className = isFeatured ? 'episode-desc' : 'ep-desc';
   descDiv.textContent = ep.summary || '';
 
   metaContainer.appendChild(numDiv);
@@ -540,31 +512,67 @@ function createEpisodeElement(ep, isFeatured = false) {
   return card;
 }
 
+function renderLoadingState(container, isFeatured = false) {
+  if (!container) return;
+  container.replaceChildren();
+
+  const wrapper = document.createElement('div');
+  wrapper.className = 'episode-loading-state';
+  wrapper.setAttribute('role', 'status');
+  wrapper.setAttribute('aria-live', 'polite');
+  if (isFeatured) {
+    wrapper.classList.add('episode-state--compact');
+  }
+  wrapper.textContent = 'Loading latest episodes...';
+  container.appendChild(wrapper);
+}
+
 function renderErrorState(container, message, isFeatured = false) {
   if (!container) return;
   container.replaceChildren();
 
   const wrapper = document.createElement('div');
-  wrapper.className = 'episode-error-state';
-  wrapper.style.cssText = `padding: ${isFeatured ? '1.5rem' : '3rem'}; text-align: center; border: 2px dashed var(--maroon); border-radius: 8px; color: var(--maroon); font-family: 'Special Elite', monospace;`;
+  wrapper.className = isFeatured
+    ? 'episode-error-state episode-state--compact'
+    : 'episode-error-state';
+  wrapper.setAttribute('role', 'alert');
 
   const icon = document.createElement('div');
-  icon.style.fontSize = '1.5rem';
-  icon.style.marginBottom = '0.5rem';
+  icon.className = 'episode-state-icon';
+  icon.setAttribute('aria-hidden', 'true');
   icon.textContent = '⚠️';
 
   const title = document.createElement('div');
-  title.style.cssText = 'font-weight: bold; text-transform: uppercase; font-size: 0.9rem;';
-  title.textContent = 'Database Connection Failed';
+  title.className = 'episode-state-title';
+  title.textContent = 'Could Not Load Episodes';
 
   const text = document.createElement('p');
-  text.style.cssText =
-    'margin-top: 0.5rem; font-size: 0.8rem; color: #666; font-family: sans-serif; line-height: 1.4;';
-  text.textContent = message || '';
+  text.className = 'episode-state-copy';
+  text.textContent = message || 'Unable to reach the episode archive right now.';
+
+  const actions = document.createElement('div');
+  actions.className = 'episode-state-actions';
+
+  const retryBtn = document.createElement('button');
+  retryBtn.type = 'button';
+  retryBtn.className = 'ep-action-btn watch';
+  retryBtn.textContent = 'Retry';
+  retryBtn.addEventListener('click', () => {
+    loadDynamicEpisodes();
+  });
+
+  const reviewsLink = document.createElement('a');
+  reviewsLink.href = '/reviews';
+  reviewsLink.className = 'ep-action-btn review';
+  reviewsLink.textContent = 'Browse Reviews';
+
+  actions.appendChild(retryBtn);
+  actions.appendChild(reviewsLink);
 
   wrapper.appendChild(icon);
   wrapper.appendChild(title);
   wrapper.appendChild(text);
+  wrapper.appendChild(actions);
   container.appendChild(wrapper);
 }
 
@@ -573,64 +581,39 @@ function renderEmptyState(container, isFeatured = false) {
   container.replaceChildren();
 
   const wrapper = document.createElement('div');
-  wrapper.className = 'episode-empty-state';
-  wrapper.style.cssText = `padding: ${isFeatured ? '1.5rem' : '3rem'}; text-align: center; border: 2px dashed var(--orange); border-radius: 8px; color: var(--orange-dark); font-family: 'Special Elite', monospace;`;
+  wrapper.className = isFeatured
+    ? 'episode-empty-state episode-state--compact'
+    : 'episode-empty-state';
 
   const icon = document.createElement('div');
-  icon.style.fontSize = '1.5rem';
-  icon.style.marginBottom = '0.5rem';
+  icon.className = 'episode-state-icon';
+  icon.setAttribute('aria-hidden', 'true');
   icon.textContent = '📭';
 
   const title = document.createElement('div');
-  title.style.cssText = 'font-weight: bold; text-transform: uppercase; font-size: 0.9rem;';
-  title.textContent = 'No Published Episodes';
+  title.className = 'episode-state-title';
+  title.textContent = 'No Published Episodes Yet';
 
   const text = document.createElement('p');
-  text.style.cssText =
-    'margin-top: 0.5rem; font-size: 0.8rem; color: #666; font-family: sans-serif; line-height: 1.4;';
-  text.textContent = 'Check back later for new episodes of Family Guy Guys!';
+  text.className = 'episode-state-copy';
+  text.textContent = 'Check back soon or browse the reviews archive.';
+
+  const actions = document.createElement('div');
+  actions.className = 'episode-state-actions';
+
+  const reviewsLink = document.createElement('a');
+  reviewsLink.href = '/reviews';
+  reviewsLink.className = 'ep-action-btn review';
+  reviewsLink.textContent = 'Browse Reviews';
+
+  actions.appendChild(reviewsLink);
 
   wrapper.appendChild(icon);
   wrapper.appendChild(title);
   wrapper.appendChild(text);
+  wrapper.appendChild(actions);
   container.appendChild(wrapper);
 }
-
-const DEFAULT_FALLBACK_EPISODES = [
-  {
-    id: 's01e01-death-has-a-shadow',
-    season: 1,
-    episode_number: 1,
-    title: 'Death Has a Shadow',
-    air_date: 'Jan 31, 1999',
-    summary:
-      'Peter loses his job after drinking too much at a bachelor party and accidentally collects $150,000 in welfare checks.',
-    youtube_url: 'https://youtu.be/-NQAqWC2BK0',
-    reviews: [{ id: 'rev-1' }],
-  },
-  {
-    id: 's01e02-i-never-met-the-dead-man',
-    season: 1,
-    episode_number: 2,
-    title: 'I Never Met the Dead Man',
-    air_date: 'Apr 11, 1999',
-    summary:
-      'Peter knocks out the city cable TV transmitter while teaching Meg to drive, then suffers extreme television withdrawal.',
-    youtube_url: 'https://youtu.be/a9Y_LX9c8Bk',
-    reviews: [{ id: 'rev-2' }],
-  },
-  {
-    id: 's01e03-chitty-chitty-death-bang',
-    season: 1,
-    episode_number: 3,
-    title: 'Chitty Chitty Death Bang',
-    air_date: 'Apr 18, 1999',
-    summary:
-      "Meg gets invited to a party that turns out to be a cult suicide pact while Peter tries to salvage Stewie's first birthday.",
-    youtube_url: 'https://youtu.be/BcrVPdWeCZ4',
-    reviews: [{ id: 'rev-3' }],
-  },
-];
 
 function renderEpisodeList(episodes, latestContainer, listContainer) {
   if (latestContainer && episodes.length > 0) {
@@ -648,10 +631,14 @@ async function loadDynamicEpisodes() {
 
   if (!latestEpisodeContainer && !episodesList) return;
 
+  renderLoadingState(latestEpisodeContainer, true);
+  renderLoadingState(episodesList, false);
+
   try {
     if (!supabase) {
-      console.warn('Supabase credentials missing, falling back to local episode list.');
-      renderEpisodeList(DEFAULT_FALLBACK_EPISODES, latestEpisodeContainer, episodesList);
+      const msg = 'Episodes database connection is currently unavailable.';
+      renderErrorState(latestEpisodeContainer, msg, true);
+      renderErrorState(episodesList, msg, false);
       return;
     }
 
@@ -665,21 +652,26 @@ async function loadDynamicEpisodes() {
       .order('episode_number', { ascending: false });
 
     if (error) {
-      console.warn('Error fetching dynamic episodes from Supabase, using local fallback:', error);
-      renderEpisodeList(DEFAULT_FALLBACK_EPISODES, latestEpisodeContainer, episodesList);
+      renderErrorState(
+        latestEpisodeContainer,
+        error.message || 'Unable to load latest episode.',
+        true
+      );
+      renderErrorState(episodesList, error.message || 'Unable to load episode feed.', false);
       return;
     }
 
     if (!episodes || episodes.length === 0) {
-      console.log('No published episodes found in Supabase, using local fallback.');
-      renderEpisodeList(DEFAULT_FALLBACK_EPISODES, latestEpisodeContainer, episodesList);
+      renderEmptyState(latestEpisodeContainer, true);
+      renderEmptyState(episodesList, false);
       return;
     }
 
     renderEpisodeList(episodes, latestEpisodeContainer, episodesList);
   } catch (err) {
-    console.warn('Error rendering dynamic episodes, using local fallback:', err);
-    renderEpisodeList(DEFAULT_FALLBACK_EPISODES, latestEpisodeContainer, episodesList);
+    const message = err instanceof Error ? err.message : 'Unable to reach the episode archive.';
+    renderErrorState(latestEpisodeContainer, message, true);
+    renderErrorState(episodesList, message, false);
   }
 }
 

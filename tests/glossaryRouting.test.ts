@@ -44,13 +44,15 @@ describe('Task 3: Client Routing & Navigation Integration', () => {
     });
 
     it('contains footer link to Glossary', () => {
-      const $footerLinks = $('footer a');
+      const $footer = $('footer.site-footer');
+      expect($footer.length).toBe(1);
+      const $footerLinks = $footer.find('a');
       const hrefs = $footerLinks.map((_, el) => $(el).attr('href')).get();
       expect(hrefs).toContain('/glossary');
 
       const $glossaryFooter = $('footer a[href="/glossary"]');
       expect($glossaryFooter.text().trim()).toBe('Glossary');
-      expect($glossaryFooter.attr('style')).toContain('color: var(--orange)');
+      expect($glossaryFooter.hasClass('site-footer-link')).toBe(true);
     });
 
     it('contains #page-glossary with #glossary-app container inside <main>', () => {

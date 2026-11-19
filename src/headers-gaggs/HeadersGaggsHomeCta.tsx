@@ -24,6 +24,11 @@ export const HeadersGaggsHomeCta: React.FC = () => {
         <a href="/headers-gaggs" onClick={handleClick} className="btn-orange headers-gaggs-cta-btn">
           Begin the Evaluation &rarr;
         </a>
+        <p className="headers-gaggs-glossary-bridge">
+          <a href="/glossary" className="text-link">
+            New to the lore? Explore the Official Glossary &rarr;
+          </a>
+        </p>
       </div>
     </div>
   );

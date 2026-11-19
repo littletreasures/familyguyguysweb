@@ -62,7 +62,7 @@ export const HeadersGaggsQuestion: React.FC<HeadersGaggsQuestionProps> = ({
           disabled={!isOptionSelected}
           className={`headers-gaggs-next-btn ${isOptionSelected ? 'enabled' : 'disabled'}`}
         >
-          {questionNumber === totalQuestions ? 'Calculate Result &rarr;' : 'Next Question'}
+          {questionNumber === totalQuestions ? 'Calculate Result →' : 'Next Question'}
         </button>
       </div>
     </div>
