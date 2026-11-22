@@ -1397,6 +1397,7 @@ function HostScoreDisplay({
               size={14}
               fill={s <= Math.round(ratingDisplay.value!) ? '#ffffff' : 'transparent'}
               className="stroke-[2.5] text-[#1a1a1a]"
+              aria-hidden="true"
             />
           ))}
           <span className="bg-[#1a1a1a] text-white font-black text-xs px-2 py-0.5 ml-1 border border-white leading-none">
